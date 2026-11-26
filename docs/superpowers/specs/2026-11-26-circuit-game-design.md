@@ -14,6 +14,7 @@ Condensed from the owner's messages:
 - **Extremely realistic**: from the tiniest parts (gates, and what gates are made of) up to the highest level.
 - **You see everything.** For example, you can zoom out from your connection to the **undersea cables**, the **data centers** and the servers, with every moving part visible.
 - **Understandable for beginners**: super advanced, but it **walks you through everything, step by step and visually**.
+- **By default it is super advanced, just like real life, and it still gives heavy help.** Real-life depth is the starting point, not an option you unlock.
 - **Include artificial intelligence**: the whole chain from having nothing to modern-day tech.
 - **Platform:** whatever makes the better game. The owner prefers a **downloadable game** over a website, because a download unlocks more power.
 
@@ -28,7 +29,9 @@ Everything is really simulated. If you wire something wrong, it really doesn't w
 ## 3. Who it's for (best guess)
 
 - Curious people aged about 11 and up, adults included, with **no background** in electronics or computers.
-- The main path uses plain words and tiny steps. Optional **"Go deeper"** panels and an **Engineer view** give experts the real details.
+- **Real life by default.** You work with real parts and their datasheets, real circuit symbols, real numbers and units, real formulas and real-world limits, the way engineers do.
+- **Heavy help by default.** A step-by-step checklist, a guide who explains every mistake as it happens, "tap any number to see where it comes from", a built-in formula calculator, and hints carry beginners through the real thing.
+- **Help levels.** Experts can turn the help down to **Light** or **Off**. The content itself never gets simplified.
 - The test of success: a beginner can finish the whole game, and an engineer still learns something.
 
 ## 4. What success looks like
@@ -41,7 +44,7 @@ Everything is really simulated. If you wire something wrong, it really doesn't w
 
 1. **Real simulation, honest results.** Every level runs a real simulation of what you built. Simplifications are allowed, but they are always labeled ("Go deeper: real chips also …"), and the outcome is never faked.
 2. **See every moving part.** You can zoom into anything you built and out to anything it connects to, smoothly, across about 17 powers of ten: from atoms out to the whole planet (§7).
-3. **Step by step, never stuck.** Each new idea is shown, tried, built and tested. Hints come in three levels, and the last one shows the answer, so no one hits a dead end.
+3. **Real life by default, heavy help always there.** Every level uses real parts, real values and real rules. Heavy help walks you through it step by step: a live checklist, instant explanations of mistakes, and hints in three levels, the last of which shows the answer. No one hits a dead end, and the content is never dumbed down.
 4. **You build it, you keep it.** Your NOT gate goes into your adder, your adder into your CPU, and your CPU into your phone. Your own creations carry forward.
 5. **Pastel, smooth, calm.** Soft colors, rounded shapes, gentle motion, and no timers or punishment for mistakes. Breaking things is part of learning.
 6. **Pretend and safe.** The internet and all hacking happen inside the game's own make-believe world. The game never touches real networks.
@@ -54,8 +57,12 @@ Each chapter has an era banner (real dates), teaches with small levels, and adds
 
 **Chapter 1 · Spark — electricity** *(1800s)*
 - **Learn:** circuits are loops. Voltage pushes, current flows, and resistance slows it down. LEDs only let current go one way. Switches open and close the loop. Series means "both", parallel means "either". Short circuits are dangerous. And you'll see what's inside a wire.
-- **Build:** light an LED, save it from burning out with a resistor, hit exactly 10 milliamps using Ohm's law, add a switch, make "both switches" and "either switch" circuits, fix a short circuit, and zoom into a wire.
-- **Does it work?** A real circuit solver computes every volt and milliamp. Too much current really burns the LED (pop!), and a short circuit really overheats the battery.
+- **Build:** light an LED. Read the LED's datasheet and work out its resistor (R = (5 V − 2.0 V) ÷ 20 mA = 150 Ω), then pick it from a kit of standard resistor values. Hit exactly 10 milliamps using Ohm's law. Add a switch, then make "both switches" and "either switch" circuits. Fix a short circuit. Build a small heater, choosing a resistor with the right power rating. Finally, zoom into a wire.
+- **Does it work?** A real circuit solver computes every volt, milliamp and watt. Parts behave like their real datasheets:
+  - An LED glows up to its recommended 20 mA, wears out above that, and burns out above its 30 mA absolute maximum.
+  - A ¼-watt resistor burns if you ask it to make half a watt of heat.
+  - A short circuit really overheats the battery.
+  - The meters behave like a real multimeter's.
 - **Zoom adds:** circuit → wire → copper atoms, with electrons drifting through them.
 
 **Chapter 2 · Sand — from sand to the transistor** *(1947–1960)*
@@ -66,7 +73,7 @@ Each chapter has an era banner (real dates), teaches with small levels, and adds
 
 **Chapter 3 · Logic — gates and your own chips** *(1960s)*
 - **Learn:** truth tables, NAND and NOR built from transistors, every gate built from NAND, De Morgan's laws, and packaging and reusing your designs.
-- **Build:** NAND from 4 transistors, NOR, and then NOT, AND, OR and XOR from NANDs. You design each chip's look (name, color, pin layout). Optional star challenges ask for the fewest parts.
+- **Build:** NAND from 4 transistors, NOR, and then NOT, AND, OR and XOR from NANDs. You package them the real way: four gates in a 14-pin chip with power pins, like the classic 74-series logic chips, each with its own datasheet. You design each chip's look (name, color, pin layout). Optional star challenges ask for the fewest parts.
 - **Does it work?** Every chip is tested against its truth table, row by row, and the failing row is highlighted.
 - **Zoom adds:** chip → gates → transistors.
 
@@ -82,7 +89,9 @@ Each chapter has an era banner (real dates), teaches with small levels, and adds
 
 **Chapter 6 · The Brain — your own CPU** *(1971)*
 - **Learn:** programs are numbers too. You'll learn instruction sets, the fetch–decode–execute loop, control signals, jumps and conditions, and assembly language.
-- **Build:** an 8-bit CPU for the game's own instruction set (working name **Petal-8**), one piece at a time: program counter, instruction memory, decoder, registers with the ALU, load and store, and jumps. Then you write programs for it in machine code and in assembly.
+- **Build, in two stages:**
+  1. **First, learn the ideas on a small 8-bit CPU** for the game's own teaching instruction set (working name **Petal-8**), one piece at a time: program counter, instruction memory, decoder, registers with the ALU, load and store, and jumps. You program it in machine code and in assembly.
+  2. **Then build a real one:** a 32-bit **RISC-V** CPU (the RV32I base instruction set). RISC-V is an open, free standard used in real chips today. The CPU in your PC or phone in Chapter 8 is this design.
 - **Does it work?** A full instruction test suite runs on your design. Once it passes, your CPU runs programs at full speed. You can still freeze time and zoom into any gate in the middle of a program. The fast mode is constantly cross-checked against your gate-level design, which is how real CPUs are verified.
 
 **Chapter 7 · The Factory — making real chips** *(1970s to today)*
@@ -100,7 +109,7 @@ Each chapter has an era banner (real dates), teaches with small levels, and adds
 
 **Chapter 9 · Software — bringing it to life** *(1970s to 2000s)*
 - **Learn:** firmware and booting, text and fonts as numbers, programming languages and compilers, operating systems (programs taking turns, memory, files), drivers and apps.
-- **Build:** a boot program and printing text. You write programs in a simple language and watch your compiler turn them into your CPU's instructions. Then a tiny operating system, apps (drawing, a calculator, a small game) and a home screen.
+- **Build:** a boot program and printing text. You write programs in **C** (a real subset of the language engineers use), and watch the compiler turn them into RISC-V instructions for your CPU. Then a tiny operating system, apps (drawing, a calculator, a small game) and a home screen.
 - **Does it work?** Every program runs on the CPU you built, inside the device you built.
 
 ### Act III — Connection
@@ -108,13 +117,13 @@ Each chapter has an era banner (real dates), teaches with small levels, and adds
 **Chapter 10 · Connect — your home network** *(1973 to 1999)*
 - **Learn:** sending bits down a wire, timing, framing, noise and checksums, addresses, network switches, and Wi-Fi radio.
 - **Build:** link two devices with a single wire, agree on a speed, design a message format, survive noise, then add addresses and a switch. Set up Wi-Fi and see the signal strength through the walls of your house.
-- **Does it work?** A packet-level network simulator runs with real timing. If the speeds don't match you get garbage, noise flips bits, and collisions happen.
+- **Does it work?** A packet-level network simulator runs with real timing and **real protocol formats**: Ethernet frames, MAC addresses, ARP. A packet inspector shows the real header fields and bytes, with every field explained when you tap it. If the speeds don't match you get garbage, noise flips bits, and collisions happen.
 - **Zoom adds:** device → room → house.
 
 **Chapter 11 · The Internet** *(1969 to today)*
 - **Learn:** IP addresses, routers and routing, internet providers, fiber optics, internet exchanges, **undersea cables**, satellites, cell towers, **data centers**, DNS, TCP, the web and the cloud.
 - **Build:** route packets across a network. Follow your connection from the house to the street cabinet, the city and an exchange. Plan a route across the ocean on undersea cables. Fill a server rack in a data center, host your own website, and open it from your phone on another continent.
-- **Does it work?** Real distances and the speed of light set the delays. A round trip across the Atlantic takes about 70 milliseconds, and you can see why. Cut a cable and watch the traffic find another way.
+- **Does it work?** Real distances and the speed of light set the delays. A round trip across the Atlantic takes about 70 milliseconds, and you can see why. The protocols are the real ones: IPv4 (with IPv6 explained), routing tables, DNS, TCP with its handshake and retransmissions, UDP and HTTP. They use real header layouts, real port numbers and real status codes. Cut a cable and watch the traffic find another way.
 - **Zoom adds:** house → street → city → country → **the whole planet with its undersea cables** → down into a data center → hall → rack → server → chip → transistor.
 
 ### Act IV — Security (pretend)
@@ -130,7 +139,7 @@ Each chapter has an era banner (real dates), teaches with small levels, and adds
   - overflowing a buffer on **the CPU you built** and watching the stack get overwritten
   - how a worm spreads through unpatched machines; flood attacks and how to defend against them
   - a final capture-the-flag, and then defending your own network
-- **Does it work?** The weaknesses are real mechanics inside pretend machines. The buffer overflow, for example, really overwrites memory in your own CPU.
+- **Does it work?** The weaknesses are real mechanics inside pretend machines. The buffer overflow, for example, really overwrites memory in your own CPU. You work in a realistic pretend terminal with Linux-style commands such as `ls`, `cat` and `ssh` into make-believe machines. It can only ever reach the game's own world.
 - **Safety rules:** see §9.
 
 ### Act V — Intelligence
@@ -138,7 +147,7 @@ Each chapter has an era banner (real dates), teaches with small levels, and adds
 **Chapter 13 · Thinking Machines — AI** *(1958 to today)*
 - **Learn:** what "learning" means for a machine, a neuron (a weighted sum plus a threshold), training by nudging weights, and why one neuron can't do XOR but two layers can. Then backpropagation and gradient descent, training data and overfitting, image filters, and why AI needs special chips. For language: tokens, embeddings, attention and next-word prediction. Finally, how today's large models are trained in huge data centers, and their mistakes, bias and safety.
 - **Build:** a neuron made from your own ALU, trained to sort fruit. A small network that reads digits you draw on your phone's screen. An AI chip with a grid of multiply-add units. A tiny language model, trained on a small book, that goes from gibberish to words while you watch.
-- **Does it work?** Real (small) neural networks train on the player's own device. Giant modern models are explained with live visuals, never faked.
+- **Does it work?** Real (small) neural networks train on the player's own device. The real math is shown by default (weighted sums, matrix multiplies, gradients, softmax, attention scores), and heavy help explains each piece in plain words. Giant modern models are explained with live visuals, never faked.
 - **Finale:** you ask your AI a question on the phone you built. The camera follows it through your network, across the undersea cable, into a data center, through the AI chip's grid and down to the transistors and electrons, and then the answer travels all the way back. Pip, your guide, turns out to be running on what you built.
 
 ### Epilogue · Free Build
@@ -172,24 +181,38 @@ How the zoom works:
 - **Follow mode.** You can pin a signal, electron or packet, and the camera follows it across levels, for example a packet going from your phone into the ocean cable and out to a server.
 - **Dive in anywhere.** You can enter at any point you're looking at, such as a wire, a chip in your PC, or a data center on the globe.
 
-## 8. How teaching works
+## 8. How teaching works: real life by default, heavy help
 
-- **Every level follows the same rhythm:**
-  1. **See it:** a short animated intro.
-  2. **Try it:** poke at a ready-made example.
-  3. **Build it:** a clear goal.
-  4. **Test it:** the game runs the checks and shows exactly what failed.
-  5. **Use it:** the result goes into your toolbox.
-- **Pip, the guide,** is a small round spark. Pip speaks at most two short sentences at a time.
-- **Glossary everywhere.** Any underlined word opens a one-line explanation.
+**What's real by default**
+- Real parts with real **datasheets**. Tap any part to see its specs, where every line is explained in plain words.
+- Real **standard values**, such as resistors in the E12 series: 100, 150, 220, 330, 470 Ω and so on.
+- Real **circuit symbols**, drawn in the pastel style. A **Physical look** toggle shows the actual objects instead.
+- Real **numbers and units everywhere**: volts, milliamps, watts, and later nanoseconds, bytes and packets.
+- Real **formulas** and real **terminology**.
+- Real **limits**: maximum currents, power ratings, timing, bandwidth.
+
+**Heavy help, on by default**
+- **The level rhythm:** *see it* (a short animated intro), *try it* (poke a ready-made example), *build it*, *test it* (the game shows exactly what failed and why), *use it* (it goes into your toolbox).
+- **A live step checklist** breaks every level into small steps that tick off by themselves as you build.
+- **Pip steps in the moment something goes wrong.** You get an explanation right away, such as "The LED is backwards", "That's more than the LED's 20 mA", or "Short circuit!", followed by what to try. If you're stuck for 30 seconds, Pip offers a hint.
+- **"Where does this number come from?"** Tap any value to see its calculation with the real numbers, for example "Current = 3.04 V ÷ 220 Ω = 13.8 mA".
+- **Formula calculator:** Ohm's law, LED resistor and power. It can pull values straight from your circuit and shows every step.
+- **Glossary everywhere.** Any underlined word opens a plain explanation.
 - **Three hint levels:**
   1. a nudge
   2. highlighting the right parts
-  3. "show me", which places ghost parts you can tap to accept
-- **Live feedback.** Goal messages diagnose the actual problem, for example "The LED is backwards", not just "wrong".
-- **Go deeper** panels give real-world detail for curious players. **Engineer view** shows real values everywhere (volts, amps, timing) and standard schematic symbols.
+  3. "show me", which places ghost parts and wires you can tap to accept
 - **History cards** with real dates and people (Ohm in 1827, the transistor in 1947, the perceptron in 1958, and so on).
-- **Reading level:** the main path is written for about age 11. Specialist words always come with a glossary link.
+
+**Help levels** (in Settings)
+
+| Level | What you get |
+|---|---|
+| **Heavy** (default) | Everything above |
+| **Light** | No checklist; Pip and hints only when you ask |
+| **Off** | Goals only, a real engineering challenge |
+
+The help level never changes the content: the parts, values and physics are the same at every level.
 
 ## 9. Pretend hacking: safety rules
 
@@ -212,7 +235,13 @@ How the zoom works:
 | Security | real vulnerability mechanics inside pretend machines | — |
 | AI | real training of small networks on the player's device | the scale of large models |
 
-Real examples sit inside the game's own fiction. The phone is your own design, not an iPhone (Apple's name and look belong to Apple). Real companies only appear in history facts.
+**Real-life defaults in every chapter**
+- Parts have datasheets with real-world values. Examples: a red 5 mm LED at 2.0 V and 20 mA (30 mA absolute maximum); a ¼ W carbon-film resistor at ±5%; a voltmeter with 10 MΩ input resistance like a real multimeter.
+- Standard series and real formats: E12 resistor values, 14-pin logic chips with power pins, the RISC-V RV32I instruction set, C, Ethernet/IPv4/TCP/UDP/DNS/HTTP header layouts.
+- Real limits cause real failures, with heavy help explaining each one.
+- Where the game simplifies, it says so in a "Go deeper" card.
+
+Real examples sit inside the game's own fiction. The phone is your own design, not an iPhone (Apple's name and look belong to Apple). Real companies only appear in history facts. Open standards such as RISC-V and the internet protocols are used as they really are.
 
 ## 11. Look and feel
 
@@ -221,7 +250,11 @@ Real examples sit inside the game's own fiction. The phone is your own design, n
   - lavender `#CDB8F0`, lilac `#E6DAFB`, mint `#BDEBD7`, sky `#BFDDF8`, peach `#FFD3B8`, butter `#FFF0A6`, rose `#F8C3D6`, warning coral `#FF9F8A`
   - signals: low `#B9B3D1`, high `#FF8FAB`; current sparks `#FFE58A`
 - **Night palette:** deep plum background `#24212F`, panels `#2F2B3D`, light ink `#F3EEFF`. The pastel accents stay the same.
-- **Shapes:** rounded everything (12–20 px corners on panels), soft drop shadows, 2 px soft-ink outlines. Parts are friendly versions of the real physical things: color bands on resistors, a flat edge on the LED's cathode side.
+- **Shapes:** rounded everything (12–20 px corners on panels), soft drop shadows, 2 px soft-ink outlines.
+- **Part style:**
+  - By default, parts are drawn as **real circuit symbols** in the pastel style: zigzag resistor, LED triangle with light arrows, battery plates, a switch lever, round meters.
+  - The **Physical look** toggle shows the real objects instead: color bands on resistors, the LED dome with its flat cathode edge, the battery pack.
+  - Every datasheet card shows both.
 - **Motion:** 60 fps, gentle ease-out, parts pop in with a tiny overshoot, current flows as moving sparks, glows breathe softly. A reduced-motion setting replaces large zooms with gentle fades and turns the flowing sparks into still arrows.
 - **Type:** Nunito, a rounded sans-serif (Open Font License).
 - **Sound** (from Milestone 2): soft clicks, chimes and lo-fi ambient music.
@@ -341,14 +374,17 @@ It's the same game and the same save format everywhere. Builds are produced auto
 
 1. **Godot 4.7.2**, with the **desktop download as the main version**. Phone apps and a lighter browser version are built from the same project.
 2. **Working title "Circuit"**, and a guide called **Pip**, a small spark.
-3. **Audience:** curious beginners aged about 11 and up, adults included.
+3. **Audience:** curious beginners aged about 11 and up, adults included. **Real-life content by default with Heavy help**, which can be turned down to Light or Off.
 4. The game **starts on a beach with sand**, because sand is where silicon comes from.
 5. The PC and the phone are **your own designs**, with no real brands.
 6. Hacking is a **"White Hat" academy** in a pretend world: test with permission, then defend.
 7. **3D** for physical things (the globe, assembly, data centers, atoms). **Flat 2D boards** for designing circuits, because that's clearer for building.
 8. **No accounts, ads or online features.** Saves stay on your device.
 9. **Milestone 1** is Chapter 1 plus the title zoom from Earth down to a silicon atom, delivered as downloadable builds.
-10. The **CPU's instruction set is the game's own** (working name Petal-8), not a copy of a real chip.
+10. **Two CPUs in Chapter 6:** a small teaching CPU with the game's own instruction set (working name Petal-8) to learn the ideas, then a **real 32-bit RISC-V (RV32I)** CPU, which is what your PC or phone runs.
+11. **Real circuit symbols are the default look** for parts, with a Physical look toggle.
+12. **Software uses real C** (a subset) compiled to RISC-V. **Networking uses the real protocol formats**, shown in a packet inspector.
+13. The Chapter 1 battery is a **4 × AA pack treated as 5 V with 1 Ω internal resistance**, matching a partly used pack. Chapter 2 introduces regulated supplies.
 
 ## 20. Roadmap
 
@@ -356,11 +392,11 @@ Each milestone ends with something playable and downloadable. Each one gets its 
 
 | # | Milestone | Contents |
 |---|---|---|
-| M1 | **First Light** | Foundation, circuit editor, analog simulator, lessons, the zoom system, the title zoom from Earth to an atom, Chapter 1 (8 levels), the wire zoom, downloadable builds |
+| M1 | **First Light** | Foundation, circuit editor with real symbols and datasheets, analog simulator, lessons with heavy help (checklist, instant explanations, value explanations, formula calculator), the zoom system, the title zoom from Earth to an atom, Chapter 1 (9 levels), the wire zoom, downloadable builds |
 | M2 | **Take It Home** | Android build, sound and music, an update check, polish from M1 feedback, an optional itch.io page |
 | M3 | **First Chip** | Chapter 2 (sand → transistor → your first chip), the transistor model, chip packaging and Library, part internals |
 | M4 | **Logic & Numbers** | Rust digital engine, Chapters 3–4, buses, star challenges |
-| M5 | **Memory & the Brain** | Chapters 5–6, the Petal-8 instruction set, assembler, CPU test suite, fast mode with co-simulation |
+| M5 | **Memory & the Brain** | Chapters 5–6: the Petal-8 teaching CPU, then a real RISC-V RV32I CPU, assemblers, CPU test suites, fast mode with co-simulation |
 | M6 | **The Factory** | Chapter 7 |
 | M7 | **The Machine** | Chapter 8: board editor, power and heat, 3D assembly, boot and diagnostics |
 | M8 | **Software** | Chapter 9: compiler, mini operating system, apps |
@@ -372,6 +408,6 @@ Each milestone ends with something playable and downloadable. Each one gets its 
 ## 21. Left to later plans
 
 - The exact level lists for Chapters 2–13. Each milestone plan settles them, keeping this document's learning goals.
-- The Petal-8 instruction encoding, network protocol details, the compiler language, and the AI model sizes.
+- The Petal-8 instruction encoding, how much of RISC-V beyond RV32I to include, which C subset the compiler supports, and the AI model sizes.
 - Whether the PC assembly and data-center scenes need extra 3D detail beyond the stylized look.
 - The app-store and Steam release decisions, which need the owner's accounts.

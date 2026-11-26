@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A playable, downloadable first slice of *Circuit*. It has a title zoom from Earth down to a silicon atom, the pastel circuit editor with a real DC simulator, Chapter 1 "Spark" (8 levels with a guide, hints and tests), and a zoom into a wire down to copper atoms. Windows, macOS, Linux and web builds are produced by CI.
+**Goal:** A playable, downloadable first slice of *Circuit*. It has a title zoom from Earth down to a silicon atom, the pastel circuit editor with a real DC simulator, Chapter 1 "Spark" (9 levels using real-life parts, datasheets and formulas, with heavy help on by default), and a zoom into a wire down to copper atoms. Windows, macOS, Linux and web builds are produced by CI.
 
 **Architecture:**
 - A Godot 4.7.2 project in `game/`.
@@ -39,9 +39,10 @@
 | LED ideality and thermal voltage | n = 2, Vt = 0.025852 V |
 | LED series resistance | 5.0 Ω |
 | LED junction voltage at 20 mA | red 1.90, yellow 2.00, green 2.10, blue 2.90 V |
-| LED thresholds | lit ≥ 0.0005 A, full brightness 0.020 A, burns > 0.025 A |
-| Resistor | burns > 0.25 W; adjustable range 100–2000 Ω, step 10 |
+| LED thresholds | lit ≥ 0.0005 A; full brightness and recommended maximum 0.020 A; burns above the absolute maximum 0.030 A |
+| Resistor | burns above its `watts` rating (default 0.25 W); adjustable range 100–2000 Ω, step 10 |
 | Ammeter | burden 0.1 Ω (conductance 10 S) in current-flow only; fuse 0.5 A |
+| Voltmeter | 10 MΩ input resistance, like a real multimeter (a real device in the netlist) |
 | Wire and closed-switch flow conductance | 1000 S |
 | Battery "short" flag | > 1.0 A |
 | gmin | 1e-12 S |
@@ -51,6 +52,20 @@
 - Night palette overrides: `cream #24212F`, `paper #2F2B3D`, `ink #F3EEFF`, `ink_soft #BDB6D6`, `line #3B3650`.
 - LED tints: red `#FF8F9A`, yellow `#FFE27A`, green `#8FE3B0`, blue `#8FC2FF`.
 - Font: Nunito 400/700/800 (`@fontsource/nunito@5.3.0` woff2 files), imported with MSDF enabled.
+
+**Real life by default, heavy help**
+- Settings defaults:
+  - `help_level = "heavy"` (`"heavy"`|`"light"`|`"off"`)
+  - `view_style = "schematic"` (`"schematic"`|`"physical"`)
+  - `show_values = true`
+- Every part has a datasheet (`Catalog.datasheet`) with real-world values, and every value shown on screen can be explained (`Explain.part`).
+- The help level only changes how much guidance is shown, never the parts, values or physics.
+- UI flags record help actions so steps can tick:
+  - `"datasheet:<part id>"` and `"datasheet:tray"`
+  - `"formula:<name>"`
+  - `"value:<part id>"`
+  - `"selected:<wire id>"`
+  - `"tested"`
 
 **Copy and interaction**
 - Player-facing guide lines: at most 2 sentences and 30 words each. Glossary markup is `[[term]]` or `[[term|shown text]]`.
@@ -89,15 +104,15 @@ game/tools/capture.gd
 game/src/app/        main.tscn main.gd game.gd game_state.gd
 game/src/circuit/    part.gd wire.gd circuit.gd catalog.gd geometry.gd edits.gd history.gd circuit_io.gd
 game/src/sim/        dense_solver.gd netlist.gd devices.gd dc_solution.gd dc_solver.gd current_flow.gd damage.gd sim_result.gd sim_outcome.gd simulator.gd
-game/src/lessons/    level_def.gd level_builder.gd goals.gd level_tests.gd solution_diff.gd level_session.gd
+game/src/lessons/    level_def.gd level_builder.gd goals.gd level_tests.gd solution_diff.gd level_session.gd formulas.gd e12.gd
 game/src/save/       progress.gd progress_storage.gd
-game/src/content/    glossary.gd chapters.gd levels.gd ch1/l1_light_it_up.gd … ch1/l8_inside_the_wire.gd
+game/src/content/    glossary.gd chapters.gd levels.gd ch1/l1_light_it_up.gd … ch1/l9_inside_the_wire.gd
 game/src/ui/         palette.gd pastel_theme.gd glossary_text.gd gallery.tscn gallery.gd
 game/src/zoom/       zoom_camera.gd zoom_link.gd layer_info.gd zoom_math.gd scale_format.gd zoom_layer.gd zoom_stage.gd zoom_demo.tscn zoom_demo.gd
 game/src/input/      gesture_recognizer.gd pointer_input.gd
-game/src/editor/     draw_kit.gd resistor_bands.gd visual_state.gd part_art.gd wire_art.gd hit_test.gd editor_controller.gd circuit_view.gd flow_view.gd editor_layer.gd editor_layer.tscn art_gallery.tscn art_gallery.gd
+game/src/editor/     draw_kit.gd resistor_bands.gd visual_state.gd explain.gd part_art.gd wire_art.gd hit_test.gd editor_controller.gd circuit_view.gd flow_view.gd editor_layer.gd editor_layer.tscn art_gallery.tscn art_gallery.gd
 game/src/screens/    title_screen.* map_screen.* level_screen.*
-game/src/hud/        top_bar.gd parts_tray.gd goals_panel.gd test_sheet.gd hint_button.gd context_menu.gd value_popover.gd toasts.gd pip.gd guide_bubble.gd glossary_popup.gd settings_sheet.gd scale_bar.gd
+game/src/hud/        top_bar.gd parts_tray.gd goals_panel.gd test_sheet.gd hint_button.gd context_menu.gd value_popover.gd toasts.gd pip.gd guide_bubble.gd glossary_popup.gd settings_sheet.gd scale_bar.gd steps_checklist.gd datasheet_card.gd formula_card.gd explain_popover.gd
 game/src/scenes/title/ geo.gd lattice.gd land_texture.gd title_chain.gd globe_layer.gd coast_layer.gd beach_layer.gd grain_layer.gd silica_layer.gd atom_layer.gd title_director.gd
 game/src/scenes/wire/  wire_closeup_layer.gd copper_layer.gd
 game/tests/          run_tests.gd test_case.gd helpers/circuits.gd + test_*.gd mirroring src/
@@ -263,14 +278,22 @@ func test_async_waits_frames() -> void:
 
     | kind | title | size | pins (rot 0) | defaults |
     |---|---|---|---|---|
-    | `battery` | Battery pack | (2,4) | `pos` (0,−2), `neg` (0,2) | `{volts: 5.0}` |
-    | `resistor` | Resistor | (4,1) | `a` (−2,0), `b` (2,0) | `{ohms: 220.0, adjustable: false}` |
+    | `battery` | Battery pack (4 × AA) | (2,4) | `pos` (0,−2), `neg` (0,2) | `{volts: 5.0}` |
+    | `resistor` | Resistor | (4,1) | `a` (−2,0), `b` (2,0) | `{ohms: 220.0, adjustable: false, watts: 0.25}` |
     | `led` | LED | (2,1) | `anode` (−1,0), `cathode` (1,0) | `{color: "red"}` |
     | `switch` | Switch | (4,1) | `a` (−2,0), `b` (2,0) | `{closed: false}` |
     | `ammeter` | Current meter | (2,2) | `a` (−1,0), `b` (1,0) | `{}` |
     | `voltmeter` | Voltage meter | (2,2) | `pos` (−1,0), `neg` (1,0) | `{}` |
 
   - `Catalog.pin_names(kind) -> PackedStringArray` and `Catalog.title(kind) -> String`
+  - `Catalog.datasheet(p: Part) -> Array[Dictionary]`: rows `{label, value, term}`, where `term` is a glossary key or `""`. The copy is exact:
+    - **battery:** Voltage "5.0 V" (voltage); Cells "4 × AA, partly used"; Internal resistance "1 Ω" (resistance); Short-circuit current "5 A, gets hot!" (short circuit)
+    - **resistor:** Resistance "{ohms} Ω" (resistance); Tolerance "±5%"; Power rating "0.25 W (¼ W)" or "1 W" (power); Type "Carbon film"
+    - **led:** Color "Red, 625 nm" / "Yellow, 590 nm" / "Green, 570 nm" / "Blue, 470 nm"; Forward voltage "2.0 / 2.1 / 2.2 / 3.0 V at 20 mA" (forward voltage); Recommended current "20 mA" (current); Absolute maximum "30 mA"; Polarity "+ anode (long leg), − cathode (flat side)" (anode)
+    - **switch:** Type "SPST toggle (single-pole, single-throw)"; State "Open" or "Closed"
+    - **ammeter:** Measures "Current, placed in series" (ammeter); Burden "0.1 Ω"; Fuse "500 mA"
+    - **voltmeter:** Measures "Voltage, placed in parallel" (voltmeter); Input resistance "10 MΩ"
+    - These forward voltages are the terminal voltages, and they match the model: junction voltage plus 5 Ω × 20 mA.
   - `CircuitGeometry.rotate_offset(v: Vector2i, rot: int) -> Vector2i`
   - `CircuitGeometry.pin_position(p: Part, pin: String) -> Vector2i`
   - `CircuitGeometry.pin_outward(p: Part, pin: String) -> Vector2i` (the unit axis pointing from the part center toward the pin)
@@ -290,6 +313,9 @@ func test_async_waits_frames() -> void:
   - `test_wire_path_bracket()`: two switches A at (4,−4) and B at (4,−7); wire A.a→B.a → `[(2,-4),(1,-4),(1,-7),(2,-7)]`.
   - `test_wire_path_via()`: a wire with `via` [(−4,−6),(9,−6),(9,1)] from R1.a to L1.cathode → `[(-4,-4),(-4,-6),(9,-6),(9,1),(6,1)]`.
   - `test_find_part_by_label()` and `test_copy_is_deep()`.
+  - `test_resistor_default_watts_quarter()`
+  - `test_datasheet_red_led()` (has rows "Forward voltage" = "2.0 V at 20 mA" and "Absolute maximum" = "30 mA")
+  - `test_datasheet_one_watt_resistor()` ("Power rating" = "1 W")
 - [ ] **Step 2: Run `tools/test.sh circuit/`.** Expected: FAIL.
 - [ ] **Step 3: Implement.** `wire_path` uses this algorithm (the signature doesn't determine it):
 
@@ -374,7 +400,7 @@ else:
     - `var component_of_net: PackedInt32Array`
     - `var reference_net: Dictionary` (component index → reference net index, only for components containing a battery)
     - `var floating: Dictionary` (net index → true for nets in components without a battery)
-    - `var devices: Array[Dictionary]` (`{part: Part, kind: String, nets: PackedInt32Array}` in catalog pin order, for unburnt batteries, resistors and LEDs)
+    - `var devices: Array[Dictionary]` (`{part: Part, kind: String, nets: PackedInt32Array}` in catalog pin order, for unburnt batteries, resistors and LEDs, and for voltmeters as a 10 MΩ resistor between `pos` and `neg`)
     - `var connectors: Array[Dictionary]` (`{id: String, kind: "wire"|"switch"|"ammeter", a: String, b: String, g: float}`, where `a` and `b` are pin keys)
     - `var voltmeters: Array[Part]`
     - `static func build(c: Circuit) -> Netlist`
@@ -395,6 +421,7 @@ else:
   - `test_burnt_resistor_not_a_device`, `test_burnt_ammeter_is_open`
   - `test_isolated_resistor_nets_floating`
   - `test_two_battery_loops_two_references`
+  - `test_voltmeter_is_10m_device` (it joins the components of its two nets)
 - [ ] **Step 2: Run `tools/test.sh sim/`.** Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run the tests.** Expected: PASS.
@@ -432,6 +459,7 @@ else:
   - `test_shorted_battery_current_5a`: `device_amps["B1"]` is 5.0 within 1e-9.
   - `test_floating_part_nan_no_crash`
   - `test_no_battery_all_floating_converged`
+  - `test_voltmeter_draws_half_microamp` (a voltmeter alone across the battery: `device_amps["V1"]` is 5e-7 within 1e-9)
 - [ ] **Step 2: Run `tools/test.sh dc_solver`.** Expected: FAIL.
 - [ ] **Step 3: Implement.**
   - **Unknowns:** the nets of each powered component except its reference, plus one internal node per LED (between `Rs` and the junction).
@@ -439,6 +467,7 @@ else:
     - resistor: conductance G = 1/R
     - battery: Norton equivalent, G = 1/R_int between `pos` and `neg`, with source V/R_int into `pos` and out of `neg`
     - LED: `Rs` from the anode to the internal node, and the junction from the internal node to the cathode
+    - voltmeter: conductance 1e-7 S between `pos` and `neg`; `device_amps` is pos→neg
     - gmin from every unknown to its component reference
   - Floating nets are excluded and reported as NAN.
   - **Junction companion model at the limited voltage `vd`:**
@@ -497,7 +526,10 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
   - `test_led_burns_without_resistor`: damage == [L1 overcurrent], the outcome LED has `burnt == true`, and the final LED current is 0.
   - `test_resistor_overheats`: a battery straight across 47 Ω gives `"overheat"`.
   - `test_ammeter_fuse_blows_across_battery`: damage == [M1 fuse], the final battery current is 0, and `shorts` is empty.
-  - `test_burn_order_highest_ratio_first`: a battery, a 10 Ω resistor and a red LED in series. The LED ratio is ≈ 7.5 and the resistor's ≈ 1.4; only L1 burns.
+  - `test_burn_order_highest_ratio_first`: a battery, a 10 Ω resistor and a red LED in series. The LED ratio is ≈ 6.2 (186.5 mA ÷ 30 mA) and the resistor's ≈ 1.4; only L1 burns.
+  - `test_quarter_watt_resistor_burns_at_half_watt`: 47 Ω (¼ W) straight across the battery dissipates 0.51 W and burns with `"overheat"`.
+  - `test_one_watt_resistor_survives_half_watt`: the same circuit with `watts: 1.0` has no damage and 0.510 W within 1e-3.
+  - `test_led_over_recommended_but_under_max_not_burnt`: a 100 Ω resistor gives ≈ 29.1 mA and no damage.
   - `test_short_flagged`: a battery with a wire from `pos` to `neg` gives `shorts == ["B1"]`.
   - `test_fuzz_never_nan`:
     - `RandomNumberGenerator.seed = 1234`.
@@ -515,8 +547,12 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
       - battery: `pos` +I, `neg` −I
       - resistor: `a` −I, `b` +I
       - LED: `anode` −I, `cathode` +I
-      - voltmeter: 0
+      - voltmeter: `pos` −I, `neg` +I (its tiny 10 MΩ current)
     - Pin the first vertex at 0, solve the Laplacian with `DenseSolver`, then each edge current = g·(φa − φb).
+  - **Damage rules:**
+    - LED forward current > 0.030 A, ratio I/0.030, `"overcurrent"`
+    - resistor watts > `props.watts`, ratio P/watts, `"overheat"`
+    - ammeter |I| > 0.5 A, ratio |I|/0.5, `"fuse"`
   - **Simulate:** loop up to 10 times: build → solve → flow → detect. When something is detected, burn only `damage[0]` (via `set_props` with `burnt: true`) and repeat.
   - **Voltmeter readable** = both pins non-floating and in the same component.
 - [ ] **Step 4: Run the tests.** Expected: PASS.
@@ -525,7 +561,7 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 ### Task 8: Level definitions, goals, level tests and solution diff
 
 **Files:**
-- Create: `game/src/lessons/{level_def,level_builder,goals,level_tests,solution_diff}.gd`, `game/tests/lessons/{test_goals,test_level_tests,test_solution_diff}.gd`
+- Create: `game/src/lessons/{level_def,level_builder,goals,level_tests,solution_diff,formulas,e12}.gd`, `game/tests/lessons/{test_goals,test_level_tests,test_solution_diff,test_formulas}.gd`
 
 **Interfaces:**
 - Consumes: `Simulator`, `SimResult`, circuit types.
@@ -542,6 +578,8 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `solution: Circuit`
     - `outro: Array[Dictionary]`, `facts: PackedStringArray`
     - `star: Dictionary` (`{goal, text}` or `{}`)
+    - `steps: Array[Dictionary]` (`{text, check: goal}`): the heavy-help checklist
+    - `formula: String` (`""`, `"led_resistor"`, `"ohms_law"` or `"power"`): the calculator that heavy help suggests
   - `LevelBuilder` (fluent; every method returns `self`):
     - `_init(id, chapter, title)`, `summary(t)`, `kind(k)`
     - `part(id, kind, x, y, rot := 0, props := {}, locked := true)`
@@ -550,20 +588,30 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `hint(text, highlight := [], show_solution := false)`
     - `solution_part(id, kind, x, y, rot, props)` (gets the tray index of the first tray item with the same kind and matching props)
     - `solution_wire(a_part, a_pin, b_part, b_pin)`, `solution_props(id, patch)`, `solution_remove_wire(id)`
-    - `intro(text, mood := "happy")`, `outro(text, mood := "wow")`, `fact(t)`, `star(goal, text)`
+    - `intro(text, mood := "happy")`, `outro(text, mood := "wow")`, `fact(t)`, `star(goal, text)`, `step(text, check)`, `formula(name)`
     - `done() -> LevelDef` (the solution is the start circuit plus the solution edits)
   - `Goals.evaluate(goal: Dictionary, ctx: Dictionary) -> Dictionary` and `Goals.evaluate_all(goals, ctx) -> Array[Dictionary]`
-    - `ctx = {circuit, sim: SimResult, zoom_layer: String}`
+    - `ctx = {circuit, sim: SimResult, zoom_layer: String, zoom_seen: Dictionary, ui_flags: Dictionary}`
     - Result = `{pass: bool, message: String}`
   - Goal kinds:
-    - `led_lit {part, min_ma?}`
+    - `led_lit {part, min_ma?, max_ma?}`
     - `led_dark {part}`
     - `no_damage`
     - `no_short`
     - `meter_reads {part, target, tolerance}`
     - `uses {part_kind, min?, max?}`
-    - `zoom_reached {layer}`
+    - `zoom_reached {layer}`: passes when `layer` is the current layer or is in `zoom_seen`
+    - `connected {a, b}`: pin specs are `"<part>:<pin>"` or `"<part>:*"` (any pin of that part); passes when both share a net
+    - `all {goals}`: passes when every inner goal passes
+    - `ui_flag {flag}`: passes when `ctx.ui_flags` has the flag
+    - `resistor_watts {min, max}`: passes when some unburnt resistor dissipates within [min, max] W
     - The `part` field matches a part id or a label.
+  - `E12.values(lo := 10.0, hi := 10000.0) -> PackedFloat64Array`: 10, 12, 15, 18, 22, 27, 33, 39, 47, 56, 68, 82 times powers of ten, within [lo, hi]
+  - `E12.at_or_above(r: float) -> float`: the smallest standard value ≥ r
+  - `Formulas.led_resistor(supply_v: float, led_v: float, led_a: float) -> Dictionary` returns `{exact, standard, steps: PackedStringArray}`. For (5, 2.0, 0.020) the steps are exactly: `"R = (supply − LED voltage) ÷ current"`, `"R = (5.0 V − 2.0 V) ÷ 0.020 A"`, `"R = 150 Ω"`, `"Nearest standard value at or above: 150 Ω"`.
+  - `Formulas.ohms_law(v: float, i: float, r: float) -> Dictionary`: exactly one argument is NAN and gets solved; returns `{value, unit, steps}`. For (5, NAN, 500): value 0.010, unit `"A"`, last step `"I = 5.0 V ÷ 500 Ω = 0.010 A (10 mA)"`.
+  - `Formulas.power_from_r(v: float, r: float) -> Dictionary`. For (5, 47): value ≈ 0.532, last step `"P = (5.0 V)² ÷ 47 Ω = 0.53 W"`.
+  - Number formats in steps: volts 1 decimal, amps 3 decimals (mA in parentheses where shown), ohms as integers, watts 2 decimals.
   - `LevelTests.run(level: LevelDef, c: Circuit) -> Dictionary` returns `{pass: bool, cases: [{name, pass, messages: PackedStringArray}]}`. Each case works on a copy of the circuit: apply `set` via `set_props`, then simulate. A missing target fails the case with `"Missing part: <target>"`.
   - `SolutionDiff.compute(current: Circuit, solution: Circuit) -> Dictionary` returns `{parts: Array[Part], wires: Array[Dictionary], props: Array[Dictionary], remove_wires: PackedStringArray}`.
     - Solution parts that came from the tray map to current parts with the same `tray` index, in order.
@@ -576,8 +624,9 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     3. LED pin floating, or no current with no reverse voltage → `"The loop isn't closed yet. Current needs a full path from + back to −."`
     4. V(cathode) − V(anode) > 0.5 V → `"The LED is backwards. Flip it so its + side points toward the battery's +."`
     5. current < 0.0005 A → `"A little current flows, but not enough to see. Try a smaller resistor."`
-    6. below `min_ma` → `"It's glowing, but dimly ({ma} mA). Can you make it brighter?"`
-    7. pass → `"Lit! {ma} mA flowing."`
+    6. above `max_ma` → `"Careful: {ma} mA is more than this LED's recommended {max} mA. It glows, but it won't last."`
+    7. below `min_ma` → `"It's glowing, but dimly ({ma} mA). Can you make it brighter?"`
+    8. pass → `"Lit! {ma} mA flowing."`
   - `led_dark`: pass `"The LED is off."`, fail `"The LED is still on."`
   - `no_damage`: pass `"Nothing is burned."`, fail `"Something burned out. Replace it to continue."`
   - `no_short`: pass `"No short circuits."`, fail `"Short circuit! Find the wire that skips your parts."`
@@ -588,6 +637,10 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - Unreadable: `"The meter isn't connected yet."`
   - `uses`: fail `"Add a {title} from the tray."` (min) or `"Use at most {max} of the {title} part."` (max).
   - `zoom_reached`: pass `"You made it inside!"`, fail `"Keep zooming in."`
+  - `connected`: pass `"Connected."`, fail `"Not connected yet."`
+  - `all`: its message is the first failing inner message, or `""` when all pass
+  - `ui_flag`: pass `"Done."`, fail `"Not yet."`
+  - `resistor_watts`: pass `"{w} W of heat. Toasty!"` (2 decimals), fail `"Aim for {min}–{max} W of heat from a resistor."`
   - Test names:
     - `test_led_lit_each_diagnosis` (one circuit per branch: burnt, short, open, reversed, too dim, dim with `min_ma` 10 using 1 kΩ, pass with 220 Ω)
     - `test_meter_reads_formats_units`
@@ -599,6 +652,15 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `test_solution_diff_lists_missing_tray_part_and_wires`
     - `test_solution_diff_ghost_wire_needs_both_ends`
     - `test_solution_diff_props_and_removals`
+    - `test_led_over_max_message` (100 Ω gives ≈ 29.1 mA, over a `max_ma` of 20)
+    - `test_connected_any_pin_wildcard`
+    - `test_all_requires_every_goal`
+    - `test_ui_flag_and_zoom_seen`
+    - `test_resistor_watts_range`
+    - `test_e12_values_and_at_or_above` (350 → 390; 150 → 150; 500 → 560)
+    - `test_led_resistor_formula_150`
+    - `test_ohms_law_solves_missing`
+    - `test_power_from_r_47`
 - [ ] **Step 2: Run `tools/test.sh lessons/`.** Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run the tests.** Expected: PASS.
@@ -618,17 +680,18 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `intro_index: int`, `hint_tier: int`
     - `goal_results: Array[Dictionary]`, `test_report: Dictionary`
     - `used_hints: bool`
+    - `step_results: Array[Dictionary]` (one per level step)
   - `LevelSession` static functions:
     - `start(level) -> LevelSession`
     - `next_intro(s, level) -> void` (after the last line, the phase becomes `"build"`)
-    - `update(s, level, ctx) -> void` (re-evaluates goals; a level **without tests** moves to `"passed"` when every goal passes)
+    - `update(s, level, ctx) -> void` (re-evaluates goals and steps; a level **without tests** moves to `"passed"` when every goal passes; steps are guidance and never block passing)
     - `run_tests(s, level, circuit, ctx) -> void` (moves to `"passed"` only if all goals and the report pass)
     - `hint(s, level) -> void` (tier + 1, capped at `level.hints.size()`; sets `used_hints`)
   - `class_name Progress extends RefCounted`:
     - `const VERSION := 1`
     - `completed: Dictionary` (id → `{star: bool, at: int}`)
     - `drafts: Dictionary` (id → circuit dict)
-    - `settings: Dictionary` (keys `reduced_motion`, `engineer_view`, `electron_flow`, `large_text`, `patterns`, `night`, all false by default)
+    - `settings: Dictionary` with defaults `help_level: "heavy"`, `view_style: "schematic"`, `show_values: true`, and `reduced_motion`, `electron_flow`, `large_text`, `patterns`, `night` all false
     - `stats: Dictionary` (`{parts_burnt: 0}`)
     - `static defaults() -> Progress`, `to_dict() -> Dictionary`, `static from_dict(d) -> Progress` (null on an unknown version or wrong types)
     - `is_unlocked(level_id: String, chapter_level_ids: PackedStringArray) -> bool` (the first level is always unlocked; any other needs the previous one completed)
@@ -641,6 +704,8 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
   - `test_goals_only_level_passes_on_update`
   - `test_tests_level_needs_run_tests`
   - `test_hint_tier_caps`
+  - `test_steps_tick_live`
+  - `test_defaults_are_real_life_heavy_help` (`help_level` "heavy", `view_style` "schematic", `show_values` true)
   - `test_progress_round_trip`
   - `test_unknown_version_rejected`
   - `test_unlock_chain`
@@ -658,7 +723,7 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 ### Task 10: Chapter 1 content, glossary and chapter list
 
 **Files:**
-- Create: `game/src/content/{glossary,chapters,levels}.gd`, `game/src/content/ch1/l1_light_it_up.gd` … `l8_inside_the_wire.gd` (each defines `static func build() -> LevelDef` and has **no** `class_name`), `game/tests/content/test_content.gd`
+- Create: `game/src/content/{glossary,chapters,levels}.gd`, `game/src/content/ch1/l1_light_it_up.gd` … `l7_short_circuit.gd`, `l8_too_hot.gd`, `l9_inside_the_wire.gd` (each defines `static func build() -> LevelDef` and has **no** `class_name`), `game/tests/content/test_content.gd`
 
 **Interfaces:**
 - Consumes: `LevelBuilder`, `Goals`, `LevelTests`, `Simulator`.
@@ -680,15 +745,19 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 | # | id / title | Start | Tray | Goals | Tests | Solution |
 |---|---|---|---|---|---|---|
 | 1 | `ch1.light-it-up` "Light it up" | compact, R1 220, no wires | — | led_lit L1, no_short | — | w1, w2, w3 |
-| 2 | `ch1.pop` "Pop!" | B1, L1 (compact positions) | resistor 47, 220, 1000 (1 each) | led_lit L1, no_damage, uses resistor min 1 | — | resistor (220) at (−2,−4) + w1, w2, w3 equivalents |
+| 2 | `ch1.pop` "Pop!" | B1, L1 (compact positions) | resistors 47, 100, 150, 220, 330 and 1000 Ω (1 each, ¼ W) | led_lit L1 `max_ma` 20, no_damage, uses resistor min 1 | — | resistor (150) at (−2,−4) + w1, w2, w3 equivalents |
 | 3 | `ch1.push-and-flow` "Push and flow" | B1; R1 1000 adjustable; M1 ammeter at (6,0) rot 90; V1 voltmeter at (−2,−7); locked wires B1.pos→R1.a, R1.b→M1.a, M1.b→B1.neg, V1.pos→R1.a, V1.neg→R1.b | — | meter_reads M1 target 0.010 tolerance 0.0005, no_damage | — | `solution_props("R1", {ohms: 500.0})` |
 | 4 | `ch1.on-and-off` "On and off" | wide, locked w1, w3 | switch `{label:"S"}` | no_damage, no_short, uses switch min 1 | "Switch off: LED off" (S off → led_dark), "Switch on: LED on" (S on → led_lit) | S at (6,−4); R1.b→S.a, S.b→L1.anode |
 | 5 | `ch1.both` "Both switches" | wide, locked w1, w3 | switch A, switch B | no_damage, no_short, uses switch min 2 | the 4 combinations; only "A on, B on: LED on" is lit | A at (3,−4), B at (8,−4); R1.b→A.a, A.b→B.a, B.b→L1.anode |
 | 6 | `ch1.either` "Either switch" | wide, locked w1, w3 | switch A, switch B | same as L5 | 4 combinations; lit unless both are off | A at (4,−4), B at (4,−7); R1.b→A.a, A.a→B.a, B.b→A.b, A.b→L1.anode |
 | 7 | `ch1.short-circuit` "Short circuit!" | compact, w1–w3 locked, plus **unlocked** `w_bad` R1.a→L1.cathode via [(−4,−6),(9,−6),(9,1)] | — | no_short, led_lit L1 | — | `solution_remove_wire("w_bad")` |
-| 8 | `ch1.inside-the-wire` "Inside the wire", kind `zoom` | compact, w1–w3 locked | — | zoom_reached `wire.copper` | — | the start circuit (hint 3: no ghost) |
+| 8 | `ch1.too-hot` "Too hot to handle" | B1 only | resistor `{ohms: 47.0, watts: 0.25}` and resistor `{ohms: 47.0, watts: 1.0}` (1 each) | resistor_watts min 0.4 max 0.6, no_damage | — | the 1 W resistor at (−2,0) rot 90; B1.pos→R.a, R.b→B1.neg |
+| 9 | `ch1.inside-the-wire` "Inside the wire", kind `zoom` | compact, w1–w3 locked | — | zoom_reached `wire.copper` | — | the start circuit (hint 3: no ghost) |
 
-- Star for L2: `{goal: {kind: "led_lit", part: "L1", min_ma: 10.0}, text: "Brightest safe glow (at least 10 mA)"}`.
+Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`, L8 `power`.
+
+- Star for L2: `{goal: {kind: "led_lit", part: "L1", min_ma: 18.0, max_ma: 20.0}, text: "Brightest glow within spec (18–20 mA)"}`. Only 150 Ω earns it (19.9 mA).
+- Every level has 2–5 **steps** for the heavy-help checklist. They're listed with each level's copy below, with their checks in parentheses.
 - In M1, each level's facts double as its "Go deeper" card. Fuller Go-deeper panels start in M3.
 - Test case names for L5 and L6 follow `"A on, B off: LED off"`.
 
@@ -700,6 +769,10 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     1. "Hi! I'm Pip, a tiny spark of [[electricity]]." (happy)
     2. "Electricity only flows around a full loop: out of the battery's + side, through your parts, and back into −." (curious)
     3. "Drag from one metal dot to another to add a wire. Can you light the [[led|LED]]?" (happy)
+  - steps:
+    1. "Connect the battery's + to the resistor's left end." (`connected B1:pos R1:a`)
+    2. "Connect the resistor's right end to the LED's + side." (`connected R1:b L1:anode`)
+    3. "Connect the LED's − side back to the battery's −." (`connected L1:cathode B1:neg`)
   - hints:
     1. "Current leaves the battery's + end. Where should it go first?"
     2. "Connect the battery's + to the resistor, the resistor to the LED, and the LED back to −." (highlights B1.pos, R1.a)
@@ -709,23 +782,32 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     2. "Every phone and computer works because of loops like this one." (happy)
   - fact: "The first practical LED, made in 1962, could only glow red."
 - **L2**
-  - summary: "Find out why LEDs need resistors."
+  - summary: "Work out the right resistor from the LED's datasheet."
   - intro:
     1. "This LED has no [[resistor]]. What could go wrong?" (curious)
     2. "Try connecting it straight to the battery and watch closely." (happy)
+  - steps:
+    1. "Tap the LED to read its [[datasheet]]." (`ui_flag "datasheet:L1"`)
+    2. "Work out the resistor with the calculator." (`ui_flag "formula:led_resistor"`)
+    3. "Place the resistor you picked." (`uses resistor min 1`)
+    4. "Wire it in and close the loop. Keep it at 20 mA or less." (`led_lit L1 max_ma 20`)
   - hints:
-    1. "Too much [[current]] burns an LED. A resistor slows the current down."
-    2. "Put a resistor between the battery's + and the LED." (highlights B1.pos, L1.anode)
+    1. "Too much [[current]] burns an LED. A resistor limits the current."
+    2. "The datasheet says 2.0 V at 20 mA. Resistor = (5 V − 2.0 V) ÷ 0.020 A." (highlights L1)
     3. "Here's a safe circuit. Tap the ghosts to place them."
   - outro:
-    1. "Safe and glowing! The resistor keeps the current low enough for the LED." (wow)
-    2. "Different resistors let different amounts through. Which one is brightest without popping?" (curious)
-  - fact: "Stripes on a resistor show its value. Red, red, brown means 220 ohms."
+    1. "Safe and glowing! That's the exact formula engineers use for every LED." (wow)
+    2. "Resistors come in [[standard values]]. 150 Ω is exactly right here." (happy)
+  - fact: "Stripes on a resistor show its value. Brown, green, brown means 150 ohms."
 - **L3**
   - summary: "Use Ohm's law to set exactly 10 mA."
   - intro:
     1. "[[voltage|Voltage]] is the push. [[current|Current]] is the flow. [[resistance|Resistance]] makes flowing harder." (curious)
     2. "Tap the resistor and turn its dial until the [[ammeter|current meter]] shows 10 mA." (happy)
+  - steps:
+    1. "Tap the resistor to open its dial." (`ui_flag "value:R1"`)
+    2. "Use Ohm's law: R = 5 V ÷ 0.010 A." (`ui_flag "formula:ohms_law"`)
+    3. "Turn the dial until the meter reads 10 mA." (`meter_reads M1 0.010 ±0.0005`)
   - hints:
     1. "More resistance means less current. Is the meter too high or too low?"
     2. "Try about 500 ohms." (highlights R1)
@@ -739,6 +821,11 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
   - intro:
     1. "A [[switch]] opens and closes the loop, like a drawbridge." (curious)
     2. "Add the switch so it controls the LED. Tap it to try, then press Test." (happy)
+  - steps:
+    1. "Place the switch from the tray." (`uses switch min 1`)
+    2. "Connect the resistor to one side of the switch." (`connected R1:b S:*`)
+    3. "Connect the other side to the LED's + side." (`connected L1:anode S:*`)
+    4. "Try the switch, then press Test." (`ui_flag "tested"`)
   - hints:
     1. "The loop has a gap. The switch can fill it."
     2. "Connect the resistor to one side of the switch, and the other side to the LED." (highlights R1.b, L1.anode)
@@ -752,6 +839,12 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
   - intro:
     1. "Here are two switches, A and B." (happy)
     2. "Make the LED light only when A and B are both on." (curious)
+  - steps:
+    1. "Place switches A and B." (`uses switch min 2`)
+    2. "Connect the resistor to A." (`connected R1:b A:*`)
+    3. "Connect A to B." (`connected A:* B:*`)
+    4. "Connect B to the LED's + side." (`connected B:* L1:anode`)
+    5. "Press Test." (`ui_flag "tested"`)
   - hints:
     1. "Current has to pass through both switches, one after the other."
     2. "Connect the resistor to A, A to B, and B to the LED." (highlights A, B)
@@ -764,6 +857,11 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
   - intro:
     1. "Same switches, new rule." (happy)
     2. "Make the LED light when A is on, or B is on, or both." (curious)
+  - steps:
+    1. "Place switches A and B." (`uses switch min 2`)
+    2. "Connect one side of each switch to the resistor." (`all [connected R1:b A:*, connected R1:b B:*]`)
+    3. "Connect the other sides to the LED's + side." (`all [connected L1:anode A:*, connected L1:anode B:*]`)
+    4. "Press Test." (`ui_flag "tested"`)
   - hints:
     1. "Give the current two paths, one through each switch."
     2. "Connect both switches side by side between the resistor and the LED." (highlights A, B)
@@ -776,6 +874,9 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
   - intro:
     1. "Uh oh, this battery is getting hot!" (oops)
     2. "A [[short circuit]] is a shortcut that lets current skip your parts. Find it and delete it." (curious)
+  - steps:
+    1. "Tap the wires to find the one going from + straight to −." (`ui_flag "selected:w_bad"`)
+    2. "Hold it and choose Delete." (`no_short`)
   - hints:
     1. "One wire connects the + side straight to the − side."
     2. "It's this wire. Hold it and choose Delete." (highlights w_bad)
@@ -785,10 +886,31 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     2. "Real short circuits can melt wires. Never connect a real battery's + and − together!" (curious)
   - fact: "Fuses and circuit breakers cut the power when too much current flows."
 - **L8**
+  - summary: "Pick a resistor that can handle the heat."
+  - intro:
+    1. "Resistors turn electricity into heat. That's how toasters work!" (happy)
+    2. "Make about half a [[watt]] of heat without burning anything. Check each resistor's [[datasheet]] first." (curious)
+  - steps:
+    1. "Read both resistors' datasheets in the tray." (`ui_flag "datasheet:tray"`)
+    2. "Work out the heat with the calculator." (`ui_flag "formula:power"`)
+    3. "Place the resistor that can handle it." (`uses resistor min 1`)
+    4. "Connect it across the battery." (`resistor_watts 0.4–0.6`)
+  - hints:
+    1. "[[power|Power]] = voltage × current. Both resistors are 47 Ω, but they're not the same."
+    2. "One is rated ¼ W and the other 1 W. Which one can handle half a watt?"
+    3. "Here's the circuit. Tap the ghosts to place them."
+  - outro:
+    1. "Toasty! That's 0.51 watts of heat, and the 1 W resistor handles it easily." (wow)
+    2. "Engineers always check the power rating. A ¼ W resistor here would burn." (curious)
+  - fact: "A hair dryer turns about 1,500 watts into heat, 3,000 times more than your resistor."
+- **L9**
   - summary: "Zoom into a wire to see electrons."
   - intro:
     1. "Wires look solid, but inside them trillions of [[electron|electrons]] are moving." (curious)
     2. "Pinch or scroll over a wire to zoom in. Keep going until you see atoms!" (happy)
+  - steps:
+    1. "Zoom in over a wire." (`zoom_reached wire.closeup`)
+    2. "Keep going until you see atoms." (`zoom_reached wire.copper`)
   - hints:
     1. "Put your fingers or mouse right over a wire, then zoom in."
     2. "Keep zooming in. The wire gets bigger and bigger." (highlights w1)
@@ -824,6 +946,13 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 | short circuit | Short circuit | An accidental shortcut that lets current skip the parts. It can overheat wires and batteries. |
 | ammeter | Current meter | A meter that measures current. It must be placed in the loop, in series. |
 | voltmeter | Voltage meter | A meter that measures the push between two points. |
+| power | Power | How fast energy is used or turned into heat. Watts = volts × amps. |
+| watt | Watt (W) | The unit of power. One watt is one volt pushing one amp. |
+| datasheet | Datasheet | A part's official fact sheet: its values, limits and how to use it safely. |
+| forward voltage | Forward voltage | The voltage an LED needs across it before current flows through it. |
+| standard values | Standard values | Resistors come in standard steps, like 100, 150, 220, 330 and 470 ohms. |
+| anode | Anode | The + side of an LED, where current goes in. |
+| cathode | Cathode | The − side of an LED, where current comes out. |
 
 **Chapters (exact):**
 
@@ -844,18 +973,24 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 | ch13 | Thinking Machines | 1958–today | Neurons, AI chips and language models | no |
 
 - [ ] **Step 1: Write the failing `test_content.gd`:**
-  - `test_eight_ch1_levels_in_order`
+  - `test_nine_ch1_levels_in_order`
   - `test_ids_unique`
-  - `test_every_solution_passes` (goals with ctx from `simulate(solution)`; `zoom_layer` is `"wire.copper"` for zoom levels and `"editor"` otherwise; plus `LevelTests.run`)
+  - `test_every_solution_passes`:
+    - goals use a ctx from `simulate(solution)`
+    - `zoom_layer` is `"wire.copper"` for zoom levels and `"editor"` otherwise
+    - `ui_flags` and `zoom_seen` contain every flag and layer the level's steps mention
+    - `LevelTests.run` passes, and every step's check passes too
+  - `test_every_level_has_valid_steps` (2–5 steps; every check is a known goal kind and only references parts, labels, flags or layers that exist)
   - `test_no_build_level_passes_at_start`
   - `test_solutions_use_only_start_and_tray_parts` (respects counts)
   - `test_glossary_terms_exist` (scans the intro, outro, hint and fact text)
   - `test_hint_highlights_exist`
   - `test_copy_limits` (≤ 2 sentences and ≤ 30 words per line)
   - `test_chapters_list_13_and_ch1_playable`
-  - `test_l2_star_only_with_220` (simulate the solution with 47, 220 and 1000 Ω: only 220 lights the LED without burning it and reaches ≥ 10 mA)
+  - `test_l2_star_only_with_150` (simulate the solution with each tray resistor: 47 burns; 100 fails `max_ma` 20 at ≈ 29.1 mA; 150 passes and earns the star at ≈ 19.9 mA; 220, 330 and 1000 pass without the star)
+  - `test_l8_quarter_watt_burns_one_watt_passes`
 - [ ] **Step 2: Run `tools/test.sh content/`.** Expected: FAIL.
-- [ ] **Step 3: Implement the eight level files, the glossary, the chapters and the registry.**
+- [ ] **Step 3: Implement the nine level files, the glossary, the chapters and the registry.**
 - [ ] **Step 4: Run the tests.** Expected: PASS.
 - [ ] **Step 5: Commit** with `feat: Chapter 1 Spark levels, glossary and chapter list`.
 
@@ -980,7 +1115,7 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 ### Task 14: Editor art (pure) and the art gallery
 
 **Files:**
-- Create: `game/src/editor/{draw_kit,resistor_bands,visual_state,part_art,wire_art}.gd`, `game/src/editor/art_gallery.tscn`, `game/src/editor/art_gallery.gd`, `game/tests/editor/{test_resistor_bands,test_visual_state,test_part_art,test_wire_art}.gd`
+- Create: `game/src/editor/{draw_kit,resistor_bands,visual_state,explain,part_art,wire_art}.gd`, `game/src/editor/art_gallery.tscn`, `game/src/editor/art_gallery.gd`, `game/tests/editor/{test_resistor_bands,test_visual_state,test_explain,test_part_art,test_wire_art}.gd`
 
 **Interfaces:**
 - Consumes: circuit types, `SimResult`, `Palette`.
@@ -994,12 +1129,15 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `hot` (battery in `shorts`)
     - `reading` (ammeter `"%.1f mA"` of |I|·1000; voltmeter `"%.2f V"`; `"—"` if NAN)
     - `closed`, `color`, `label`
-  - `PartArt.ops(p: Part, vis: Dictionary, selected: bool, highlighted: bool) -> Array[Dictionary]`
+  - `PartArt.ops(p: Part, vis: Dictionary, selected: bool, highlighted: bool, style := "schematic") -> Array[Dictionary]`
+    - `style` is `"schematic"` (the default, real circuit symbols) or `"physical"`.
     - Ops are in **part-local** grid units (before rotation).
     - Op types:
       - `rrect{rect, radius, fill, stroke, stroke_w}`
       - `circle{c, r, fill, stroke, stroke_w}`
       - `capsule{a, b, r, fill}`
+      - `poly{points, fill, stroke, stroke_w}`
+      - `polyline{points, color, width}`
       - `glow{c, r, color}`
       - `text{at, text, size, color, bold}` (drawn upright)
   - `WireArt.color_for_volts(v: float, floating: bool, night := false) -> Color` (lerp `signal_low`→`signal_high` by clamp(v/5); floating → `line`)
@@ -1007,16 +1145,31 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
   - `WireArt.dots(path: PackedVector2Array, amps: float, t: float) -> PackedVector2Array` (spacing 0.6 units, moving along the path for positive amps and against it for negative)
   - `WireArt.display_amps(amps: float, settings: Dictionary) -> float` (−amps when `electron_flow` is on)
   - `WireArt.pattern_dashes(path: PackedVector2Array, volts: float, enabled: bool) -> Array[PackedVector2Array]` (only when enabled and volts > 2.5: 0.3-unit dashes every 0.6 units; otherwise empty)
-  - `VisualState.engineer_labels(c: Circuit, sim: SimResult) -> Array[Dictionary]` (`{at: Vector2, text: String}`): one `"%.2f V"` label per non-floating net at its first pin, offset (0.4, −0.4), and one `"%.1f mA"` label per resistor and LED at the part center, offset (0, 0.9)
+  - `VisualState.engineer_labels(c: Circuit, sim: SimResult) -> Array[Dictionary]` (`{at: Vector2, text: String}`): one `"%.2f V"` label per non-floating net at its first pin, offset (0.4, −0.4), and one `"%.1f mA"` label per resistor and LED at the part center, offset (0, 0.9). These are shown by default (`show_values`).
+  - `Explain.part(p: Part, sim: SimResult) -> PackedStringArray`: explanation lines with the real numbers. Exact for `compact_loop(220)`:
+    - R1: `"Voltage across R1: 3.04 V"`, `"Current = 3.04 V ÷ 220 Ω = 13.8 mA"`, `"Heat = 3.04 V × 13.8 mA = 0.042 W (rated 0.25 W)"`
+    - L1: `"Voltage across L1: 1.95 V"`, `"Current: 13.8 mA (recommended up to 20 mA)"`, `"Brightness: 69%"`
+    - B1: `"Voltage at the terminals: 5.0 V − 13.8 mA × 1 Ω = 4.99 V"`, `"Power delivered: 4.99 V × 13.8 mA = 0.069 W"`
+    - Ammeter: `"Current through M1: {x} mA"`, `"A current meter goes in series, so all the current flows through it."`
+    - Voltmeter: `"Voltage between the probes: {v} V"`, `"A voltage meter has 10 MΩ inside, so it barely changes the circuit."`
+    - Switch: `"S is closed, so current can flow."` or `"S is open, so the loop is broken."`
+    - Burnt: `"{title} burned out: {why}."`, where why is `"more than its 30 mA maximum"`, `"more heat than its {watts} W rating"` or `"its 500 mA fuse blew"`
+    - Floating: `"Not connected to the battery yet."`
   - `DrawKit` static drawing helpers (`rrect`, `circle`, `capsule`, `glow`, `text`) taking a `CanvasItem` and `px_per_unit` (the circle segment count is clamp(r·px_per_unit/2, 12, 96)).
 - **Visual requirements** (the implementer chooses coordinates; the gallery capture checks them):
-  - battery: mint pack with + and − labels and "5V"; coral body and glow when hot
-  - resistor: butter body with color bands; small dial icon when adjustable
-  - LED: domed body in its tint, a flat cathode-side line, a "+" by the anode, and a glow scaled by brightness
-  - switch: two metal contacts with a lever lying flat when closed and raised 30° when open, and its label below
-  - meters: round dial (sky for current, lilac for voltage) with a paper display showing the reading
-  - burnt parts: dimmed, with a scorch mark
-  - pins: metal dots
+  - **Schematic style (default):** real circuit symbols drawn with rounded ink strokes on soft pastel tiles.
+    - battery: long and short plates with "+" by the long plate and "5V", on a mint tile; a coral tile and glow when hot
+    - resistor: a zigzag polyline with 6 peaks on a butter tile, with the value below ("220 Ω", plus "1 W" when rated 1 W); an arrow across it when adjustable
+    - LED: a triangle pointing anode → cathode with a bar at the cathode, filled in its tint, with two small light arrows that glow with brightness
+    - switch: two contact dots and a lever line, flat when closed and raised 30° when open, with its label
+    - meters: a circle with "A" or "V" (sky for current, lilac for voltage) and the reading below
+  - **Physical style:**
+    - battery: a mint 4 × AA pack with + and − labels
+    - resistor: a butter body with color bands; 1 W resistors are drawn 1.5× larger
+    - LED: a domed body in its tint with a flat cathode-side line, a "+" by the anode, and a glow scaled by brightness
+    - switch: a toggle with metal contacts
+    - meters: round dials with a paper display
+  - **Both styles:** burnt parts are dimmed with a scorch mark, and pins are metal dots.
 
 - [ ] **Step 1: Write the failing tests.**
   - `test_digits` (220 → [2,2,1]; 1000 → [1,0,2]; 47 → [4,7,0]; 500 → [5,0,1]; 150 → [1,5,1]; 1234 → [1,2,2])
@@ -1036,8 +1189,13 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
   - `test_display_amps_electron_flow`
   - `test_pattern_dashes_only_high_and_enabled`
   - `test_engineer_labels_volts_and_amps` (`compact_loop(220)` gives `"4.99 V"` on the + net and `"13.8 mA"` on R1 and on L1)
+  - `test_schematic_resistor_is_zigzag_polyline`
+  - `test_schematic_led_has_triangle_poly`
+  - `test_physical_style_has_color_bands`
+  - `test_explain_resistor_led_battery_220` (the exact lines above)
+  - `test_explain_floating_and_burnt`
 - [ ] **Step 2: Run `tools/test.sh editor/`.** Expected: FAIL.
-- [ ] **Step 3: Implement.** The art gallery shows every part kind in each state on a cream board.
+- [ ] **Step 3: Implement.** The art gallery shows every part kind in each state, in both styles, on a cream board.
 - [ ] **Step 4: Run the tests.** Expected: PASS.
 - [ ] **Step 5: Visual check.** Capture `res://src/editor/art_gallery.tscn`. It passes if each part matches the visual requirements, edges stay crisp at 1× and at 4× zoom (the gallery reads `--zoom=`), and nothing clips.
 - [ ] **Step 6: Commit** with `feat: pastel part and wire art`.
@@ -1064,14 +1222,15 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `begin_placing(tray_index: int)`, `cancel()`
     - `handle(g: Dictionary, ctx: Dictionary) -> Array[Dictionary]`
       - `ctx = {circuit, tray, tray_used: Array[int], pin_r, wire_r}` (gesture positions already in grid units; pan deltas in px)
-      - Effects: `commit{circuit}`, `menu{part?, wire?, at}`, `value{part}`, `camera_zoom{factor, at}`, `camera_pan{delta}`, `toast{text}`
+      - Effects: `commit{circuit}`, `menu{part?, wire?, at}`, `value{part}`, `datasheet{part}`, `selected{id}`, `camera_zoom{factor, at}`, `camera_pan{delta}`, `toast{text}`
   - Controller rules:
     - **Tap**
       - Tap on a pin: either selects it (`pin_selected`) or, if a pin is already selected, wires the two pins.
       - Tap on a switch: toggles `closed` and commits.
       - Tap on an adjustable resistor: emits `value`.
       - Tap on a burnt part: emits `menu`.
-      - Tap on any other part or a wire: selects it.
+      - Tap on any other part: selects it and emits `datasheet{part}`.
+      - Tap on a wire: selects it and emits `selected{id}`.
       - Tap on empty space while placing: adds the tray part at the rounded position (tray index and props from the tray item, a new id from `next_id`) and commits.
     - **Drag**
       - Starting on a pin: enters `wiring`. The snap is the nearest other pin within `1.5·pin_r`. On release over a valid snap the wire is committed; otherwise it emits `toast "Drop the wire on a metal dot."`, or `"Those are already connected."` for a duplicate.
@@ -1082,7 +1241,7 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `zoom` and `pan` → camera effects.
     - Keys: `rotate`, `delete`, `cancel`.
   - `class_name EditorLayer extends ZoomLayer` (scene `editor_layer.tscn`: SubViewport → Node2D world → `Camera2D`, `CircuitView`, `FlowView`, `PointerInput`):
-    - `signal commit_requested(c: Circuit)`, `signal menu_requested(target: Dictionary, screen_pos: Vector2)`, `signal value_requested(part_id: String)`, `signal toast_requested(text: String)`, `signal ghost_tapped(kind: String, data: Dictionary)`
+    - `signal commit_requested(c: Circuit)`, `signal menu_requested(target: Dictionary, screen_pos: Vector2)`, `signal value_requested(part_id: String)`, `signal datasheet_requested(part_id: String)`, `signal selected(id: String)`, `signal toast_requested(text: String)`, `signal ghost_tapped(kind: String, data: Dictionary)`
     - `set_state(c: Circuit, sim: SimResult, settings: Dictionary, ghosts: Dictionary, highlights: Array)`
     - `set_tray(tray: Array, used: Array[int])`, `begin_placing(i: int)`
     - `fit_view() -> float` (circuit bounds plus 3 units of margin; the result is at least 12)
@@ -1091,7 +1250,7 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `dynamic_child` returns null in this task (Task 19 adds it)
     - The pin radius in grid units is max(0.35, 22/px_per_unit). `FlowView` animates dots each frame when any |I| ≥ 1e-5, unless `reduced_motion` is on (then it draws static arrows).
     - Dot directions use `WireArt.display_amps`.
-    - `CircuitView` takes every color from `Palette.color(name, settings.night)`. It draws `VisualState.engineer_labels` when `engineer_view` is on, and `WireArt.pattern_dashes` when `patterns` is on.
+    - `CircuitView` takes every color from `Palette.color(name, settings.night)`. It draws parts in `settings.view_style`, draws `VisualState.engineer_labels` when `show_values` is on (the default), and draws `WireArt.pattern_dashes` when `patterns` is on.
     - Newly placed parts pop in with a 0.18 s scale overshoot. This is skipped when `reduced_motion` is on.
 
 - [ ] **Step 1: Write the failing tests.**
@@ -1110,6 +1269,8 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `test_locked_part_drag_pans`
     - `test_tap_switch_toggles`
     - `test_tap_adjustable_resistor_opens_value`
+    - `test_tap_plain_part_opens_datasheet`
+    - `test_tap_wire_emits_selected`
     - `test_long_press_opens_menu`
     - `test_drag_cancel_while_wiring_commits_nothing`
     - `test_rotate_and_delete_keys_on_selection`
@@ -1117,12 +1278,12 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 - [ ] **Step 2: Run `tools/test.sh editor/`.** Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run the tests.** Expected: PASS.
-- [ ] **Step 5: Visual check.** Capture `res://src/editor/editor_preview.tscn -- --level=ch1.light-it-up --solution`, once as is and once with `--engineer`. It passes if:
+- [ ] **Step 5: Visual check.** Capture `res://src/editor/editor_preview.tscn -- --level=ch1.light-it-up --solution`, once as is (circuit symbols with values) and once with `--physical`. It passes if:
   - wires are tinted by voltage
   - sparks sit on the wires
   - the LED glows
   - the grid dots are subtle
-  - the engineer labels don't overlap the parts
+  - the value labels don't overlap the parts
 - [ ] **Step 6: Commit** with `feat: circuit editor with wiring, placing, moving and live visuals`.
 
 ### Task 16: Game state, game node, main scene and navigation
@@ -1136,13 +1297,14 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 - Consumes: Tasks 7–10, 12, 15.
 - Produces:
   - `class_name GameState extends RefCounted` (pure):
-    - Fields: `progress: Progress`, `level: LevelDef`, `history: CircuitHistory`, `outcome: SimOutcome`, `session: LevelSession`, `zoom_layer := "editor"`, `preview_circuit: Circuit`, `events: Array[Dictionary]`
+    - Fields: `progress: Progress`, `level: LevelDef`, `history: CircuitHistory`, `outcome: SimOutcome`, `session: LevelSession`, `zoom_layer := "editor"`, `zoom_seen: Dictionary`, `ui_flags: Dictionary`, `preview_circuit: Circuit`, `events: Array[Dictionary]`
     - `start_level(l: LevelDef)` (uses a valid draft if present, otherwise copies the start circuit)
     - `commit(c: Circuit)` (simulate; store `outcome.circuit` in history; update the session; save the draft; add `stats.parts_burnt`; queue `{type:"burnt", part, reason}` events)
     - `preview(c)` (simulate without touching history)
     - `undo() -> bool`, `redo() -> bool` (re-simulate)
     - `run_tests()`, `next_intro()`, `use_hint()`
-    - `set_zoom_layer(id)` (re-evaluates goals)
+    - `set_zoom_layer(id)` (adds the layer to `zoom_seen`, then re-evaluates goals and steps)
+    - `set_ui_flag(flag: String)` (re-evaluates steps)
     - `complete(now: int)` (when the phase is `passed`: `mark_complete` with the star result; queue `{type:"passed"}`)
     - `tray_used() -> Array[int]`
     - `take_events() -> Array[Dictionary]`
@@ -1151,10 +1313,10 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `var state: GameState`
     - `boot(path := "user://progress.json")`
     - `open_level(id)`, `open_map()`, `open_title()`
-    - Actions forwarding to `state` that then emit `changed`: `commit`, `preview`, `undo`, `redo`, `run_tests`, `next_intro`, `use_hint`, `set_zoom_layer`, `set_setting(key, value)`
+    - Actions forwarding to `state` that then emit `changed`: `commit`, `preview`, `undo`, `redo`, `run_tests`, `next_intro`, `use_hint`, `set_zoom_layer`, `set_ui_flag`, `set_setting(key, value)`
     - `save_soon()` (a 0.5 s debounce timer) and `save_now()` (also called on `NOTIFICATION_WM_CLOSE_REQUEST` and `NOTIFICATION_APPLICATION_PAUSED`)
   - `Main` owns one `Game`, listens to `navigate`, swaps the screen scene and sets `screen.game = game`.
-  - `MapScreen` shows Chapter 1's 8 level buttons on a winding path (✓ completed, ★ star, disabled if locked) and 12 locked chapter cards with their era and blurb.
+  - `MapScreen` shows Chapter 1's 9 level buttons on a winding path (✓ completed, ★ star, disabled if locked) and 12 locked chapter cards with their era and blurb.
   - `LevelScreen` holds a `ZoomStage` with an `EditorLayer`, plus `HUD` placeholders (filled in Task 17). It connects the editor signals to `game`.
 
 - [ ] **Step 1: Write the failing tests.**
@@ -1162,8 +1324,10 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
   - `test_commit_burn_stores_burnt_circuit_and_event`
   - `test_undo_after_burn_restores_part` (undo leaves L1 unburnt, `outcome` re-simulated, no burnt state in the result)
   - `test_l1_solution_passes_and_unlocks_l2`
-  - `test_l2_star_with_220`
-  - `test_zoom_goal_passes_on_layer` (L8, `set_zoom_layer("wire.copper")`)
+  - `test_l2_star_with_150`
+  - `test_zoom_goal_passes_on_layer` (L9, `set_zoom_layer("wire.copper")`)
+  - `test_ui_flag_ticks_step` (L2: `set_ui_flag("datasheet:L1")` ticks step 1)
+  - `test_zoom_seen_keeps_closeup_step` (L9: after `wire.closeup` and then `wire.copper`, both steps are ticked)
   - `test_drafts_saved_per_level`
   - Navigation (scene): `test_map_only_l1_enabled_on_fresh_progress`, `test_map_l2_enabled_after_l1`, `test_open_level_shows_level_screen`
 - [ ] **Step 2: Run `tools/test.sh app/`.** Expected: FAIL.
@@ -1171,7 +1335,7 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 - [ ] **Step 4: Run the tests.** Expected: PASS.
 - [ ] **Step 5: Commit** with `feat: game state, autosave and screen navigation`.
 
-### Task 17: Level HUD — tray, goals, tests, hints, menus, guide, glossary, settings
+### Task 17: Level HUD — heavy help, tray, goals, tests, hints, menus, guide, glossary, settings
 
 **Files:**
 - Create: `game/src/hud/*.gd` (see the file map), `game/src/ui/glossary_text.gd`
@@ -1179,25 +1343,42 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 - Test: `game/tests/ui/test_glossary_text.gd`, `game/tests/hud/test_hud.gd`
 
 **Interfaces:**
-- Consumes: `Game`, `GameState`, `EditorLayer`, `SolutionDiff`, `Glossary`, `PastelTheme`.
+- Consumes: `Game`, `GameState`, `EditorLayer`, `SolutionDiff`, `Glossary`, `PastelTheme`, `Catalog.datasheet`, `ResistorBands`, `Formulas`, `Explain`, `PartArt`.
 - Produces:
   - `GlossaryText.to_bbcode(text: String) -> String`
     - `[[term]]` becomes `[url=term][color=#7C5CC4]term[/color][/url]`
     - `[[term|shown]]` keeps the term and displays `shown`
     - Unknown terms are left as plain text.
   - HUD nodes (all read from `game.state` on `changed`):
-    - **TopBar:** back to the map, level title, undo, redo, settings.
+    - **TopBar:** back to the map, level title, undo, redo, calculator, settings.
     - **PartsTray:** shows remaining counts. A tap calls `editor.begin_placing`, a drag uses Godot drag-and-drop onto the `EditorLayer`, and items with 0 left are disabled.
     - **GoalsPanel:** ✓/○ rows plus the first failing message.
     - **TestSheet:** shown only for levels with tests. Lists the cases ✓/✗ with messages.
     - **HintButton:** tier 1 shows text; tier 2 shows text and highlights; tier 3 shows ghosts from `SolutionDiff` (tap a ghost to place it), plus chips for prop changes ("Set Resistor to 500 Ω") and removals ("Delete the highlighted wire").
-    - **ContextMenu:** Rotate, Delete, and Replace (shown only when the part is burnt).
+    - **ContextMenu:** Rotate, Delete, Datasheet, Explain, and Replace (shown only when the part is burnt).
     - **ValuePopover:** `HSlider` 100–2000, step 10. Calls `game.preview` while dragging and `game.commit` on release; shows "{ohms} Ω".
     - **Toasts:** stacked, 2.5 s each. A burn shows "Pop! {title} burned out."
     - **Pip:** drawn with `_draw()`: a round butter-to-peach body, eyes, cheeks, and a mood expression.
     - **GuideBubble:** Pip plus a `RichTextLabel` with BBCode. Shows the intro with Next; after passing, the outro, facts, and buttons "Next level" and "Map".
     - **GlossaryPopup:** opened by `meta_clicked`.
-    - **SettingsSheet:** toggles for reduced motion, engineer view, electron flow, large text, patterns and night. They apply immediately; the theme rebuilds for night and large text.
+    - **StepsChecklist** (Heavy only): the level's steps, ticked from `session.step_results`. The first unticked step is highlighted.
+    - **DatasheetCard:** opened by `datasheet_requested`, by the menu's Datasheet item, or by a tray item's ⓘ button.
+      - It shows the `Catalog.datasheet` rows with glossary links, the resistor color code from `ResistorBands`, and small previews of the part in both styles.
+      - It sets the flag `"datasheet:<id>"`, or `"datasheet:tray"` when opened from the tray.
+    - **FormulaCard** (the calculator, opened from the TopBar):
+      - Tabs: LED resistor, Ohm's law, Power. Fields are prefilled from the level (supply 5.0 V; in L2, the LED's 2.0 V at 20 mA).
+      - Calculate shows the `Formulas` steps and sets `"formula:<name>"`.
+      - In Heavy, when `level.formula` is set, Pip suggests it once with an "Open calculator" button.
+    - **ExplainPopover:** tap a value label, or choose Explain in the part menu, to see the `Explain.part` lines.
+    - **Pip helping (Heavy):**
+      - On a `burnt` event, or when the first failing goal message becomes a mistake message (burnt, short, backwards, over the recommended current), Pip says that message with mood `oops`.
+      - After 30 s with no new step ticked, Pip says exactly: "Stuck? Tap the lightbulb and I'll help."
+    - **Help levels:**
+      - Heavy shows the checklist, Pip's help and the idle offer.
+      - Light hides all three.
+      - Off also hides the HintButton.
+    - **Flags:** the ValuePopover sets `"value:<id>"`, Test sets `"tested"`, and selecting a wire sets `"selected:<id>"`.
+    - **SettingsSheet:** Help (Heavy / Light / Off), Look (Circuit symbols / Physical), Show values, and toggles for reduced motion, electron flow, large text, patterns and night. They apply immediately; the theme rebuilds for night and large text.
     - **ScaleBar:** from `view_changed`, with the jump badge.
     - **BackToBuilding:** a button shown when `zoom_layer != "editor"`.
   - Layout: if width < height (portrait), the tray is a horizontal strip at the bottom and the goals collapse into a top pill; otherwise the tray is a left column and the goals sit top-right. Re-layout runs on `NOTIFICATION_RESIZED`.
@@ -1215,10 +1396,22 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `test_value_slider_commits_on_release`
     - `test_settings_toggle_persists_in_progress`
     - `test_portrait_layout_moves_tray_to_bottom`
+    - `test_checklist_visible_only_on_heavy`
+    - `test_datasheet_card_rows_and_flag`
+    - `test_formula_card_led_resistor_gives_150_and_sets_flag`
+    - `test_pip_explains_burn_on_heavy`
+    - `test_idle_offer_after_30s_on_heavy_only`
+    - `test_help_off_hides_hint_button`
+    - `test_explain_popover_lines`
 - [ ] **Step 2: Run `tools/test.sh hud/` and `tools/test.sh glossary_text`.** Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run the tests.** Expected: PASS.
-- [ ] **Step 5: Visual check.** Capture the level screen for L2 at 1280×720 and at 390×844. It passes if there is no overlap, the tray placement matches the orientation, the text is readable, and Pip's bubble is pastel and rounded.
+- [ ] **Step 5: Visual check.** Capture the level screen for L2 at 1280×720 and at 390×844, with the checklist showing, and once more with the datasheet card and calculator open. It passes if:
+  - nothing overlaps
+  - the tray placement matches the orientation
+  - the text is readable
+  - Pip's bubble is pastel and rounded
+  - the datasheet and calculator cards fit on the phone-sized screen
 - [ ] **Step 6: Commit** with `feat: level HUD with guide, hints, tests, glossary and settings`.
 
 ### Task 18: Title zoom from Earth to a silicon atom
@@ -1343,7 +1536,7 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
   - `test_dynamic_child_near_wire`
   - `test_dynamic_child_null_away_from_wires`
   - `test_closeup_receives_amps_and_direction`
-  - `test_l8_zoom_to_copper_passes` (scene: open L8, repeatedly `zoom_at_screen(1.25, pin-free point on w1)` until the active layer is `wire.copper`; the session phase becomes `passed`)
+  - `test_l9_zoom_to_copper_passes` (scene: open L9, repeatedly `zoom_at_screen(1.25, pin-free point on w1)` until the active layer is `wire.copper`; the session phase becomes `passed`)
 - [ ] **Step 2: Run `tools/test.sh wire/`.** Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run the tests.** Expected: PASS.
@@ -1360,7 +1553,8 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 
 - [ ] **Step 1: Write the tests.**
   - `test_play_l1_by_mouse`: from Main, go to the map, open L1, step through the intro, drag the three wires with mouse events, and expect the outro to appear. Back on the map, L2 is enabled.
-  - `test_play_l2_burn_and_replace`: wire the LED straight to the battery and expect the toast "Pop! LED burned out.". Long-press the LED, choose Replace, place the 220 Ω resistor from the tray, wire it, and expect the level to pass with the star.
+  - `test_play_l2_burn_and_replace`: wire the LED straight to the battery and expect the toast "Pop! LED burned out." along with Pip's explanation. Long-press the LED and choose Replace. Open the LED's datasheet and the calculator (steps 1 and 2 tick). Place the 150 Ω resistor from the tray, wire it, and expect the level to pass with the star.
+  - `test_play_l8_power_rating`: place the ¼ W 47 Ω resistor across the battery and watch it burn. Replace it with the 1 W one and expect the level to pass.
   - `test_touch_pinch_zoom`: two `ScreenTouch`/`ScreenDrag` fingers whose distance doubles halve `camera().view` within 2%, and the circuit is unchanged.
   - `test_touch_second_finger_cancels_wire`: finger 0 starts dragging from B1.pos, finger 1 lands, then both lift. The circuit is unchanged.
   - `test_resize_keeps_circuit_visible`: in L5, set the window to 1280×720, then 390×844, then 844×390. After each resize, every start-part pin's screen position is inside the board area (the viewport minus the HUD tray and top bar rects).

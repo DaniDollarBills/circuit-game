@@ -15,6 +15,8 @@ Condensed from the owner's messages:
 - **You see everything.** For example, you can zoom out from your connection to the **undersea cables**, the **data centers** and the servers, with every moving part visible.
 - **Understandable for beginners**: super advanced, but it **walks you through everything, step by step and visually**.
 - **By default it is super advanced, just like real life, and it still gives heavy help.** Real-life depth is the starting point, not an option you unlock.
+- **Easy for beginners to understand.** Whenever something appears that a beginner might not know, the game defines it right then.
+- **Expert-level accuracy and precision**, while it walks you through and teaches you: "the ultimate game for learning and having fun with technology."
 - **Include artificial intelligence**: the whole chain from having nothing to modern-day tech.
 - **Platform:** whatever makes the better game. The owner prefers a **downloadable game** over a website, because a download unlocks more power.
 
@@ -30,6 +32,7 @@ Everything is really simulated. If you wire something wrong, it really doesn't w
 
 - Curious people aged about 11 and up, adults included, with **no background** in electronics or computers.
 - **Real life by default.** You work with real parts and their datasheets, real circuit symbols, real numbers and units, real formulas and real-world limits, the way engineers do.
+- **Every new word is defined the moment it appears**, in plain words first and then precisely. Nothing assumes you already know it.
 - **Heavy help by default.** A step-by-step checklist, a guide who explains every mistake as it happens, "tap any number to see where it comes from", a built-in formula calculator, and hints carry beginners through the real thing.
 - **Help levels.** Experts can turn the help down to **Light** or **Off**. The content itself never gets simplified.
 - The test of success: a beginner can finish the whole game, and an engineer still learns something.
@@ -38,6 +41,8 @@ Everything is really simulated. If you wire something wrong, it really doesn't w
 
 - A player who finishes can explain in their own words how a phone works from the transistor up, how a message crosses the internet, why passwords and encryption matter, and what an AI model actually does.
 - Every "it works!" moment is earned. The result comes from the player's own design, never from a script.
+- An expert could check any number, formula, definition or fact in the game and find it correct.
+- Players come back because it's fun, not because they have to.
 - It feels calm and beautiful, and runs smoothly on an ordinary laptop and a mid-range phone.
 
 ## 5. Pillars
@@ -45,9 +50,12 @@ Everything is really simulated. If you wire something wrong, it really doesn't w
 1. **Real simulation, honest results.** Every level runs a real simulation of what you built. Simplifications are allowed, but they are always labeled ("Go deeper: real chips also …"), and the outcome is never faked.
 2. **See every moving part.** You can zoom into anything you built and out to anything it connects to, smoothly, across about 17 powers of ten: from atoms out to the whole planet (§7).
 3. **Real life by default, heavy help always there.** Every level uses real parts, real values and real rules. Heavy help walks you through it step by step: a live checklist, instant explanations of mistakes, and hints in three levels, the last of which shows the answer. No one hits a dead end, and the content is never dumbed down.
-4. **You build it, you keep it.** Your NOT gate goes into your adder, your adder into your CPU, and your CPU into your phone. Your own creations carry forward.
-5. **Pastel, smooth, calm.** Soft colors, rounded shapes, gentle motion, and no timers or punishment for mistakes. Breaking things is part of learning.
-6. **Pretend and safe.** The internet and all hacking happen inside the game's own make-believe world. The game never touches real networks.
+4. **Every new idea defined on the spot.** The first time any word or idea appears, anywhere in the game, it is explained right there. You get a plain-words definition, and underneath it a precise, expert-level one.
+5. **Expert accuracy.** Numbers come from the simulation or from verified constants. Every fact carries its source. Simplifications are always labeled in a "Go deeper" card.
+6. **You build it, you keep it.** Your NOT gate goes into your adder, your adder into your CPU, and your CPU into your phone. Your own creations carry forward.
+7. **Fun, not homework.** Playful failures (pop!, magic smoke), "wow" zooms, badges, stars, a Notebook that fills up with what you've learned, a workshop that grows, and a free-build sandbox.
+8. **Pastel, smooth, calm.** Soft colors, rounded shapes, gentle motion, and no timers or punishment for mistakes. Breaking things is part of learning.
+9. **Pretend and safe.** The internet and all hacking happen inside the game's own make-believe world. The game never touches real networks.
 
 ## 6. The journey: 13 chapters, from nothing to modern technology
 
@@ -191,6 +199,18 @@ How the zoom works:
 - Real **formulas** and real **terminology**.
 - Real **limits**: maximum currents, power ratings, timing, bandwidth.
 
+**Defined on the spot (always on, at every help level)**
+- **The engine finds new words automatically.** Every piece of text the game shows (guide lines, steps, hints, error messages, datasheets, calculator steps, captions) is scanned for words in the glossary.
+- **The first time you meet a word,** a small **New word** card slides in. It gives the plain meaning first (for example "Resistor: a part that limits current, like a narrow section of pipe") and then **More precisely** at expert level ("A part made to have a specific resistance, so V = I × R across it…").
+- **Definitions build on each other.** They only use everyday words or other defined words, so you never meet a definition you can't read.
+- **After that, the word stays underlined:** tap it any time to read it again.
+- **Your Notebook** collects every word you've learned, with both definitions, plus your badges.
+
+**Accuracy policy**
+- Every number on screen comes from the simulation or from a verified constant.
+- Every fact in the game carries a source in the game data, and each chapter's facts are checked before release.
+- Real-world simplifications are labeled in a "Go deeper" card, never hidden.
+
 **Heavy help, on by default**
 - **The level rhythm:** *see it* (a short animated intro), *try it* (poke a ready-made example), *build it*, *test it* (the game shows exactly what failed and why), *use it* (it goes into your toolbox).
 - **A live step checklist** breaks every level into small steps that tick off by themselves as you build.
@@ -212,7 +232,16 @@ How the zoom works:
 | **Light** | No checklist; Pip and hints only when you ask |
 | **Off** | Goals only, a real engineering challenge |
 
-The help level never changes the content: the parts, values and physics are the same at every level.
+The help level never changes the content: the parts, values and physics are the same at every level. New-word definitions appear at every help level, because understanding the words is never optional.
+
+**What makes it fun**
+- **Breaking things is fun and safe.** LEDs pop, resistors smoke, the battery glows hot, and Pip explains what happened. The first burn even earns the "Magic Smoke" badge.
+- **"Wow" moments:** the zoom from Earth to an atom, diving into a wire, watching your own CPU think, following a packet across the ocean.
+- **Badges** for milestones and discoveries.
+- **Optional star challenges**, such as "brightest glow within spec" or "fewest gates".
+- **Collecting:** words in the Notebook and chips in the Library.
+- **A workshop that grows** from a beach shack to an AI lab.
+- **Free Build:** make anything with what you've unlocked.
 
 ## 9. Pretend hacking: safety rules
 
@@ -276,6 +305,7 @@ Real examples sit inside the game's own fiction. The phone is your own design, n
 ## 13. Your stuff
 
 - **Library:** every chip you package (name, color, icon, pin layout). It can be reused in any later level and in Free Build.
+- **Notebook:** every word you've learned (plain and precise definitions) and every badge you've earned.
 - **Drafts autosave** for every level.
 - **Design files:** export and import as files you can share.
 - **No accounts, no ads, no purchases, no online features.** Saves stay on the device.
@@ -350,6 +380,8 @@ It's the same game and the same save format everywhere. Builds are produced auto
 - All art, text and characters are original. Fonts and data must have open licenses (OFL, public domain).
 - Every visual must work in the Compatibility renderer (browser version), even if desktop adds effects on top.
 - Main-path text: at most 2 sentences and about 30 words per guide bubble.
+- Every technical word on screen must have a glossary entry with a plain and a precise definition. Automatic checks keep this true.
+- Every fact must carry a source.
 
 ## 18. Approaches considered
 
@@ -385,6 +417,8 @@ It's the same game and the same save format everywhere. Builds are produced auto
 11. **Real circuit symbols are the default look** for parts, with a Physical look toggle.
 12. **Software uses real C** (a subset) compiled to RISC-V. **Networking uses the real protocol formats**, shown in a packet inspector.
 13. The Chapter 1 battery is a **4 × AA pack treated as 5 V with 1 Ω internal resistance**, matching a partly used pack. Chapter 2 introduces regulated supplies.
+14. **New words are explained automatically** with a New word card the first time they appear, in a plain layer and a precise layer. This happens at every help level.
+15. **Badges and a Notebook** add the collecting side of the fun. M1 has 8 badges.
 
 ## 20. Roadmap
 
@@ -392,7 +426,7 @@ Each milestone ends with something playable and downloadable. Each one gets its 
 
 | # | Milestone | Contents |
 |---|---|---|
-| M1 | **First Light** | Foundation, circuit editor with real symbols and datasheets, analog simulator, lessons with heavy help (checklist, instant explanations, value explanations, formula calculator), the zoom system, the title zoom from Earth to an atom, Chapter 1 (9 levels), the wire zoom, downloadable builds |
+| M1 | **First Light** | Foundation, circuit editor with real symbols and datasheets, analog simulator, lessons with heavy help (checklist, instant explanations, value explanations, formula calculator), automatic new-word definitions, Notebook and badges, the zoom system, the title zoom from Earth to an atom, Chapter 1 (9 levels), the wire zoom, downloadable builds |
 | M2 | **Take It Home** | Android build, sound and music, an update check, polish from M1 feedback, an optional itch.io page |
 | M3 | **First Chip** | Chapter 2 (sand → transistor → your first chip), the transistor model, chip packaging and Library, part internals |
 | M4 | **Logic & Numbers** | Rust digital engine, Chapters 3–4, buses, star challenges |

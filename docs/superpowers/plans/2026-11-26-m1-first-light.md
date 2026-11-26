@@ -41,7 +41,7 @@
 | LED junction voltage at 20 mA | red 1.90, yellow 2.00, green 2.10, blue 2.90 V |
 | LED thresholds | lit ≥ 0.0005 A; full brightness and recommended maximum 0.020 A; burns above the absolute maximum 0.030 A |
 | Resistor | burns above its `watts` rating (default 0.25 W); adjustable range 100–2000 Ω, step 10 |
-| Ammeter | burden 0.1 Ω (conductance 10 S) in current-flow only; fuse 0.5 A |
+| Ammeter | a real 0.1 Ω device in the netlist (its burden, as on its datasheet); fuse 0.5 A |
 | Voltmeter | 10 MΩ input resistance, like a real multimeter (a real device in the netlist) |
 | Wire and closed-switch flow conductance | 1000 S |
 | Battery "short" flag | > 1.0 A |
@@ -70,6 +70,9 @@
 **Copy and interaction**
 - Player-facing guide lines: at most 2 sentences and 30 words each. Glossary markup is `[[term]]` or `[[term|shown text]]`.
 - Touch targets ≥ 44 px. The pin hit radius is at least 22 screen px and at least 0.35 grid units.
+- **Defined on the spot:** every on-screen string goes through `GlossaryText.render`. It auto-links each glossary term or alias and reports the terms the player hasn't met yet. An unseen term gets a New word card at **every** help level.
+- Each glossary entry has a `simple` definition (≤ 30 words, everyday language) and a `precise` one (≤ 40 words, expert-accurate). Both may only use everyday words or other glossary terms.
+- **Accuracy:** every number shown comes from the simulation or from the constants in this plan. Every content fact has a `source`.
 
 **Platform**
 - Renderers: `forward_plus` on desktop, `mobile` on phones, `gl_compatibility` on the web. Every visual must work in `gl_compatibility`.
@@ -105,14 +108,14 @@ game/src/app/        main.tscn main.gd game.gd game_state.gd
 game/src/circuit/    part.gd wire.gd circuit.gd catalog.gd geometry.gd edits.gd history.gd circuit_io.gd
 game/src/sim/        dense_solver.gd netlist.gd devices.gd dc_solution.gd dc_solver.gd current_flow.gd damage.gd sim_result.gd sim_outcome.gd simulator.gd
 game/src/lessons/    level_def.gd level_builder.gd goals.gd level_tests.gd solution_diff.gd level_session.gd formulas.gd e12.gd
-game/src/save/       progress.gd progress_storage.gd
+game/src/save/       progress.gd progress_storage.gd achievements.gd
 game/src/content/    glossary.gd chapters.gd levels.gd ch1/l1_light_it_up.gd … ch1/l9_inside_the_wire.gd
 game/src/ui/         palette.gd pastel_theme.gd glossary_text.gd gallery.tscn gallery.gd
 game/src/zoom/       zoom_camera.gd zoom_link.gd layer_info.gd zoom_math.gd scale_format.gd zoom_layer.gd zoom_stage.gd zoom_demo.tscn zoom_demo.gd
 game/src/input/      gesture_recognizer.gd pointer_input.gd
 game/src/editor/     draw_kit.gd resistor_bands.gd visual_state.gd explain.gd part_art.gd wire_art.gd hit_test.gd editor_controller.gd circuit_view.gd flow_view.gd editor_layer.gd editor_layer.tscn art_gallery.tscn art_gallery.gd
 game/src/screens/    title_screen.* map_screen.* level_screen.*
-game/src/hud/        top_bar.gd parts_tray.gd goals_panel.gd test_sheet.gd hint_button.gd context_menu.gd value_popover.gd toasts.gd pip.gd guide_bubble.gd glossary_popup.gd settings_sheet.gd scale_bar.gd steps_checklist.gd datasheet_card.gd formula_card.gd explain_popover.gd
+game/src/hud/        top_bar.gd parts_tray.gd goals_panel.gd test_sheet.gd hint_button.gd context_menu.gd value_popover.gd toasts.gd pip.gd guide_bubble.gd glossary_popup.gd settings_sheet.gd scale_bar.gd steps_checklist.gd datasheet_card.gd formula_card.gd explain_popover.gd new_word_card.gd notebook_sheet.gd
 game/src/scenes/title/ geo.gd lattice.gd land_texture.gd title_chain.gd globe_layer.gd coast_layer.gd beach_layer.gd grain_layer.gd silica_layer.gd atom_layer.gd title_director.gd
 game/src/scenes/wire/  wire_closeup_layer.gd copper_layer.gd
 game/tests/          run_tests.gd test_case.gd helpers/circuits.gd + test_*.gd mirroring src/
@@ -400,12 +403,12 @@ else:
     - `var component_of_net: PackedInt32Array`
     - `var reference_net: Dictionary` (component index → reference net index, only for components containing a battery)
     - `var floating: Dictionary` (net index → true for nets in components without a battery)
-    - `var devices: Array[Dictionary]` (`{part: Part, kind: String, nets: PackedInt32Array}` in catalog pin order, for unburnt batteries, resistors and LEDs, and for voltmeters as a 10 MΩ resistor between `pos` and `neg`)
-    - `var connectors: Array[Dictionary]` (`{id: String, kind: "wire"|"switch"|"ammeter", a: String, b: String, g: float}`, where `a` and `b` are pin keys)
+    - `var devices: Array[Dictionary]` (`{part: Part, kind: String, nets: PackedInt32Array}` in catalog pin order, for unburnt batteries, resistors and LEDs, for voltmeters as a 10 MΩ resistor between `pos` and `neg`, and for unburnt ammeters as a 0.1 Ω resistor between `a` and `b`)
+    - `var connectors: Array[Dictionary]` (`{id: String, kind: "wire"|"switch", a: String, b: String, g: float}`, where `a` and `b` are pin keys)
     - `var voltmeters: Array[Part]`
     - `static func build(c: Circuit) -> Netlist`
   - Merge rules:
-    - Wires, closed switches and unburnt ammeters merge their two pin keys (union-find).
+    - Wires and closed switches merge their two pin keys (union-find).
     - Nets are numbered in the order they are first seen, walking parts in circuit order and pins in catalog order.
     - Components are the union-find of nets joined by devices.
     - The reference net is the net of the `neg` pin of the first battery (by part order) in that component.
@@ -417,7 +420,7 @@ else:
   - `test_3x3`: `[[3,2,-1],[2,-2,4],[-1,0.5,-1]]·x = [1,-2,0]` gives x = [1,−2,−2].
   - `test_compact_loop_has_three_nets_and_reference`
   - `test_open_switch_separates_nets`, `test_closed_switch_merges`
-  - `test_ammeter_merges_and_is_connector_g10`
+  - `test_ammeter_is_a_0_1_ohm_device`
   - `test_burnt_resistor_not_a_device`, `test_burnt_ammeter_is_open`
   - `test_isolated_resistor_nets_floating`
   - `test_two_battery_loops_two_references`
@@ -468,6 +471,7 @@ else:
     - battery: Norton equivalent, G = 1/R_int between `pos` and `neg`, with source V/R_int into `pos` and out of `neg`
     - LED: `Rs` from the anode to the internal node, and the junction from the internal node to the cathode
     - voltmeter: conductance 1e-7 S between `pos` and `neg`; `device_amps` is pos→neg
+    - ammeter: conductance 10 S between `a` and `b`; `device_amps` is a→b
     - gmin from every unknown to its component reference
   - Floating nets are excluded and reported as NAN.
   - **Junction companion model at the limited voltage `vd`:**
@@ -548,6 +552,7 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
       - resistor: `a` −I, `b` +I
       - LED: `anode` −I, `cathode` +I
       - voltmeter: `pos` −I, `neg` +I (its tiny 10 MΩ current)
+      - ammeter: `a` −I, `b` +I (its reading is its own device current)
     - Pin the first vertex at 0, solve the Laplacian with `DenseSolver`, then each edge current = g·(φa − φb).
   - **Damage rules:**
     - LED forward current > 0.030 A, ratio I/0.030, `"overcurrent"`
@@ -576,7 +581,7 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `tests: Array[Dictionary]` (`{name, set: [{target, prop, value}], expect: [goal…]}`)
     - `hints: Array[Dictionary]` (`{text, highlight: [{part?, pin?, wire?}], show_solution: bool}`)
     - `solution: Circuit`
-    - `outro: Array[Dictionary]`, `facts: PackedStringArray`
+    - `outro: Array[Dictionary]`, `facts: Array[Dictionary]` (`{text, source}`)
     - `star: Dictionary` (`{goal, text}` or `{}`)
     - `steps: Array[Dictionary]` (`{text, check: goal}`): the heavy-help checklist
     - `formula: String` (`""`, `"led_resistor"`, `"ohms_law"` or `"power"`): the calculator that heavy help suggests
@@ -588,7 +593,7 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `hint(text, highlight := [], show_solution := false)`
     - `solution_part(id, kind, x, y, rot, props)` (gets the tray index of the first tray item with the same kind and matching props)
     - `solution_wire(a_part, a_pin, b_part, b_pin)`, `solution_props(id, patch)`, `solution_remove_wire(id)`
-    - `intro(text, mood := "happy")`, `outro(text, mood := "wow")`, `fact(t)`, `star(goal, text)`, `step(text, check)`, `formula(name)`
+    - `intro(text, mood := "happy")`, `outro(text, mood := "wow")`, `fact(text, source)`, `star(goal, text)`, `step(text, check)`, `formula(name)`
     - `done() -> LevelDef` (the solution is the start circuit plus the solution edits)
   - `Goals.evaluate(goal: Dictionary, ctx: Dictionary) -> Dictionary` and `Goals.evaluate_all(goals, ctx) -> Array[Dictionary]`
     - `ctx = {circuit, sim: SimResult, zoom_layer: String, zoom_seen: Dictionary, ui_flags: Dictionary}`
@@ -669,7 +674,7 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 ### Task 9: Level session, progress and safe storage
 
 **Files:**
-- Create: `game/src/lessons/level_session.gd`, `game/src/save/{progress,progress_storage}.gd`, `game/tests/lessons/test_level_session.gd`, `game/tests/save/test_progress.gd`, `game/tests/save/test_storage.gd`
+- Create: `game/src/lessons/level_session.gd`, `game/src/save/{progress,progress_storage,achievements}.gd`, `game/tests/lessons/test_level_session.gd`, `game/tests/save/test_progress.gd`, `game/tests/save/test_storage.gd`, `game/tests/save/test_achievements.gd`
 
 **Interfaces:**
 - Consumes: Task 8.
@@ -693,11 +698,27 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
     - `drafts: Dictionary` (id → circuit dict)
     - `settings: Dictionary` with defaults `help_level: "heavy"`, `view_style: "schematic"`, `show_values: true`, and `reduced_motion`, `electron_flow`, `large_text`, `patterns`, `night` all false
     - `stats: Dictionary` (`{parts_burnt: 0}`)
+    - `seen_terms: Dictionary` (term → unix time first seen; this is the Notebook) and `achievements: Dictionary` (id → unix time earned)
+    - `mark_terms_seen(terms: PackedStringArray, now: int) -> PackedStringArray` (records them and returns only the terms that were new)
     - `static defaults() -> Progress`, `to_dict() -> Dictionary`, `static from_dict(d) -> Progress` (null on an unknown version or wrong types)
     - `is_unlocked(level_id: String, chapter_level_ids: PackedStringArray) -> bool` (the first level is always unlocked; any other needs the previous one completed)
     - `mark_complete(level_id, star: bool, now: int)` (a star, once earned, stays)
   - `ProgressStorage.load(path := "user://progress.json") -> Dictionary` returns `{progress: Progress, ok: bool, recovered: bool}`. A corrupt file is renamed to `progress.corrupt-<unix>.json` in the same folder.
   - `ProgressStorage.save(p: Progress, path := "user://progress.json") -> bool` writes `<path>.tmp` and then renames it over the real file.
+  - `Achievements.ALL: Array[Dictionary]` (`{id, name, description}`, exact copy):
+
+    | id | Name | Description | Earned when |
+    |---|---|---|---|
+    | `first_light` | First Light | Light your first LED. | `ch1.light-it-up` complete |
+    | `magic_smoke` | Magic Smoke | Burn out a part. Every engineer does it! | `stats.parts_burnt ≥ 1` |
+    | `on_spec` | Right on Spec | Earn the 18–20 mA star. | star on `ch1.pop` |
+    | `ohms_apprentice` | Ohm's Apprentice | Use Ohm's law to hit 10 mA. | `ch1.push-and-flow` complete |
+    | `logic_begins` | Logic Begins | Build the both-switches and either-switch circuits. | `ch1.both` and `ch1.either` complete |
+    | `deep_diver` | Deep Diver | Zoom all the way into a wire. | `ch1.inside-the-wire` complete |
+    | `word_collector` | Word Collector | Learn 20 new words. | `seen_terms.size() ≥ 20` |
+    | `spark_graduate` | Spark Graduate | Finish every Chapter 1 level. | all nine `ch1` levels complete |
+
+  - `Achievements.newly_earned(p: Progress, ch1_ids: PackedStringArray) -> PackedStringArray` returns the ids whose condition now holds and that aren't in `p.achievements` yet. The caller records them.
 
 - [ ] **Step 1: Write the failing tests.**
   - `test_intro_then_build`
@@ -706,6 +727,11 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
   - `test_hint_tier_caps`
   - `test_steps_tick_live`
   - `test_defaults_are_real_life_heavy_help` (`help_level` "heavy", `view_style` "schematic", `show_values` true)
+  - `test_mark_terms_seen_returns_only_new`
+  - `test_first_light_earned_once`
+  - `test_magic_smoke_after_first_burn`
+  - `test_word_collector_at_20_terms`
+  - `test_spark_graduate_needs_all_nine`
   - `test_progress_round_trip`
   - `test_unknown_version_rejected`
   - `test_unlock_chain`
@@ -720,15 +746,26 @@ static func pnjlim(vnew: float, vold: float, vt: float, vcrit: float) -> float:
 - [ ] **Step 4: Run the tests.** Expected: PASS.
 - [ ] **Step 5: Commit** with `feat: level session flow, progress and crash-safe storage`.
 
-### Task 10: Chapter 1 content, glossary and chapter list
+### Task 10: Chapter 1 content, two-layer glossary, automatic definitions and chapter list
 
 **Files:**
-- Create: `game/src/content/{glossary,chapters,levels}.gd`, `game/src/content/ch1/l1_light_it_up.gd` … `l7_short_circuit.gd`, `l8_too_hot.gd`, `l9_inside_the_wire.gd` (each defines `static func build() -> LevelDef` and has **no** `class_name`), `game/tests/content/test_content.gd`
+- Create: `game/src/content/{glossary,chapters,levels}.gd`, `game/src/content/ch1/l1_light_it_up.gd` … `l7_short_circuit.gd`, `l8_too_hot.gd`, `l9_inside_the_wire.gd` (each defines `static func build() -> LevelDef` and has **no** `class_name`), `game/src/ui/glossary_text.gd`, `game/tests/content/test_content.gd`, `game/tests/ui/test_glossary_text.gd`
 
 **Interfaces:**
 - Consumes: `LevelBuilder`, `Goals`, `LevelTests`, `Simulator`.
 - Produces:
-  - `Glossary.ENTRIES: Dictionary` (term → `{title, text}`)
+  - `Glossary.ENTRIES: Dictionary` (term → `{title, simple, precise, aliases: PackedStringArray, explicit_only: bool}`)
+  - `GlossaryText.render(text: String, seen: Dictionary, autolink := true) -> Dictionary` (pure) returns `{bbcode: String, terms: PackedStringArray, new_terms: PackedStringArray}`.
+    - **Explicit markup:**
+      - `[[term]]` and `[[term|shown]]` link that term; unknown terms stay plain text.
+      - `[[=text]]` shows `text` and never auto-links it.
+    - **Auto-linking** (when `autolink` is true): the first occurrence in the string of every glossary term or alias is linked.
+      - The longest match wins, so "forward voltage" beats "voltage".
+      - Matching is case-insensitive, on whole words, allowing a trailing "s", "es" or "'s".
+      - `explicit_only` terms are linked only through markup.
+    - A link renders as `[url=<term>][color=#7C5CC4]<shown>[/color][/url]`.
+    - `new_terms` lists the linked terms that aren't in `seen`.
+    - Badge names are rendered with `autolink = false`.
   - `Chapters.ALL: Array[Dictionary]` (`{id, title, era, blurb, playable}`)
   - `Levels.all() -> Array[LevelDef]`
   - `Levels.by_id(id) -> LevelDef`
@@ -780,7 +817,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
   - outro:
     1. "You made light! About 14 [[milliamp|milliamps]] are flowing around your loop." (wow)
     2. "Every phone and computer works because of loops like this one." (happy)
-  - fact: "The first practical LED, made in 1962, could only glow red."
+  - fact: "The first practical LED, made in 1962, could only glow red." (source: "Nick Holonyak Jr., General Electric, 1962")
 - **L2**
   - summary: "Work out the right resistor from the LED's datasheet."
   - intro:
@@ -798,7 +835,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
   - outro:
     1. "Safe and glowing! That's the exact formula engineers use for every LED." (wow)
     2. "Resistors come in [[standard values]]. 150 Ω is exactly right here." (happy)
-  - fact: "Stripes on a resistor show its value. Brown, green, brown means 150 ohms."
+  - fact: "Stripes on a resistor show its value. Brown, green, brown means 150 ohms." (source: "IEC 60062 resistor color code")
 - **L3**
   - summary: "Use Ohm's law to set exactly 10 mA."
   - intro:
@@ -815,7 +852,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
   - outro:
     1. "That's [[ohms law|Ohm's law]]: current equals voltage divided by resistance." (wow)
     2. "5 volts ÷ 500 ohms = 0.01 amps, which is 10 milliamps." (happy)
-  - fact: "Georg Ohm published his law in 1827."
+  - fact: "Georg [[=Ohm]] published his law in 1827." (source: "G. S. Ohm, Die galvanische Kette, mathematisch bearbeitet, 1827")
 - **L4**
   - summary: "Control the light with a switch."
   - intro:
@@ -833,7 +870,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
   - outro:
     1. "On and off, 1 and 0. That's a [[bit]]!" (wow)
     2. "Computers are made of billions of tiny switches doing exactly this." (happy)
-  - fact: "'Bit' is short for 'binary digit'. The word was first used in 1947."
+  - fact: "'[[bit|Bit]]' is short for 'binary digit'. The word was first used in 1947." (source: "J. W. Tukey, Bell Labs memo, January 1947; popularized by C. E. Shannon, 1948")
 - **L5**
   - summary: "Light it only when both switches are on."
   - intro:
@@ -884,7 +921,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
   - outro:
     1. "Fixed! The current goes through the LED again." (wow)
     2. "Real short circuits can melt wires. Never connect a real battery's + and − together!" (curious)
-  - fact: "Fuses and circuit breakers cut the power when too much current flows."
+  - fact: "Fuses and circuit breakers cut the power when too much current flows." (source: "Standard overcurrent protection, e.g. IEC 60269 fuses")
 - **L8**
   - summary: "Pick a resistor that can handle the heat."
   - intro:
@@ -902,11 +939,11 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
   - outro:
     1. "Toasty! That's 0.51 watts of heat, and the 1 W resistor handles it easily." (wow)
     2. "Engineers always check the power rating. A ¼ W resistor here would burn." (curious)
-  - fact: "A hair dryer turns about 1,500 watts into heat, 3,000 times more than your resistor."
+  - fact: "A hair dryer turns about 1,500 watts into heat, 3,000 times more than your resistor." (source: "Typical hair dryer rating 1,200–1,875 W; 1,500 ÷ 0.51 ≈ 2,940")
 - **L9**
   - summary: "Zoom into a wire to see electrons."
   - intro:
-    1. "Wires look solid, but inside them trillions of [[electron|electrons]] are moving." (curious)
+    1. "Wires look solid, but a short piece holds billions of trillions of free [[electron|electrons]] that can move." (curious)
     2. "Pinch or scroll over a wire to zoom in. Keep going until you see atoms!" (happy)
   - steps:
     1. "Zoom in over a wire." (`zoom_reached wire.closeup`)
@@ -916,43 +953,73 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
     2. "Keep zooming in. The wire gets bigger and bigger." (highlights w1)
     3. "Keep zooming in through the wire to reach the copper atoms." (`show_solution: false`)
   - outro:
-    1. "Those are copper [[atom|atoms]]. Electrons jiggle around them and drift slowly from − to +." (wow)
-    2. "Electrons crawl slower than a snail, but the push races down the wire almost as fast as light." (happy)
-  - fact: "In this wire, electrons drift about the width of a hair every minute."
+    1. "Those are copper [[atom|atoms]] in a [[crystal lattice]]. Electrons drift from − to +, against the [[conventional current]] arrows." (wow)
+    2. "Electrons crawl slower than a snail, but the push travels down the wire at a large fraction of the speed of light." (happy)
+  - fact: "In this wire, electrons drift only about 0.2 millimeters per minute." (source: "v = I ÷ (n·A·e): 13.8 mA, n = 8.47 × 10²⁸ m⁻³ for copper, 0.64 mm wire gives ≈ 3.1 µm/s")
 
-**Glossary (exact):**
+**Glossary (exact).**
+- The `simple` definition is shown first, and the `precise` one under "More precisely".
+- Aliases are auto-linked too.
+- *explicit* terms are linked only through `[[ ]]` markup.
+- `[[=text]]` shows text that is never auto-linked, for example "Georg [[=Ohm]]".
 
-| Term | Title | Text |
-|---|---|---|
-| electricity | Electricity | Energy carried by moving electric charges, like electrons flowing through a wire. |
-| electron | Electron | A tiny particle with a negative charge. Moving electrons carry electricity through metal. |
-| atom | Atom | The tiny building block of everything. Each atom has a nucleus surrounded by electrons. |
-| circuit | Circuit | A complete loop that electricity can flow around. |
-| current | Current | How much electricity flows past a point each second. Measured in amps. |
-| voltage | Voltage | The push that makes current flow. Measured in volts. |
-| resistance | Resistance | How hard it is for current to get through something. Measured in ohms. |
-| amp | Amp | The unit of current. One amp is a lot for small electronics. |
-| milliamp | Milliamp (mA) | One thousandth of an amp. A small LED likes about 20 mA. |
-| volt | Volt | The unit of voltage. A AA battery gives about 1.5 volts. |
-| ohm | Ohm (Ω) | The unit of resistance. More ohms means less current gets through. |
-| ohms law | Ohm's law | Current equals voltage divided by resistance: I = V ÷ R. |
-| led | LED | A light-emitting diode: a tiny light that only lets current flow one way. |
-| resistor | Resistor | A part that limits current, like a narrow section of pipe. |
-| battery | Battery | A store of energy with a + side and a − side. It pushes current around a loop. |
-| switch | Switch | A part that opens or closes a gap in the loop. |
-| bit | Bit | A single 1 or 0, the smallest piece of information. |
-| series | Series | Parts connected one after another, so current must pass through all of them. |
-| parallel | Parallel | Parts connected side by side, so current can take either path. |
-| short circuit | Short circuit | An accidental shortcut that lets current skip the parts. It can overheat wires and batteries. |
-| ammeter | Current meter | A meter that measures current. It must be placed in the loop, in series. |
-| voltmeter | Voltage meter | A meter that measures the push between two points. |
-| power | Power | How fast energy is used or turned into heat. Watts = volts × amps. |
-| watt | Watt (W) | The unit of power. One watt is one volt pushing one amp. |
-| datasheet | Datasheet | A part's official fact sheet: its values, limits and how to use it safely. |
-| forward voltage | Forward voltage | The voltage an LED needs across it before current flows through it. |
-| standard values | Standard values | Resistors come in standard steps, like 100, 150, 220, 330 and 470 ohms. |
-| anode | Anode | The + side of an LED, where current goes in. |
-| cathode | Cathode | The − side of an LED, where current comes out. |
+| Term | Title | Simple | More precisely | Aliases |
+|---|---|---|---|---|
+| electricity | Electricity | Energy carried by moving electric charges, like electrons flowing through a wire. | Everything to do with electric charge: charges at rest make electric fields, and moving charges are an electric current. | |
+| charge | Electric charge | A property of tiny particles that makes them push or pull on each other. Electrons are negative, protons positive. | Measured in coulombs. Like charges repel, and opposite charges attract. | electric charge |
+| electron | Electron | A tiny particle with a negative charge. Moving electrons carry electricity through metal. | A fundamental particle with a charge of −1.602 × 10⁻¹⁹ coulombs and a mass of 9.109 × 10⁻³¹ kg. | |
+| atom | Atom | The tiny building block of everything. Each atom has a nucleus surrounded by electrons. | The smallest unit of an element, about 10⁻¹⁰ m across. Its nucleus is tens of thousands of times narrower. | |
+| nucleus | Nucleus | The tiny, heavy center of an atom, made of protons and neutrons. | It holds over 99.9% of the atom's mass in a space tens of thousands of times narrower than the atom. | |
+| proton | Proton | A particle in the nucleus with a positive charge. | Charge +1.602 × 10⁻¹⁹ C and mass 1.673 × 10⁻²⁷ kg, about 1,836 times an electron's. The number of protons decides the element. | |
+| neutron | Neutron | A particle in the nucleus with no charge. | Mass 1.675 × 10⁻²⁷ kg, slightly more than a proton. Atoms of one element can have different numbers of neutrons. | |
+| element | Element | A basic substance made of only one kind of atom, like oxygen, iron or silicon. | Each element is set by the number of protons in its atoms' nuclei: silicon has 14. | chemical element |
+| coulomb | Coulomb (C) | The unit of electric charge: the charge of about 6.24 billion billion electrons. | The standard unit of charge: the charge carried past a point by one amp in one second. | |
+| joule | Joule (J) | The unit of energy. Lifting an apple 1 meter takes about 1 joule. | The standard unit of energy: a force of one newton (about an apple's weight) acting over one meter. | |
+| silicon | Silicon | A chemical element found in sand and rocks. Computer chips are made from it. | Element 14. Pure silicon crystals, where each atom bonds to 4 neighbors, are semiconductors. | |
+| silica | Silica | A hard mineral made of silicon and oxygen. Most sand is silica. | Silicon dioxide, SiO₂: each silicon atom bonds to 4 oxygen atoms, and each oxygen to 2 silicon atoms. Quartz is its most common form. | |
+| crystal lattice | Crystal lattice | A neat, repeating 3D pattern of atoms, like oranges stacked in a shop. | Copper's pattern is a cube with an atom at each corner and in the middle of each face. Neighbors are 0.256 nanometers apart. | lattice |
+| internet | Internet | A worldwide network of networks that lets computers send each other data. | Billions of devices on millions of networks, linked so that data, split into small packets, can travel between any two of them. | |
+| undersea cable | Undersea cable | A cable on the ocean floor that carries internet data between continents as flashes of light. | Glass fibers inside carry about 99% of the data between continents. In deep water the cable is often thinner than a garden hose. | |
+| circuit | Circuit | A complete loop that electricity can flow around. | A closed path through conductors and parts, so current can flow from a source and back to it. | |
+| conductor | Conductor | A material that lets electricity flow easily, like copper. | A material with many free charges that can move, so its resistance is very low. | |
+| insulator | Insulator | A material that blocks electricity, like plastic or rubber. | A material with almost no free charges, so its resistance is enormous. | |
+| current | Current | How much electricity flows past a point each second. Measured in amps. | The rate of flow of electric charge: 1 amp = 1 coulomb per second. Drawn flowing from + to −. | |
+| conventional current | Conventional current | The direction we draw current: from + to −. In wires, electrons actually move the other way! | The rule was chosen before electrons were discovered in 1897. Electrons are negative, so in metals they drift from − to +. | |
+| voltage | Voltage | The push that makes current flow. Measured in volts. | The difference in electric potential energy per unit of charge between two points: 1 volt = 1 joule per coulomb. | |
+| resistance | Resistance | How hard it is for current to get through something. Measured in ohms. | The ratio of voltage to current for a part: R = V ÷ I. | |
+| amp | Amp (A) | The unit of current. One amp is a lot for small electronics. | The ampere, the standard unit of current: one coulomb of charge passing each second. | ampere |
+| milliamp | Milliamp (mA) | One thousandth of an amp. A small LED likes about 20 mA. | 1 mA = 0.001 A. | mA |
+| volt | Volt (V) | The unit of voltage. A AA battery gives about 1.5 volts. | The standard unit of voltage: one joule of energy per coulomb of charge. | |
+| ohm | Ohm (Ω) | The unit of resistance. More ohms means less current gets through. | The standard unit of resistance: one volt per amp. | |
+| ohms law | Ohm's law | Current equals voltage divided by resistance: I = V ÷ R. | For a resistor, V = I × R at any current. Many parts, like LEDs, don't follow it: their current rises much faster than their voltage. | Ohm's law |
+| led | LED | A light-emitting diode: a tiny light that only lets current flow one way. | A semiconductor diode that gives off light when current flows forward through it. The material it's made of sets its color. | light-emitting diode |
+| diode | Diode | A part that lets current flow only one way. | A semiconductor part with two leads that conducts easily one way (forward) and blocks the other way (reverse), up to a limit. | |
+| semiconductor | Semiconductor | A material, like silicon, that can be made to conduct electricity or not. | Its ability to conduct is between a conductor's and an insulator's, and can be controlled by adding tiny amounts of other elements, by light, or by voltage. | |
+| resistor | Resistor | A part that limits current, like a narrow section of pipe. | A part made to have a specific resistance, so V = I × R across it. Its power rating limits how much heat it can safely make. | |
+| carbon film | Carbon film | A resistor made from a thin layer of carbon on a tiny ceramic tube. | A spiral groove cut into the carbon layer sets the resistance. | |
+| tolerance | Tolerance | How far a part's real value may be from its label. A 220 Ω, ±5% resistor is between 209 and 231 Ω. | The allowed difference from the value printed on the part, given as a percentage. | |
+| battery | Battery | A store of energy with a + side and a − side. It pushes current around a loop. | Cells that turn chemical energy into electrical energy. Real batteries have internal resistance, so their voltage dips as current rises. | |
+| internal resistance | Internal resistance | Resistance inside the battery itself. It makes the voltage drop a little when current flows. | Terminal voltage = open-circuit voltage − current × internal resistance. Here that's 5.0 V − I × 1 Ω. | |
+| switch | Switch | A part that opens or closes a gap in the loop. | A part that connects (closed) or disconnects (open) a path. This one is SPST: single-pole, single-throw. | |
+| bit | Bit | A single 1 or 0, the smallest piece of information. | A binary digit: the basic unit of information, with exactly two possible values. | *explicit* |
+| series | Series | Parts connected one after another, so current must pass through all of them. | Parts in series carry the same current, and their voltages add up. | |
+| parallel | Parallel | Parts connected side by side, so current can take either path. | Parts in parallel share the same voltage, and their currents add up. | |
+| short circuit | Short circuit | An accidental shortcut that lets current skip the parts. It can overheat wires and batteries. | A very low-resistance path between points at different voltages, which lets a large current flow. | |
+| fuse | Fuse | A thin wire that melts to cut off the current when it gets too high. | A safety part that opens the circuit when the current stays above its rating for long enough. | |
+| ammeter | Current meter | A meter that measures current. It must be placed in the loop, in series. | An instrument with very low resistance (here 0.1 Ω), connected in series so all the current passes through it. | current meter |
+| voltmeter | Voltage meter | A meter that measures the push between two points. | An instrument with very high input resistance (here 10 MΩ), connected in parallel so it barely disturbs the circuit. | voltage meter |
+| burden | Burden | A current meter's own small resistance, which slightly reduces the current it measures. | The resistance an ammeter adds to the circuit. Here it's 0.1 Ω. | |
+| input resistance | Input resistance | The resistance between a meter's probes. The higher it is, the less the meter affects the circuit. | For this voltage meter, 10 MΩ: at 5 V it draws only 0.5 microamps (millionths of an amp). | |
+| power | Power | How fast energy is used or turned into heat. Watts = volts × amps. | The rate of energy transfer: P = V × I. In a resistor, P = I² × R = V² ÷ R. | |
+| watt | Watt (W) | The unit of power. One watt is one volt pushing one amp. | The standard unit of power: one joule per second. | |
+| datasheet | Datasheet | A part's official fact sheet: its values, limits and how to use it safely. | The maker's specification: typical values, guaranteed ranges, and absolute maximum ratings that must never be exceeded. | |
+| forward voltage | Forward voltage | The voltage an LED needs across it before current flows through it. | The voltage across a diode at a stated forward current, such as 2.0 V at 20 mA. It rises only slowly as current rises. | |
+| absolute maximum | Absolute maximum | A limit you must never go past, or the part can be damaged. | A limit beyond which permanent damage may happen. Parts aren't guaranteed to work properly near it. | |
+| standard values | Standard values | Resistors come in standard steps, like 100, 150, 220, 330 and 470 ohms. | The E12 values: 12 steps per factor of ten (10, 12, 15, 18, 22, 27, 33, 39, 47, 56, 68, 82), designed for ±10% parts. | E12 |
+| wavelength | Wavelength | The size of a light wave, which sets its color. Red light is about 625 nanometers (billionths of a meter). | The distance between wave peaks. Visible light runs from about 380 nm (violet) to 750 nm (red). | |
+| polarity | Polarity | Which side is + and which is −. Some parts only work one way round. | LEDs and other diodes conduct forward only when the anode is higher in voltage than the cathode, by about their forward voltage. | |
+| anode | Anode | The + side of an LED, where current goes in. | The lead where conventional current enters. On an LED it's usually the longer leg. | |
+| cathode | Cathode | The − side of an LED, where current comes out. | The lead where conventional current leaves. On an LED it's marked by a flat edge on the rim. | |
 
 **Chapters (exact):**
 
@@ -989,7 +1056,19 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
   - `test_chapters_list_13_and_ch1_playable`
   - `test_l2_star_only_with_150` (simulate the solution with each tray resistor: 47 burns; 100 fails `max_ma` 20 at ≈ 29.1 mA; 150 passes and earns the star at ≈ 19.9 mA; 220, 330 and 1000 pass without the star)
   - `test_l8_quarter_watt_burns_one_watt_passes`
-- [ ] **Step 2: Run `tools/test.sh content/`.** Expected: FAIL.
+  - `test_every_fact_has_source`
+  - In `test_glossary_text.gd`:
+    - `test_render_explicit_markup`
+    - `test_render_no_link_escape` (`"Georg [[=Ohm]]"` links nothing)
+    - `test_render_autolinks_first_occurrence_only`
+    - `test_render_plural_and_possessive` ("resistors", "battery's")
+    - `test_render_longest_match_first` ("forward voltage")
+    - `test_render_alias` ("current meter" → `ammeter`, "mA" → `milliamp`)
+    - `test_render_explicit_only_not_autolinked` ("a bit dim" stays plain)
+    - `test_render_new_terms_excludes_seen`
+  - `test_glossary_definition_lengths` (simple ≤ 30 words, precise ≤ 40)
+  - `test_jargon_list_in_glossary`: each of these resolves through `GlossaryText.render` to a glossary term: electricity, charge, electron, atom, nucleus, proton, neutron, element, coulomb, joule, silicon, silica, crystal lattice, internet, undersea cable, circuit, conductor, insulator, current, conventional current, voltage, resistance, amp, milliamp, mA, volt, ohm, Ohm's law, LED, diode, semiconductor, resistor, carbon film, tolerance, battery, internal resistance, switch, series, parallel, short circuit, fuse, current meter, voltage meter, burden, input resistance, power, watt, datasheet, forward voltage, absolute maximum, standard values, wavelength, polarity, anode, cathode
+- [ ] **Step 2: Run `tools/test.sh content/` and `tools/test.sh glossary_text`.** Expected: FAIL.
 - [ ] **Step 3: Implement the nine level files, the glossary, the chapters and the registry.**
 - [ ] **Step 4: Run the tests.** Expected: PASS.
 - [ ] **Step 5: Commit** with `feat: Chapter 1 Spark levels, glossary and chapter list`.
@@ -1306,6 +1385,8 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
     - `set_zoom_layer(id)` (adds the layer to `zoom_seen`, then re-evaluates goals and steps)
     - `set_ui_flag(flag: String)` (re-evaluates steps)
     - `complete(now: int)` (when the phase is `passed`: `mark_complete` with the star result; queue `{type:"passed"}`)
+    - `mark_terms_seen(terms: PackedStringArray, now: int) -> PackedStringArray` (records them in `progress.seen_terms` and returns the new ones)
+    - `check_achievements(now: int)`: records `Achievements.newly_earned` and queues `{type:"badge", id}` for each. It runs after `complete`, after any commit that burns something, and after `mark_terms_seen`.
     - `tray_used() -> Array[int]`
     - `take_events() -> Array[Dictionary]`
   - `class_name Game extends Node`:
@@ -1313,7 +1394,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
     - `var state: GameState`
     - `boot(path := "user://progress.json")`
     - `open_level(id)`, `open_map()`, `open_title()`
-    - Actions forwarding to `state` that then emit `changed`: `commit`, `preview`, `undo`, `redo`, `run_tests`, `next_intro`, `use_hint`, `set_zoom_layer`, `set_ui_flag`, `set_setting(key, value)`
+    - Actions forwarding to `state` that then emit `changed`: `commit`, `preview`, `undo`, `redo`, `run_tests`, `next_intro`, `use_hint`, `set_zoom_layer`, `set_ui_flag`, `mark_terms_seen`, `set_setting(key, value)`
     - `save_soon()` (a 0.5 s debounce timer) and `save_now()` (also called on `NOTIFICATION_WM_CLOSE_REQUEST` and `NOTIFICATION_APPLICATION_PAUSED`)
   - `Main` owns one `Game`, listens to `navigate`, swaps the screen scene and sets `screen.game = game`.
   - `MapScreen` shows Chapter 1's 9 level buttons on a winding path (✓ completed, ★ star, disabled if locked) and 12 locked chapter cards with their era and blurb.
@@ -1328,6 +1409,9 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
   - `test_zoom_goal_passes_on_layer` (L9, `set_zoom_layer("wire.copper")`)
   - `test_ui_flag_ticks_step` (L2: `set_ui_flag("datasheet:L1")` ticks step 1)
   - `test_zoom_seen_keeps_closeup_step` (L9: after `wire.closeup` and then `wire.copper`, both steps are ticked)
+  - `test_badge_event_on_first_light`
+  - `test_magic_smoke_badge_on_first_burn`
+  - `test_terms_seen_saved_in_progress`
   - `test_drafts_saved_per_level`
   - Navigation (scene): `test_map_only_l1_enabled_on_fresh_progress`, `test_map_l2_enabled_after_l1`, `test_open_level_shows_level_screen`
 - [ ] **Step 2: Run `tools/test.sh app/`.** Expected: FAIL.
@@ -1338,17 +1422,14 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
 ### Task 17: Level HUD — heavy help, tray, goals, tests, hints, menus, guide, glossary, settings
 
 **Files:**
-- Create: `game/src/hud/*.gd` (see the file map), `game/src/ui/glossary_text.gd`
+- Create: `game/src/hud/*.gd` (see the file map)
 - Modify: `game/src/screens/level_screen.{gd,tscn}`, `game/src/editor/editor_layer.gd` (add `_can_drop_data` and `_drop_data` for tray drags, with data `{tray: int}`; a drop places the part at the rounded grid point under the cursor)
-- Test: `game/tests/ui/test_glossary_text.gd`, `game/tests/hud/test_hud.gd`
+- Test: `game/tests/hud/test_hud.gd`
 
 **Interfaces:**
 - Consumes: `Game`, `GameState`, `EditorLayer`, `SolutionDiff`, `Glossary`, `PastelTheme`, `Catalog.datasheet`, `ResistorBands`, `Formulas`, `Explain`, `PartArt`.
 - Produces:
-  - `GlossaryText.to_bbcode(text: String) -> String`
-    - `[[term]]` becomes `[url=term][color=#7C5CC4]term[/color][/url]`
-    - `[[term|shown]]` keeps the term and displays `shown`
-    - Unknown terms are left as plain text.
+  - **Every on-screen string goes through `GlossaryText.render`** (from Task 10): guide lines, steps, hints, goal messages, toasts, datasheet rows, Explain lines, calculator steps, captions and the Notebook. Whatever `new_terms` it returns is passed to `game.mark_terms_seen` and shown as New word cards.
   - HUD nodes (all read from `game.state` on `changed`):
     - **TopBar:** back to the map, level title, undo, redo, calculator, settings.
     - **PartsTray:** shows remaining counts. A tap calls `editor.begin_placing`, a drag uses Godot drag-and-drop onto the `EditorLayer`, and items with 0 left are disabled.
@@ -1379,14 +1460,20 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
       - Off also hides the HintButton.
     - **Flags:** the ValuePopover sets `"value:<id>"`, Test sets `"tested"`, and selecting a wire sets `"selected:<id>"`.
     - **SettingsSheet:** Help (Heavy / Light / Off), Look (Circuit symbols / Physical), Show values, and toggles for reduced motion, electron flow, large text, patterns and night. They apply immediately; the theme rebuilds for night and large text.
+    - **NewWordCard** (at every help level):
+      - A non-blocking card that slides in from the side, with a "New word" tag, the title, the `simple` definition, and the `precise` one under "More precisely".
+      - It stays 8 s or until tapped (tapping opens the full GlossaryPopup).
+      - At most 2 cards are visible; the rest queue.
+      - It is shown only for terms the player has never seen before.
+    - **NotebookSheet** (from the TopBar and the map):
+      - "Words" tab: every seen term in the order it was learned, with both definitions.
+      - "Badges" tab: all 8 badges, earned ones in color and locked ones greyed out with their description.
+    - **Badge toasts:** for `{type:"badge"}` events, "Badge earned: {name}" with a small sparkle (no sparkle when `reduced_motion` is on).
     - **ScaleBar:** from `view_changed`, with the jump badge.
     - **BackToBuilding:** a button shown when `zoom_layer != "editor"`.
   - Layout: if width < height (portrait), the tray is a horizontal strip at the bottom and the goals collapse into a top pill; otherwise the tray is a left column and the goals sit top-right. Re-layout runs on `NOTIFICATION_RESIZED`.
 
 - [ ] **Step 1: Write the failing tests.**
-  - `test_bbcode_simple_term`
-  - `test_bbcode_shown_text`
-  - `test_bbcode_unknown_term_plain`
   - HUD (scene):
     - `test_tray_tap_then_board_tap_places_part`
     - `test_tray_item_disabled_at_zero`
@@ -1403,7 +1490,11 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
     - `test_idle_offer_after_30s_on_heavy_only`
     - `test_help_off_hides_hint_button`
     - `test_explain_popover_lines`
-- [ ] **Step 2: Run `tools/test.sh hud/` and `tools/test.sh glossary_text`.** Expected: FAIL.
+    - `test_new_word_card_on_first_sight_only` (L1 intro: "electricity" shows a card once; opening L1 again shows none)
+    - `test_new_word_cards_shown_with_help_off`
+    - `test_notebook_lists_seen_words_in_order`
+    - `test_badge_toast_on_first_light`
+- [ ] **Step 2: Run `tools/test.sh hud/`.** Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run the tests.** Expected: PASS.
 - [ ] **Step 5: Visual check.** Capture the level screen for L2 at 1280×720 and at 390×844, with the checklist showing, and once more with the datasheet card and calculator open. It passes if:
@@ -1483,7 +1574,8 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
     - silica: "Sand is mostly silica: silicon and oxygen atoms locked together."
     - atom: "A silicon atom. Everything you'll build starts here."
   - Atom Go-deeper text (exact): "Real electrons are fuzzy clouds, not tiny planets. And the nucleus is drawn far too big: if this atom were a stadium, its nucleus would be a pea."
-  - Title UI: the "Circuit" heading, caption label, scale bar with jump badge, Skip, Settings, and Start/Continue (shown when the zoom finishes or is skipped). Any user zoom input stops autoplay. With reduced motion, the title shows a slideshow: each layer's home view for 4 s, fading through cream over 0.6 s.
+  - Title UI: the "Circuit" heading, caption label, scale bar with jump badge, Skip, Settings, and Start/Continue (shown when the zoom finishes or is skipped).
+  - Captions go through `GlossaryText.render`. Their new words (for example undersea cable, internet, silica, silicon, atom) appear as small subtitles under the caption with the `simple` definition only. They don't block anything, and they are marked seen. Any user zoom input stops autoplay. With reduced motion, the title shows a slideshow: each layer's home view for 4 s, fading through cream over 0.6 s.
 
 - [ ] **Step 1: Write `tools/make_land.mjs` and run it once.**
   - In a fresh temp folder, `npm pack world-atlas@2.0.2 topojson-client@3.1.0`, extract them, and convert `land-110m.json` to `{"polygons": [[[lon,lat],…],…]}`. Keep outer rings only, round to 2 decimals.
@@ -1529,7 +1621,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
     - id `wire.copper`, 1e-10 meters per unit, min view 15 (clamp)
     - An FCC patch of 6×6×2 cells: copper-peach spheres of radius 1.28 Å.
     - 60 butter electrons with random thermal jitter, plus a net drift **opposite** to conventional current. The visual drift speed is clamp(0.5·log10(|I|/1e-5), 0, 3) Å per second.
-    - Caption (exact): "Copper atoms sit in a neat grid. Electrons zip around them and drift slowly from − to +."
+    - Caption (exact): "Copper atoms sit in a neat grid called a crystal lattice. Electrons zip around them and drift slowly from − to +."
   - `LevelScreen` reports the active layer to `game.set_zoom_layer(id)` on `layer_changed`.
 
 - [ ] **Step 1: Write the failing tests.**
@@ -1555,6 +1647,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
   - `test_play_l1_by_mouse`: from Main, go to the map, open L1, step through the intro, drag the three wires with mouse events, and expect the outro to appear. Back on the map, L2 is enabled.
   - `test_play_l2_burn_and_replace`: wire the LED straight to the battery and expect the toast "Pop! LED burned out." along with Pip's explanation. Long-press the LED and choose Replace. Open the LED's datasheet and the calculator (steps 1 and 2 tick). Place the 150 Ω resistor from the tray, wire it, and expect the level to pass with the star.
   - `test_play_l8_power_rating`: place the ¼ W 47 Ω resistor across the battery and watch it burn. Replace it with the 1 W one and expect the level to pass.
+  - `test_every_word_defined_on_first_sight`: on fresh progress, play from the title through L1. Every term in every string shown gets a New word card or caption subtitle the first time it appears, and appears in the Notebook afterwards. None is shown twice.
   - `test_touch_pinch_zoom`: two `ScreenTouch`/`ScreenDrag` fingers whose distance doubles halve `camera().view` within 2%, and the circuit is unchanged.
   - `test_touch_second_finger_cancels_wire`: finger 0 starts dragging from B1.pos, finger 1 lands, then both lift. The circuit is unchanged.
   - `test_resize_keeps_circuit_visible`: in L5, set the window to 1280×720, then 390×844, then 844×390. After each resize, every start-part pin's screen position is inside the board area (the viewport minus the HUD tray and top bar rects).

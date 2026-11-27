@@ -7,6 +7,8 @@ extends Node
 signal changed
 signal toast(text: String)
 signal navigate(screen: String, arg: String)
+## A glossary link was tapped somewhere; the screen opens its definition.
+signal term_requested(term: String)
 
 ## Saves wait this long after the last change, so a burst of edits is one write.
 const SAVE_DELAY_S := 0.5

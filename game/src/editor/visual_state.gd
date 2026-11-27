@@ -39,9 +39,9 @@ static func engineer_labels(c: Circuit, sim: SimResult) -> Array[Dictionary]:
 			if labeled.has(net) or sim.floating.has(net):
 				continue
 			labeled[net] = true
-			out.append({"at": Vector2(CircuitGeometry.pin_position(p, pin)) + Vector2(0.4, -0.4), "text": "%.2f V" % sim.net_volts[net]})
+			out.append({"at": Vector2(CircuitGeometry.pin_position(p, pin)) + Vector2(0.4, -0.4), "text": "%.2f V" % sim.net_volts[net], "part": p.id})
 	for p in c.parts:
 		if (p.kind == "resistor" or p.kind == "led") and not sim.is_floating(p.id, Catalog.pin_names(p.kind)[0]):
 			var amps := absf(float(sim.part_amps.get(p.id, 0.0)))
-			out.append({"at": CircuitGeometry.part_rect(p).get_center() + Vector2(0, 0.9), "text": "%.1f mA" % (amps * 1000.0)})
+			out.append({"at": CircuitGeometry.part_rect(p).get_center() + Vector2(0, 0.9), "text": "%.1f mA" % (amps * 1000.0), "part": p.id})
 	return out

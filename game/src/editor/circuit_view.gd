@@ -109,7 +109,7 @@ static func placed_labels(c: Circuit, s: SimResult) -> Array[Dictionary]:
 				spot = anchor + offset
 				break
 		taken.append(Rect2(spot - box / 2.0, box))
-		out.append({"at": spot, "text": text})
+		out.append({"at": spot, "text": text, "part": l["part"]})
 	return out
 
 

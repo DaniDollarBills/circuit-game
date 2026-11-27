@@ -135,9 +135,12 @@ func complete(now: int) -> void:
 	check_achievements(now)
 
 
-## Records the terms in the Notebook and returns the ones that are new.
+## Records the terms in the Notebook and returns the ones that are new; each
+## new one is announced with a `new_word` event.
 func mark_terms_seen(terms: PackedStringArray, now: int) -> PackedStringArray:
 	var fresh := progress.mark_terms_seen(terms, now)
+	for t in fresh:
+		events.append({"type": "new_word", "term": t})
 	if not fresh.is_empty():
 		check_achievements(now)
 	return fresh

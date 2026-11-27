@@ -72,6 +72,12 @@ func _open_from_args() -> bool:
 			return true
 		if arg.begins_with("--open=level:"):
 			game.open_level(arg.substr("--open=level:".length()), true)
+			if "--skip-intro" in OS.get_cmdline_user_args():
+				while game.state.session.phase == "intro":
+					game.next_intro()
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--show=") and screen is LevelScreen:
+					(screen as LevelScreen).dev_show.call_deferred(a.substr("--show=".length()))
 			return screen != null
 	return false
 
@@ -102,6 +108,9 @@ func _build_toast() -> void:
 
 
 func _show_toast(text: String) -> void:
+	if screen != null and screen.has_method("show_toast"):
+		screen.call("show_toast", text)
+		return
 	_toast_label.text = text
 	_toast.visible = true
 	_toast.modulate.a = 1.0

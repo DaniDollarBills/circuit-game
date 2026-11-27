@@ -9,6 +9,8 @@ const ROW_H := 124.0
 const TOP := 64.0
 
 var game: Game
+var notebook: NotebookSheet
+var glossary_popup: GlossaryPopup
 
 var _buttons: Array[Button] = []
 var _cards: Array[Control] = []
@@ -37,9 +39,11 @@ func _ready() -> void:
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top.add_child(heading)
-	var balance := Control.new()
-	balance.custom_minimum_size = Vector2(back.get_combined_minimum_size().x, 0)
-	top.add_child(balance)
+	var book := IconButton.make("book", "Notebook")
+	book.pressed.connect(func() -> void:
+		notebook.open()
+		notebook.visible = true)
+	top.add_child(book)
 	column.add_child(top)
 
 	var scroll := ScrollContainer.new()
@@ -79,6 +83,23 @@ func _ready() -> void:
 		var card := _chapter_card(n + 1, Chapters.ALL[n])
 		flow.add_child(card)
 		_cards.append(card)
+	notebook = NotebookSheet.new()
+	notebook.game = game
+	add_child(notebook)
+	glossary_popup = GlossaryPopup.new()
+	glossary_popup.game = game
+	add_child(glossary_popup)
+	game.term_requested.connect(func(term: String) -> void: glossary_popup.open(term))
+
+
+func _process(_delta: float) -> void:
+	for card in [notebook, glossary_popup]:
+		if card != null and card.visible:
+			var cw := minf(maxf(card.custom_minimum_size.x, 360.0), size.x - 24.0)
+			card.size = Vector2(cw, 0)
+			card.reset_size()
+			card.size = Vector2(cw, minf(card.size.y, size.y - 80.0))
+			card.position = ((size - card.size) / 2.0).max(Vector2(12, 64)).round()
 
 
 ## Chapter 1's level buttons, in play order.

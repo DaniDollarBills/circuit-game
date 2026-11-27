@@ -20,6 +20,7 @@ static func build(night := false, large_text := false) -> Theme:
 	t.default_font_size = 22 if large_text else 18
 
 	_buttons(t, night, ink, ink_soft)
+	_inputs(t, night, ink, ink_soft)
 
 	var panel := _card(Palette.color("paper", night), 20, ink, 10)
 	panel.set_content_margin_all(16)
@@ -62,6 +63,27 @@ static func _buttons(t: Theme, night: bool, ink: Color, ink_soft: Color) -> void
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		t.set_color(c, "Button", on_pastel)
 	t.set_color("font_disabled_color", "Button", ink_soft)
+
+
+## Text boxes: paper with a soft border that turns lavender when focused.
+static func _inputs(t: Theme, night: bool, ink: Color, ink_soft: Color) -> void:
+	var normal := _card(Palette.color("paper", night), 10, ink, 0)
+	normal.border_color = Palette.color("line", night).darkened(0.1)
+	var focus := normal.duplicate() as StyleBoxFlat
+	focus.border_color = Palette.color("lavender", night)
+	focus.set_border_width_all(3)
+	for sb in [normal, focus]:
+		sb.content_margin_left = 10
+		sb.content_margin_right = 10
+		sb.content_margin_top = 6
+		sb.content_margin_bottom = 6
+	t.set_stylebox("normal", "LineEdit", normal)
+	t.set_stylebox("focus", "LineEdit", focus)
+	t.set_stylebox("read_only", "LineEdit", normal)
+	t.set_color("font_color", "LineEdit", ink)
+	t.set_color("font_placeholder_color", "LineEdit", ink_soft)
+	t.set_color("caret_color", "LineEdit", ink)
+	t.set_color("selection_color", "LineEdit", Color(Palette.color("lavender", night), 0.6))
 
 
 ## A rounded, softly shadowed card: 2 px border in ink at 15% alpha and a

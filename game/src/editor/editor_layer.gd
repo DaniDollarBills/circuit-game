@@ -13,6 +13,8 @@ signal datasheet_requested(part_id: String)
 signal selected(id: String)
 signal toast_requested(text: String)
 signal ghost_tapped(kind: String, data: Dictionary)
+## A value label (a voltage or a current) was tapped; the HUD explains its part.
+signal explain_requested(part_id: String)
 
 var controller := EditorController.new()
 var pointer: PointerInput
@@ -27,6 +29,9 @@ var ghosts: Dictionary = {}
 var highlights: Array = []
 var tray: Array = []
 var tray_used: Array[int] = []
+## The part of the layer the HUD leaves uncovered, in layer pixels. Framing
+## puts the circuit inside it. Empty means the whole layer.
+var safe_rect := Rect2()
 
 
 func _ready() -> void:
@@ -112,19 +117,56 @@ func begin_placing(i: int) -> void:
 ## battery holders and meters beside the board.
 func fit_view() -> float:
 	var bounds := _fit_bounds()
-	var aspect := size.y / maxf(size.x, 1.0)
+	var safe := _safe()
+	var aspect := safe.size.y / maxf(safe.size.x, 1.0)
 	var widen := 1.0
 	var raised := 0.0
 	if _physical():
 		widen = Workbench3D.near_edge_widening()
 		raised = Workbench3D.raised_allowance(MeterRig.tallest(circuit))
-	var view := maxf(12.0, maxf(bounds.size.y, bounds.size.x * aspect * widen) + raised)
+	var view := maxf(bounds.size.y, bounds.size.x * aspect * widen) + raised
+	view = maxf(12.0, view * size.y / maxf(safe.size.y, 1.0))
 	home_view = view
 	return view
 
 
+## The center for fit_view(): the circuit lands in the middle of safe_rect.
 func fit_center() -> Vector2:
-	return _fit_bounds().get_center()
+	var units_per_px := fit_view() / maxf(size.y, 1.0)
+	var offset := _safe().get_center() - size / 2.0
+	return _fit_bounds().get_center() - offset * units_per_px
+
+
+func _safe() -> Rect2:
+	var whole := Rect2(Vector2.ZERO, size)
+	if safe_rect.size.x < 1.0 or safe_rect.size.y < 1.0:
+		return whole
+	var r := safe_rect.intersection(whole)
+	return r if r.size.x >= 1.0 and r.size.y >= 1.0 else whole
+
+
+## Where the value labels sit on screen, for tapping: {part, text, screen
+## (center), rect}. Empty when values are hidden.
+func value_label_spots() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if sim == null or not bool(settings.get("show_values", true)):
+		return out
+	if _physical():
+		var cam := workbench.camera
+		for l in VisualState.engineer_labels(circuit, sim):
+			var world := PartDims.grid_to_world(l["at"]) + Vector3(0, 0.3, 0.35)
+			if cam.is_position_behind(world):
+				continue
+			var c := cam.unproject_position(world)
+			var px_per_cm := cam.unproject_position(world + Vector3(1, 0, 0)).distance_to(c)
+			var box := Vector2(0.08 * str(l["text"]).length(), 0.16) * px_per_cm
+			out.append({"part": l["part"], "text": l["text"], "screen": c, "rect": Rect2(c - box / 2.0, box).grow(6.0)})
+	else:
+		for l in CircuitView.placed_labels(circuit, sim):
+			var c := circuit_view.to_screen(l["at"])
+			var box := Vector2(0.25 * str(l["text"]).length() + 0.2, 0.6) * circuit_view.ppu
+			out.append({"part": l["part"], "text": l["text"], "screen": c, "rect": Rect2(c - box / 2.0, box).grow(4.0)})
+	return out
 
 
 ## The area fit_view() frames, in grid units.
@@ -206,6 +248,10 @@ func _on_gesture(g: Dictionary) -> void:
 		gg["at"] = screen_to_grid(g["at"])
 	if gg["type"] == "tap" and _tap_ghost(gg["at"]):
 		return
+	if gg["type"] == "tap" and controller.mode["kind"] == "idle" \
+			and HitTest.at(circuit, gg["at"], pin_radius(), pin_radius() * 0.8)["kind"] == "empty" \
+			and _tap_label(gg["screen"]):
+		return
 	var ctx := {"circuit": circuit, "tray": tray, "tray_used": tray_used, "pin_r": pin_radius(), "wire_r": pin_radius() * 0.8}
 	for e in controller.handle(gg, ctx):
 		_apply_effect(e, gg)
@@ -254,6 +300,35 @@ func _pan(delta_px: Vector2) -> void:
 		stage.pan_screen(delta_px)
 		return
 	apply_view(view_center - delta_px / (size.y / maxf(view_height, 1e-6)), view_height)
+
+
+func _tap_label(screen: Vector2) -> bool:
+	for spot in value_label_spots():
+		if (spot["rect"] as Rect2).has_point(screen):
+			explain_requested.emit(spot["part"])
+			return true
+	return false
+
+
+## Tray items dragged from the HUD carry {tray: index}.
+func _can_drop_data(_at: Vector2, data: Variant) -> bool:
+	if typeof(data) != TYPE_DICTIONARY or not (data as Dictionary).has("tray"):
+		return false
+	var i := int(data["tray"])
+	return i >= 0 and i < tray.size() and (i >= tray_used.size() or tray_used[i] < int(tray[i].get("count", 1)))
+
+
+## A drop places the part at the grid point under the cursor, by the same
+## rules as tapping a tray item and then the board.
+func _drop_data(at: Vector2, data: Variant) -> void:
+	if not _can_drop_data(at, data):
+		return
+	controller.begin_placing(int(data["tray"]))
+	var g := {"type": "tap", "at": screen_to_grid(at), "screen": at}
+	var ctx := {"circuit": circuit, "tray": tray, "tray_used": tray_used, "pin_r": pin_radius(), "wire_r": pin_radius() * 0.8}
+	for e in controller.handle(g, ctx):
+		_apply_effect(e, g)
+	_update_preview()
 
 
 ## A tap on a hint's ghost part or ghost wire places it.

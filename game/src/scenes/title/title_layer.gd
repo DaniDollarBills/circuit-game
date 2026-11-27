@@ -12,10 +12,19 @@ var pitch := 0.0
 ## "xz": layer (x, y) is the ground (x, z). "xy": layer (x, y) is (x, −y).
 var plane := "xz"
 var fov := 35.0
+## True for layers the player zooms and pans by hand (the wire close-ups);
+## the title drives its own layers.
+var navigable := false
+
+var _pointer: PointerInput
 
 
 func _ready() -> void:
 	super._ready()
+	if navigable:
+		_pointer = PointerInput.new()
+		add_child(_pointer)
+		_pointer.gesture.connect(_on_gesture)
 	viewport.own_world_3d = true
 	viewport.msaa_3d = Viewport.MSAA_4X
 	world = Node3D.new()
@@ -28,6 +37,33 @@ func _ready() -> void:
 	viewport.add_child(env)
 	build()
 	apply_view(view_center, home_view)
+
+
+func _gui_input(event: InputEvent) -> void:
+	if _pointer != null:
+		_pointer.feed(event, PointerInput.now())
+		accept_event()
+
+
+## Wheel, pinch and drag move the shared zoom.
+func _on_gesture(g: Dictionary) -> void:
+	var stage := get_parent() as ZoomStage
+	if stage == null:
+		return
+	match str(g["type"]):
+		"zoom":
+			stage.zoom_at_screen(float(g["factor"]), (g["at"] as Vector2) + position)
+		"pan":
+			stage.pan_screen(g["delta"])
+		"drag_move":
+			if g.has("delta"):
+				stage.pan_screen(g["delta"])
+
+
+func set_live(live: bool, interactive: bool) -> void:
+	super.set_live(live, interactive)
+	if not interactive and _pointer != null:
+		_pointer.reset()
 
 
 ## Virtual: fill `world` and `env`.

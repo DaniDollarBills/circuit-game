@@ -18,6 +18,8 @@ signal explain_requested(part_id: String)
 
 ## How close, in pixels, a tap must be to a pin's metal in the real view.
 const PICK_PX := 22.0
+## How near a wire, in grid units, the view's center must be to zoom into it.
+const WIRE_ENTRY := 0.4
 
 var controller := EditorController.new()
 var pointer: PointerInput
@@ -35,6 +37,8 @@ var tray_used: Array[int] = []
 ## The part of the layer the HUD leaves uncovered, in layer pixels. Framing
 ## puts the circuit inside it. Empty means the whole layer.
 var safe_rect := Rect2()
+## The wire close-up layer, told which wire the zoom is entering.
+var closeup: WireCloseupLayer
 
 
 func _ready() -> void:
@@ -238,8 +242,40 @@ func set_live(live: bool, interactive: bool) -> void:
 		pointer.reset()
 
 
-func dynamic_child(_center: Vector2) -> ZoomLink:
-	return null
+## Zooming in close over a wire enters it: the link is anchored at the
+## nearest point of the nearest wire within 0.4 units, and the close-up is
+## told that wire's current and its direction. Null when no wire is near.
+func dynamic_child(center: Vector2) -> ZoomLink:
+	var hit := _nearest_wire(center, WIRE_ENTRY)
+	if hit.is_empty():
+		return null
+	if closeup != null:
+		var amps := float(sim.wire_amps.get(hit["wire"], 0.0)) if sim != null else 0.0
+		closeup.set_wire(absf(amps), (hit["dir"] as Vector2) * (-1.0 if amps < 0.0 else 1.0))
+	return ZoomLink.make(layer_id, "wire.closeup", hit["at"], 3.0, 762.0)
+
+
+## Zooms at a screen point. Close in over a wire, the view also eases onto
+## the wire, so carrying on zooming goes inside it.
+func zoom_at(factor: float, screen: Vector2) -> void:
+	_zoom(factor, screen)
+
+
+## {wire, at, dir} for the closest point of any wire within `r`, or {}.
+func _nearest_wire(p: Vector2, r: float) -> Dictionary:
+	var best := {}
+	var best_d := r
+	for w in circuit.wires:
+		var path := CircuitGeometry.wire_path(circuit, w)
+		for i in range(1, path.size()):
+			var a: Vector2 = path[i - 1]
+			var b: Vector2 = path[i]
+			var q := Geometry2D.get_closest_point_to_segment(p, a, b)
+			var d := q.distance_to(p)
+			if d <= best_d and a != b:
+				best_d = d
+				best = {"wire": w.id, "at": q, "dir": (b - a).normalized()}
+	return best
 
 
 func _physical() -> bool:
@@ -354,6 +390,10 @@ func _zoom(factor: float, screen: Vector2) -> void:
 	var stage := get_parent() as ZoomStage
 	if stage != null:
 		stage.zoom_at_screen(factor, screen + position)
+		if factor > 1.0 and view_height <= 12.0:
+			var hit := _nearest_wire(screen_to_grid(screen), WIRE_ENTRY)
+			if not hit.is_empty() and stage.camera() != null and stage.camera().layer == layer_id:
+				stage.pan_units(((hit["at"] as Vector2) - stage.camera().center) * 0.25)
 		return
 	var cam := ZoomMath.zoom_at(ZoomCamera.make(layer_id, view_center, view_height), factor, screen_to_grid(screen))
 	apply_view(cam.center, clampf(cam.view, min_view, max_view))

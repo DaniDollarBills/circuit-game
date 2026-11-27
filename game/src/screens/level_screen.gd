@@ -43,6 +43,10 @@ var settings_sheet: SettingsSheet
 var notebook: NotebookSheet
 var scale_bar: ScaleBar
 var back_to_building: Button
+var closeup: WireCloseupLayer
+var copper: CopperLayer
+## The caption shown inside the copper.
+var zoom_caption: Label
 
 var _column: VBoxContainer
 var _cards_root: Control
@@ -73,6 +77,15 @@ func _ready() -> void:
 	stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	editor = load("res://src/editor/editor_layer.tscn").instantiate()
 	stage.add_layer(editor)
+	# Inside the wire: a close-up of the wire, then (a jump of about ×13,000)
+	# its copper atoms.
+	closeup = WireCloseupLayer.new()
+	copper = CopperLayer.new()
+	closeup.copper = copper
+	editor.closeup = closeup
+	stage.add_layer(closeup)
+	stage.add_layer(copper)
+	stage.add_link(ZoomLink.make("wire.closeup", "wire.copper", Vector2.ZERO, 8.0, 60.0))
 	_build_hud()
 	_connect()
 	resized.connect(_layout)
@@ -110,6 +123,15 @@ func dev_show(what: String) -> void:
 		_open_card(notebook)
 	elif what == "settings":
 		_open_card(settings_sheet)
+	elif what in ["closeup", "jump", "copper"] and not game.state.history.present.wires.is_empty():
+		# After the first framing; then enter the first wire, as zooming in over it would.
+		for i in 3:
+			await get_tree().process_frame
+		var w := game.state.history.present.wires[0]
+		var path := CircuitGeometry.wire_path(game.state.history.present, w)
+		editor.dynamic_child((path[0] + path[1]) / 2.0)
+		var cam: Array = {"closeup": ["wire.closeup", 200.0], "jump": ["wire.closeup", 14.0], "copper": ["wire.copper", 40.0]}[what]
+		stage.set_camera(ZoomCamera.make(cam[0], Vector2.ZERO, cam[1]))
 
 
 ## Toasts from the Game land here while a level is open.
@@ -185,6 +207,7 @@ func _refresh() -> void:
 		test_sheet.refresh(s.session)
 	hint_button.visible = _help() != "off" and not s.level.hints.is_empty()
 	back_to_building.visible = s.zoom_layer != "editor"
+	zoom_caption.visible = s.zoom_layer == "wire.copper"
 	_check_mistakes()
 	_check_formula_offer()
 	if settings_sheet.visible:
@@ -557,6 +580,17 @@ func _build_hud() -> void:
 	back_to_building.text = "Back to building"
 	back_to_building.visible = false
 	hud.add_child(back_to_building)
+	zoom_caption = Label.new()
+	zoom_caption.text = CopperLayer.CAPTION
+	zoom_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	zoom_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	zoom_caption.add_theme_font_size_override("font_size", 18)
+	zoom_caption.add_theme_color_override("font_color", Color(0.97, 0.96, 1.0))
+	zoom_caption.add_theme_color_override("font_outline_color", Color(0.08, 0.07, 0.12, 0.85))
+	zoom_caption.add_theme_constant_override("outline_size", 6)
+	zoom_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	zoom_caption.visible = false
+	hud.add_child(zoom_caption)
 	_cards_root = Control.new()
 	_cards_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(_cards_root)
@@ -647,6 +681,11 @@ func _place_floating() -> void:
 		guide.position = Vector2(left + (right - left - gw) / 2.0, h - MARGIN - guide.size.y)
 	back_to_building.reset_size()
 	back_to_building.position = Vector2((w - back_to_building.size.x) / 2.0, top)
+	var caption_w := minf(w - 2.0 * MARGIN, 640.0)
+	zoom_caption.custom_minimum_size = Vector2(caption_w, 0)
+	zoom_caption.size = Vector2(caption_w, 0)
+	zoom_caption.reset_size()
+	zoom_caption.position = Vector2((w - caption_w) / 2.0, top + 52.0)
 	var board := editor.safe_rect
 	toasts.size = Vector2(minf(board.size.x - 16.0, 460.0), 0)
 	toasts.reset_size()

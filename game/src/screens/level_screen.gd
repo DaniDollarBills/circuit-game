@@ -311,7 +311,9 @@ func _refresh() -> void:
 			and (s.session.phase in ["build", "passed"] or tutorial)
 	lesson_button.visible = s.session.phase in ["build", "passed"] and (s.level.deck_size() > 0 or s.level.has_try())
 	back_to_building.visible = s.zoom_layer != "editor"
-	zoom_caption.visible = s.zoom_layer == "wire.copper"
+	# The caption waits while the recap is up (reaching the copper can end
+	# the lesson, and the recap comes up where the caption sits).
+	zoom_caption.visible = s.zoom_layer == "wire.copper" and not recap.visible
 	if zoom_caption.visible and zoom_caption.text == "":
 		# Light links: the caption sits on the dark copper scene.
 		var r := GlossaryText.render(CopperLayer.CAPTION, s.progress.seen_terms, true, true)
@@ -485,6 +487,7 @@ func _start_outro() -> void:
 	guide.hide_bubble()
 	recap.show_recap(s.level, s.outcome, _next_level_id())
 	recap.visible = true
+	zoom_caption.visible = false
 	game.mark_lesson_step("recap")
 	_place_floating()
 
@@ -811,7 +814,9 @@ func _connect() -> void:
 			game.open_level(next_id))
 	recap.to_map.connect(game.open_map)
 	recap.read_again.connect(game.reopen_lesson)
-	recap.put_away.connect(func() -> void: recap.visible = false)
+	recap.put_away.connect(func() -> void:
+		recap.visible = false
+		_queue_refresh())
 	deck.next_pressed.connect(game.next_card)
 	deck.back_pressed.connect(game.back_card)
 	deck.skip_pressed.connect(game.skip_learn)

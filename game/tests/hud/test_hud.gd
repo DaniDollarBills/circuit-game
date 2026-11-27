@@ -665,6 +665,25 @@ func test_copper_caption_defines_its_words_when_it_shows() -> void:
 		assert_true(seen.has(w), w)
 
 
+## Captures found the copper caption drawn over Lesson 9's recap: reaching
+## the copper finishes the lesson, and its recap came up under the caption.
+## The caption waits while the recap is up, and comes back with the copper.
+func test_copper_caption_keeps_off_the_recap() -> void:
+	var s := await _screen("ch1.inside-the-wire")
+	await _skip_intro(s)
+	s.game.state.set_zoom_layer("wire.closeup")
+	s.game.state.set_zoom_layer("wire.copper")
+	s.game.changed.emit()
+	await wait_frames(4)
+	assert_eq(s.game.state.session.phase, "passed")
+	assert_true(s.recap.visible, "reaching the copper finishes Lesson 9")
+	assert_false(s.zoom_caption.visible, "the caption waits while the recap is up")
+	s.recap.back_button().pressed.emit()
+	await wait_frames(3)
+	assert_false(s.recap.visible)
+	assert_true(s.zoom_caption.visible, "back in the copper, the caption again")
+
+
 func test_wire_layers_and_datasheet_follow_the_quality_setting() -> void:
 	var s := await _screen("ch1.pop", Vector2(1280, 720), {"quality": "low"})
 	await _skip_intro(s)

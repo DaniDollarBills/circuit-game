@@ -15,7 +15,7 @@ Circuit starts with a battery, a resistor and an LED on a workbench, and one day
 
 - **Real parts, really simulated.** Every circuit is solved the way engineers solve them. LEDs glow up to their recommended current, wear out past it and burn out past their absolute maximum; a ¼-watt resistor really does overheat at half a watt.
 - **Built true to size.** A 3D bench under studio lighting: perfboard, battery holder, multimeters, every part at its real size. Switch to the schematic view any time.
-- **A real course.** Each lesson says what you'll learn, then explains one idea at a time with a moving picture. You meet every new part in 3D (spin it, look inside it), try things on a ready-made circuit (burn an LED on purpose, fill in a truth table, make a short and watch the battery heat up), then build it yourself, with a "Why?" on every step. A recap, a quick question or two and a fact from history close each lesson.
+- **A real course.** Each lesson says what you'll learn, then explains one idea at a time with a moving picture. You meet every new part in 3D (spin it, look inside it), try things on a ready-made circuit (burn an LED on purpose, fill in a truth table, make a short and watch the battery heat up), then build it yourself, with a "Why?" on every step. A recap, a quick question or two and one more fact, with its source, close each lesson.
 - **Help that teaches.** Pip guides you with a checklist, a step-by-step calculator, datasheets and three tiers of hints. Every new word is defined the first time you see it, and your Notebook is a textbook: every lesson, part and word, to read again.
 - **Zoom into everything.** The title flies from the whole Earth, past an undersea cable coming ashore, down to a single silicon atom. In the last level you zoom into a wire until you see its copper atoms and the electrons drifting through them.
 - **Gentle by design.** Pastel colors, soft sounds and a calm lo-fi soundtrack. No accounts, no ads, no purchases, and the game never goes online.
@@ -39,8 +39,11 @@ Made with Godot Engine. Fonts: Nunito (SIL Open Font License) and DejaVu Sans. E
 In `docs/itch/`, in this order:
 
 1. `1-title-earth.jpg`: the title over Earth, with undersea cables.
-2. `2-title-coast.jpg`: the zoom reaching the coast where a cable comes ashore.
-3. `3-bench.jpg`: Level 1 on the realistic workbench, with Pip's checklist.
-4. `4-datasheet.jpg`: an LED's datasheet, with its 3D model and real numbers.
-5. `5-phone.jpg`: Level 3 on a phone, the trimmer ready to turn.
-6. `6-copper.jpg`: inside the wire: copper atoms and drifting electrons.
+2. `2-lesson-card.jpg`: a Lesson 2 card: how the battery's 5 V push is shared round the loop.
+3. `3-meet-the-part.jpg`: Meet the part: the LED, its legs and where you'll find one.
+4. `4-try-it.jpg`: Lesson 5's Try it: switches A and B, and the truth table to fill in.
+5. `5-bench.jpg`: Lesson 1 on the realistic workbench, with Pip's checklist.
+6. `6-datasheet.jpg`: an LED's datasheet, with its 3D model and real numbers.
+7. `7-recap.jpg`: Lesson 2's recap, filled in from the player's own circuit.
+8. `8-phone.jpg`: Lesson 3 on a phone, the trimmer ready to turn.
+9. `9-copper.jpg`: inside the wire: copper atoms and drifting electrons.

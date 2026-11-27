@@ -9,9 +9,9 @@ Chapter 1 is now a course. Every lesson teaches before it asks: what you'll lear
 - **Meet the part.** Every part has its own card: the real part in 3D on a turntable (drag to spin it), its legs named, what it does, where you'd find one, and a cutaway to look inside.
 - **Try it.** A ready-made circuit to poke at before you build: break a loop and fix it, burn an LED on purpose, turn a dial and watch the current halve, fill in a truth table, make a short and watch the battery heat up, flip the picture to the electrons' way.
 - **Why?** on every step, and on each of Pip's warnings.
-- **Recap.** What you learned, with your own numbers; a question or two that explains every answer; and a fact from history. Put it away to look at your circuit, and bring it back with the Recap button.
+- **Recap.** What you learned, with your own numbers; a question or two that explains every answer; and one more fact, with its source. Put it away to look at your circuit, and bring it back with the Recap button.
 - **The Notebook is a textbook.** Read any lesson again, meet any part again, look up any word, and once Chapter 1 is done, read its summary.
-- **Easier for beginners.** Tray items name their parts, flat buttons have an edge, moving pictures say when they're sped up, and new words are defined where they first appear (cell, lead, leg, drift, gauge, probe, truth table, binary, circuit breaker).
+- **Easier for beginners.** Tray items name their parts, flat buttons have an edge, switches show their names on the bench, moving pictures say when they're sped up, and new words are defined where they first appear (across, cell, lead, leg, drift, gauge, metal film, probe, truth table, binary, circuit breaker).
 - **Phones.** On a landscape phone a card's picture sits beside its words; on the smallest phones, with Large text, every card fits or scrolls and every button can be reached.
 
 ## Coming from v0.2.0

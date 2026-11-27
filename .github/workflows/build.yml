@@ -110,7 +110,14 @@ jobs:
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" build/dist/*.zip build/dist/*.apk --title "Circuit $GITHUB_REF_NAME" --notes-file docs/release-notes.md
+        # A release made on GitHub's website for this tag gets the downloads
+        # attached; otherwise the release is created here.
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" build/dist/*.zip build/dist/*.apk --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" build/dist/*.zip build/dist/*.apk --title "Circuit $GITHUB_REF_NAME" --notes-file docs/release-notes.md
+          fi
 
   pages:
     if: github.ref == 'refs/heads/main' && vars.PAGES_ENABLED == 'true'

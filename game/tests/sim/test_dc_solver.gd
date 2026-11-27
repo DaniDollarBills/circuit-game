@@ -143,3 +143,17 @@ func test_led_power_is_current_times_voltage() -> void:
 	var i: float = s.device_amps["L1"]
 	assert_near(s.device_watts["R1"], i * i * 220.0, 1e-9)
 	assert_between(s.device_watts["L1"], i * 1.9, i * 2.0)
+
+
+## Regression (found by the fuzz test): LEDs leading to a dead end carry only
+## leakage-sized currents, and their node voltages carry ~1e-7 V of rounding
+## noise between iterations. The solver must still report convergence.
+func test_dead_end_leds_converge() -> void:
+	var c := TestCircuits.battery_only()
+	c.parts.append(Part.make("L1", "led", 0, -6, 0, {"color": "green"}))
+	c.parts.append(Part.make("L2", "led", 4, -6, 0, {"color": "red"}))
+	c.wires.append(Wire.make("w1", "B1", "pos", "L1", "anode"))
+	c.wires.append(Wire.make("w2", "L1", "cathode", "L2", "anode"))
+	var s := _solve(c)
+	assert_true(s.converged, "converged")
+	assert_true(absf(s.device_amps["L1"]) < 1e-9, "leakage only")

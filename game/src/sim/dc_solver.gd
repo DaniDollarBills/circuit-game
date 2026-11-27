@@ -4,8 +4,11 @@ extends RefCounted
 ## LEDs are a series resistance plus a Shockley junction (internal node between).
 
 const MAX_ITERATIONS := 100
-const VOLT_TOLERANCE := 1e-9
-const JUNCTION_TOLERANCE := 1e-6
+## SPICE-style convergence test: a change is small enough when it is under
+## VNTOL + RELTOL·|value|. Nodes held only by tiny leakage paths carry ~1e-7 V
+## of rounding noise, so an absolute 1 nV test would never pass there.
+const VNTOL := 1e-6
+const RELTOL := 1e-6
 
 
 static func solve(n: Netlist) -> DcSolution:
@@ -95,18 +98,18 @@ static func _newton(n: Netlist, var_of_net: PackedInt32Array, leds: Array[Dictio
 		var x_new := DenseSolver.solve(g, rhs, unknowns)
 		if x_new.is_empty():
 			return {"converged": false, "iterations": iteration + 1}
-		var max_dx := 0.0
+		var settled := true
 		for i in unknowns:
-			max_dx = maxf(max_dx, absf(x_new[i] - x[i]))
-		var junction_ok := true
+			if absf(x_new[i] - x[i]) > VNTOL + RELTOL * absf(x_new[i]):
+				settled = false
 		for k in leds.size():
 			var nets: PackedInt32Array = leds[k]["device"]["nets"]
 			var vj := _v(x_new, leds[k]["internal"]) - _v(x_new, var_of_net[nets[1]])
-			if absf(vj - vd[k]) > JUNCTION_TOLERANCE:
-				junction_ok = false
+			if absf(vj - vd[k]) > VNTOL + RELTOL * absf(vj):
+				settled = false
 		for i in unknowns:
 			x[i] = x_new[i]
-		if max_dx < VOLT_TOLERANCE and junction_ok:
+		if settled:
 			return {"converged": true, "iterations": iteration + 1}
 	return {"converged": false, "iterations": MAX_ITERATIONS}
 

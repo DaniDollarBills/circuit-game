@@ -163,7 +163,9 @@ Any card can add a **Go deeper** line with the precise, expert detail, the way N
 **Try it** is a ready-made circuit on the real bench, separate from the build. It comes with:
 - a prompt ("Turn the dial and watch the current");
 - one to three suggested pokes that tick off when done ("Break the loop", "Fix it");
-- live readouts.
+- a live readout of the one or two values that matter, such as the LED's milliamps or a resistor's watts, straight from the simulation.
+
+A Try it uses only controls the player has already been taught.
 
 The simulation is real, so breaking things is allowed and Undo brings them back. "I'm ready to build" is always available. The try circuit is never saved as your draft.
 
@@ -215,8 +217,8 @@ The goals, parts and checks of Lessons 1–9 are the current levels'. What's new
 |---|---|---|---|---|
 | 0 | Your workbench | The bench and every control | §6.2 tour | (Lesson 0 is all hands-on) |
 | 1 | Light it up | Electricity needs a loop. What the battery, wire, resistor and LED do. | Electricity is moving charges, which are already in the wires. A battery pushes them, from its + end round to its − end. A circuit is a loop, and a gap anywhere stops everything. Meet the battery pack, wire, resistor and LED. We draw current going from + to −. | A finished loop: delete a wire and watch the light go out, then undo. |
-| 2 | Pop! | An LED lets current go one way and needs its current limited. How to read a datasheet and work out the resistor. | An LED is a diode that glows: current goes in at the longer leg and out at the flat side. It takes about 2 V of the battery's 5 V; the rest must drop across something. With no resistor only the battery's 1 Ω limits the current: pop. Read the datasheet: 2.0 V at 20 mA, 30 mA absolute maximum. Worked example: (5 V − 2.0 V) ÷ 0.020 A = 150 Ω, including milliamps to amps. Standard values (E12). | An LED with an adjustable resistor and a current meter: turn the dial down, watch the current pass 20 mA and then 30 mA (pop), then undo. |
-| 3 | Push and flow | What volts, amps and ohms measure. Ohm's law. How to use both meters. | Voltage is the push (volts), current is the flow (amps; 1 mA = 1/1000 A), and resistance makes flowing harder (ohms). The water analogy and where it breaks. Ohm's law V = I × R, rearranged. Worked example: 5 V ÷ 500 Ω = 10 mA. Meet the current meter (it goes in the loop) and the voltage meter (it goes across a part). New control: the dial. | Swap a 220 Ω and a 2.2 kΩ resistor in a metered loop: ten times the resistance gives a tenth of the current. |
+| 2 | Pop! | An LED lets current go one way and needs its current limited. How to read a datasheet and work out the resistor. | An LED is a diode that glows: current goes in at the longer leg and out at the flat side. It takes about 2 V of the battery's 5 V; the rest must drop across something. With no resistor only the battery's 1 Ω limits the current: pop. Read the datasheet: 2.0 V at 20 mA, 30 mA absolute maximum. Worked example: (5 V − 2.0 V) ÷ 0.020 A = 150 Ω, including milliamps to amps. Standard values (E12). | Connect the LED straight to the battery and watch it pop. Undo, then close the loop through the kit's 330 Ω resistor for a safe glow (about 9 mA on the live readout). It uses only Lesson 0's controls and no meter. |
+| 3 | Push and flow | What volts, amps and ohms measure. Ohm's law. How to use both meters. | Voltage is the push (volts), current is the flow (amps; 1 mA = 1/1000 A), and resistance makes flowing harder (ohms). The water analogy and where it breaks. Ohm's law V = I × R, rearranged. Worked example: 5 V ÷ 500 Ω = 10 mA. Meet the current meter (it goes in the loop) and the voltage meter (it goes across a part). New control: the dial. | The metered loop with the dial (shown on the Learn deck's New control card): set 1 kΩ, then 2 kΩ. Twice the resistance gives half the current (5 mA, then 2.5 mA). Those settings stay well inside the trimmer's real rating. |
 | 4 | On and off | Switches open and close the loop. On and off are a bit. | Meet the switch. "Closed" means connected and current flows, the opposite of a door. On/off is 1/0, a bit. New control: tap to flip, and the Test button tries every case. | Flip a ready-made switch. |
 | 5 | Both | Series: one path, so everything on it must be closed (AND). Truth tables. | Series means one path: the same current goes through every part. Two switches in a row light the LED only if both are closed. A truth table lists every case. | Two switches in series: try all four cases, and the truth table fills in. |
 | 6 | Either | Parallel: two paths, so either one works (OR). | Parallel means side-by-side paths with the same voltage across each. The branch currents add up. Either closed switch lights the LED. Truth table. | Two switches in parallel: all four cases. |
@@ -299,6 +301,12 @@ Each has a still frame for Reduced motion.
 - the Notebook tabs;
 - a playthrough of Lesson 0 and of Lesson 1's full rhythm;
 - screenshot captures of every new card at phone and desktop sizes for visual review.
+
+**Build order.**
+1. **The slice first:** the course system, Lesson 0, and Lesson 1 all the way through.
+2. **The owner tries it.** The owner is invited to play the slice and say what they understood, checked against §2's list. The browser version can be updated so they can play it on their phone.
+3. **The rest goes on meanwhile.** Lessons 2–9 continue while we wait, and they take in the feedback when it comes.
+4. **A beginner's read of every lesson.** A fresh reviewer reads each lesson cold, as a beginner would, and explains it back. That catches what automated tests can't.
 
 ## 9. Chapter 2's structure (the next milestone)
 

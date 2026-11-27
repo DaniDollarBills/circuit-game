@@ -11,8 +11,8 @@ static func build() -> LevelDef:
 	b.tray("switch", {"label": "A"}).tray("switch", {"label": "B"})
 	b.goal({"kind": "no_damage"}).goal({"kind": "no_short"}).goal({"kind": "uses", "part_kind": "switch", "min": 2})
 	Layout.switch_tests(b, func(a_on: bool, b_on: bool) -> bool: return a_on or b_on)
-	b.intro("Same switches, new rule.", "happy")
-	b.intro("Make the LED light when A is on, or B is on, or both.", "curious")
+	b.idea("Same switches, new rule.", "", "happy")
+	b.idea("Make the LED light when A is on, or B is on, or both.", "", "curious")
 	b.step("Place switches A and B.", {"kind": "uses", "part_kind": "switch", "min": 2})
 	b.step("Connect one side of each switch to the resistor.", {"kind": "all", "goals": [
 			{"kind": "connected", "a": "R1:b", "b": "A:*"}, {"kind": "connected", "a": "R1:b", "b": "B:*"}]})

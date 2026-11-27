@@ -11,8 +11,8 @@ func _state() -> GameState:
 func _start(s: GameState, id: String) -> LevelDef:
 	var level := Levels.by_id(id)
 	s.start_level(level)
-	while s.session.phase == "intro":
-		s.next_intro()
+	while s.session.phase == "learn":
+		s.skip_learn()
 	return level
 
 

@@ -6,12 +6,12 @@ func _ctx(c: Circuit, flags := {}) -> Dictionary:
 	return {"circuit": out.circuit, "sim": out.result, "zoom_layer": "editor", "zoom_seen": {}, "ui_flags": flags}
 
 
-## Goals-only level: compact parts with no wires, two intro lines, two steps,
-## three hints.
+## Goals-only level: compact parts with no wires, a two-card learn deck, two
+## steps, three hints.
 func _light_level() -> LevelDef:
 	var b := LevelBuilder.new("t.light", "ch1", "Light it up")
 	b.part("B1", "battery", -6, 0).part("R1", "resistor", -2, -4).part("L1", "led", 6, 0, 90)
-	b.intro("Hi!").intro("Let's build.", "curious")
+	b.idea("Hi!").idea("Let's build.", "", "curious")
 	b.goal({"kind": "led_lit", "part": "L1"}).goal({"kind": "no_short"})
 	b.step("Wire + to the resistor.", {"kind": "connected", "a": "B1:pos", "b": "R1:a"})
 	b.step("Press Test.", {"kind": "ui_flag", "flag": "tested"})
@@ -19,7 +19,7 @@ func _light_level() -> LevelDef:
 	return b.done()
 
 
-## Level with tests and no intro: one switch in the tray.
+## Level with tests and no learn deck: one switch in the tray.
 func _switch_level() -> LevelDef:
 	var b := LevelBuilder.new("t.switch", "ch1", "On and off")
 	b.part("B1", "battery", -6, 0).part("R1", "resistor", -2, -4).part("L1", "led", 12, 0, 90)
@@ -39,27 +39,53 @@ func _switch_wired(level: LevelDef) -> Circuit:
 	return CircuitEdits.add_wire(c, "SW1", "b", "L1", "anode")
 
 
-func test_intro_then_build() -> void:
+func test_learn_then_build() -> void:
 	var level := _light_level()
-	var s := LevelSession.start(level)
+	var s := LevelSession.start(level, true)
 	assert_eq(s.level_id, "t.light")
-	assert_eq(s.phase, "intro")
-	assert_eq(s.intro_index, 0)
-	LevelSession.next_intro(s, level)
-	assert_eq(s.phase, "intro")
-	assert_eq(s.intro_index, 1)
-	LevelSession.next_intro(s, level)
+	assert_eq(s.phase, "learn")
+	assert_eq(s.card_index, 0)
+	for i in 3:
+		LevelSession.next_card(s, level)
+	assert_eq(s.phase, "learn", "a goals card, two cards and a closing card")
+	assert_eq(s.card_index, 3)
+	LevelSession.next_card(s, level)
 	assert_eq(s.phase, "build")
-	assert_eq(LevelSession.start(_switch_level()).phase, "build", "no intro lines: straight to building")
+	assert_eq(LevelSession.start(_switch_level(), true).phase, "build", "no deck: straight to building")
+
+
+func test_not_auto_starts_on_build() -> void:
+	assert_eq(LevelSession.start(_light_level(), false).phase, "build")
+
+
+func test_back_card_stops_at_zero() -> void:
+	var level := _light_level()
+	var s := LevelSession.start(level, true)
+	LevelSession.back_card(s)
+	assert_eq(s.card_index, 0)
+	LevelSession.next_card(s, level)
+	LevelSession.next_card(s, level)
+	LevelSession.back_card(s)
+	assert_eq(s.card_index, 1)
+	assert_eq(s.phase, "learn")
+
+
+func test_skip_learn_to_build() -> void:
+	var level := _light_level()
+	var s := LevelSession.start(level, true)
+	LevelSession.next_card(s, level)
+	LevelSession.skip_learn(s, level)
+	assert_eq(s.phase, "build")
+	LevelSession.skip_learn(s, level)
+	assert_eq(s.phase, "build", "skipping when not learning does nothing")
 
 
 func test_goals_only_level_passes_on_update() -> void:
 	var level := _light_level()
-	var s := LevelSession.start(level)
+	var s := LevelSession.start(level, true)
 	LevelSession.update(s, level, _ctx(TestCircuits.compact_loop()))
-	assert_eq(s.phase, "intro", "never passes while the intro is showing")
-	LevelSession.next_intro(s, level)
-	LevelSession.next_intro(s, level)
+	assert_eq(s.phase, "learn", "never passes while the lesson is showing")
+	LevelSession.skip_learn(s, level)
 	LevelSession.update(s, level, _ctx(level.circuit))
 	assert_eq(s.phase, "build")
 	assert_eq(s.goal_results.size(), 2)
@@ -70,7 +96,7 @@ func test_goals_only_level_passes_on_update() -> void:
 
 func test_tests_level_needs_run_tests() -> void:
 	var level := _switch_level()
-	var s := LevelSession.start(level)
+	var s := LevelSession.start(level, true)
 	var c := _switch_wired(level)
 	LevelSession.update(s, level, _ctx(c))
 	assert_true(s.goal_results[0]["pass"] and s.goal_results[1]["pass"])
@@ -86,7 +112,7 @@ func test_tests_level_needs_run_tests() -> void:
 
 func test_hint_tier_caps() -> void:
 	var level := _light_level()
-	var s := LevelSession.start(level)
+	var s := LevelSession.start(level, true)
 	assert_false(s.used_hints)
 	LevelSession.hint(s, level)
 	assert_eq(s.hint_tier, 1)
@@ -98,7 +124,7 @@ func test_hint_tier_caps() -> void:
 
 func test_steps_tick_live() -> void:
 	var level := _light_level()
-	var s := LevelSession.start(level)
+	var s := LevelSession.start(level, true)
 	LevelSession.update(s, level, _ctx(level.circuit))
 	assert_eq(s.step_results.size(), 2)
 	assert_false(s.step_results[0]["pass"])

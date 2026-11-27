@@ -85,8 +85,8 @@ func _open_from_args() -> bool:
 		if arg.begins_with("--open=level:"):
 			game.open_level(arg.substr("--open=level:".length()), true)
 			if "--skip-intro" in OS.get_cmdline_user_args():
-				while game.state.session.phase == "intro":
-					game.next_intro()
+				while game.state.session.phase == "learn":
+					game.skip_learn()
 			for a in OS.get_cmdline_user_args():
 				if a.begins_with("--show=") and screen is LevelScreen:
 					(screen as LevelScreen).dev_show.call_deferred(a.substr("--show=".length()))

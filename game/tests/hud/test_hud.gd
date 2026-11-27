@@ -23,7 +23,7 @@ func _game(settings := {}) -> Game:
 	return game
 
 
-## A LevelScreen for `level_id` inside a host of `size`, intro still showing.
+## A LevelScreen for `level_id` inside a host of `size`, the lesson still showing.
 ## `themed` applies the game's theme first, as Main does.
 func _screen(level_id: String, size := Vector2(1280, 720), settings := {}, game: Game = null, themed := false) -> LevelScreen:
 	var host := Control.new()
@@ -42,8 +42,8 @@ func _screen(level_id: String, size := Vector2(1280, 720), settings := {}, game:
 
 
 func _skip_intro(s: LevelScreen) -> void:
-	while s.game.state.session.phase == "intro":
-		s.game.next_intro()
+	while s.game.state.session.phase == "learn":
+		s.game.skip_learn()
 	await wait_frames(2)
 
 
@@ -298,7 +298,8 @@ func test_tapping_a_value_label_explains_its_part() -> void:
 func test_new_word_card_on_first_sight_only() -> void:
 	var game := _game()
 	var first := await _screen("ch1.light-it-up", Vector2(1280, 720), {}, game)
-	assert_true("electricity" in first.shown_word_terms())
+	# "LED" is on screen at once: the lesson's first card, and its goals.
+	assert_true("led" in first.shown_word_terms())
 	first.get_parent().remove_child(first)
 	first.free()
 	var again := await _screen("ch1.light-it-up", Vector2(1280, 720), {}, game)
@@ -307,7 +308,7 @@ func test_new_word_card_on_first_sight_only() -> void:
 
 func test_new_word_cards_shown_with_help_off() -> void:
 	var s := await _screen("ch1.light-it-up", Vector2(1280, 720), {"help_level": "off"})
-	assert_true("electricity" in s.shown_word_terms())
+	assert_true("led" in s.shown_word_terms())
 	assert_true(s.visible_word_cards().size() <= 2, "at most two cards at once")
 
 
@@ -741,10 +742,10 @@ func test_start_over_button_resets_the_board() -> void:
 	assert_eq(s.game.state.history.present.find_part("R1"), null)
 
 
-## A hint pressed during the intro would be used up unseen.
-func test_hint_waits_for_the_intro() -> void:
+## A hint pressed during the lesson would be used up unseen.
+func test_hint_waits_for_the_lesson() -> void:
 	var s := await _screen("ch1.pop")
-	assert_eq(s.game.state.session.phase, "intro")
+	assert_eq(s.game.state.session.phase, "learn")
 	assert_false(s.hint_button.visible, "no lightbulb while Pip introduces the level")
 	await _skip_intro(s)
 	assert_true(s.hint_button.visible)

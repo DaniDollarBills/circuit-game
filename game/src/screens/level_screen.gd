@@ -189,7 +189,7 @@ func _queue_refresh() -> void:
 
 
 ## Draws everything again from the Game's state. The guide goes first so the
-## intro's words get the first New word cards.
+## lesson's words get the first New word cards.
 func _refresh() -> void:
 	_refresh_queued = false
 	var s := game.state
@@ -242,7 +242,7 @@ func _refresh() -> void:
 	test_sheet.visible = test_button.visible and not (s.session.test_report.get("cases", []) as Array).is_empty()
 	if test_sheet.visible:
 		test_sheet.refresh(s.session)
-	hint_button.visible = _help() != "off" and not s.level.hints.is_empty() and s.session.phase != "intro"
+	hint_button.visible = _help() != "off" and not s.level.hints.is_empty() and s.session.phase in ["build", "passed"]
 	back_to_building.visible = s.zoom_layer != "editor"
 	zoom_caption.visible = s.zoom_layer == "wire.copper"
 	if zoom_caption.visible and zoom_caption.text == "":
@@ -391,14 +391,26 @@ func _check_formula_offer() -> void:
 
 func _update_guide() -> void:
 	var s := game.state
-	if s.session.phase == "intro":
-		var line: Dictionary = s.level.intro[s.session.intro_index]
-		guide.show_line(line["text"], line.get("mood", "happy"), "intro", [{"label": "Next", "callback": game.next_intro}], "", false)
+	if s.session.phase == "learn":
+		var line := _learn_line(s.level, s.session.card_index)
+		guide.show_line(line["text"], line["mood"], "intro", [{"label": "Next", "callback": game.next_card}], "", false)
 		return
 	if guide.kind == "intro":
 		guide.hide_bubble()
 	if _page >= 0 and guide.kind != "outro":
 		_show_page()
+
+
+## The deck card at `index` as one Pip line: the goals card, a card's text, or
+## the closing card.
+func _learn_line(l: LevelDef, index: int) -> Dictionary:
+	if index == 0:
+		var goals := "; ".join(l.learn_goals) if not l.learn_goals.is_empty() else l.summary
+		return {"text": "In this lesson: " + goals, "mood": "happy"}
+	if index > l.learn.size():
+		return {"text": "Now let's try it!" if l.has_try() else "Now let's build it!", "mood": "happy"}
+	var c: Dictionary = l.learn[index - 1]
+	return {"text": str(c.get("text", "")), "mood": str(c.get("mood", "happy"))}
 
 
 func _start_outro() -> void:

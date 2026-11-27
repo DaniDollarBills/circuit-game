@@ -11,8 +11,8 @@ static func build() -> LevelDef:
 	var detour: Array[Vector2i] = [Vector2i(-4, -6), Vector2i(9, -6), Vector2i(9, 1)]
 	b.wire("w_bad", "R1", "a", "L1", "cathode", false, detour)
 	b.goal({"kind": "no_short"}).goal({"kind": "led_lit", "part": "L1"})
-	b.intro("Uh oh, this battery is getting hot!", "oops")
-	b.intro("A [[short circuit]] is a shortcut that lets current skip your parts. Find it and delete it.", "curious")
+	b.idea("Uh oh, this battery is getting hot!", "", "oops")
+	b.idea("A [[short circuit]] is a shortcut that lets current skip your parts. Find it and delete it.", "", "curious")
 	b.step("Tap the wires to find the one going from + straight to −.", {"kind": "ui_flag", "flag": "selected:w_bad"})
 	b.step("Hold it and choose Delete.", {"kind": "no_short"})
 	b.hint("One wire connects the + side straight to the − side.")

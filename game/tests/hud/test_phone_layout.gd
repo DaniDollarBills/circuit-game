@@ -38,8 +38,8 @@ func _host(size: Vector2) -> Control:
 func _level(id: String, size: Vector2) -> LevelScreen:
 	var game := _game()
 	game.open_level(id, true)
-	while game.state.session.phase == "intro":
-		game.next_intro()
+	while game.state.session.phase == "learn":
+		game.skip_learn()
 	var s: LevelScreen = load("res://src/screens/level_screen.tscn").instantiate()
 	s.game = game
 	_host(size).add_child(s)

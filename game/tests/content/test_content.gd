@@ -83,12 +83,32 @@ func _check_refs(level: LevelDef, g: Dictionary, where: String) -> void:
 		assert_true(known, "%s: unknown flag %s" % [at, flag])
 
 
-## Every line of on-screen copy in a level.
+## Every line of on-screen copy in a level, course text included: card text,
+## analogy breaks, Go deeper lines, worked steps, steps' whys, the try prompt
+## and pokes, recap points, and questions with their choices and why lines.
 func _lines(level: LevelDef) -> PackedStringArray:
 	var out := PackedStringArray([level.summary])
-	for group in [level.intro, level.outro, level.hints, level.steps, level.facts]:
+	out.append_array(level.learn_goals)
+	for group in [level.learn, level.outro, level.hints, level.steps, level.facts, level.pokes]:
 		for item in group:
-			out.append(item["text"])
+			if str(item.get("text", "")) != "":
+				out.append(item["text"])
+	for c in level.learn:
+		for key in ["breaks", "deeper"]:
+			if str(c.get(key, "")) != "":
+				out.append(c[key])
+		out.append_array(c.get("steps", PackedStringArray()))
+	for st in level.steps:
+		if str(st.get("why", "")) != "":
+			out.append(st["why"])
+	if level.try_prompt != "":
+		out.append(level.try_prompt)
+	out.append_array(level.recap)
+	for q in level.questions:
+		out.append(q["prompt"])
+		for ch in q["choices"]:
+			out.append(ch["text"])
+			out.append(ch["why"])
 	if not level.star.is_empty():
 		out.append(level.star["text"])
 	return out
@@ -127,6 +147,11 @@ func test_every_solution_passes() -> void:
 		for i in l.steps.size():
 			var r := Goals.evaluate(l.steps[i]["check"], ctx)
 			assert_true(r["pass"], "%s step %d: %s" % [l.id, i + 1, r["message"]])
+
+
+func test_every_level_follows_lesson_rules() -> void:
+	for l in Levels.all():
+		assert_eq(LessonRules.problems(l), PackedStringArray(), l.id)
 
 
 func test_every_level_has_valid_steps() -> void:
@@ -229,8 +254,8 @@ func test_copy_limits() -> void:
 
 func test_moods_are_known() -> void:
 	for l in Levels.all():
-		assert_false(l.intro.is_empty() or l.outro.is_empty(), l.id)
-		for line in l.intro + l.outro:
+		assert_false(l.learn.is_empty() or l.outro.is_empty(), l.id)
+		for line in l.learn + l.outro:
 			assert_true(line["mood"] in MOODS, "%s: mood %s" % [l.id, line["mood"]])
 
 
@@ -326,7 +351,7 @@ func test_datasheet_terms_exist() -> void:
 func test_core_definitions_are_physically_right() -> void:
 	assert_eq(Glossary.ENTRIES["electricity"]["simple"], "What electric charges do: they push and pull on each other, and flow through wires as a current.")
 	assert_eq(Glossary.ENTRIES["current"]["simple"], "How much electric charge flows past a point each second. Measured in amps.")
-	assert_eq(Levels.by_id("ch1.too-hot").intro[0]["text"], "Resistors turn electrical energy into heat. That's how toasters work!")
+	assert_eq(Levels.by_id("ch1.too-hot").learn[0]["text"], "Resistors turn electrical energy into heat. That's how toasters work!")
 
 
 ## Checkpoint B (C3, M1): history stated exactly.

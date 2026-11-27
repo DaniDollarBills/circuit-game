@@ -101,8 +101,18 @@ func run_tests() -> void:
 	_changed()
 
 
-func next_intro() -> void:
-	state.next_intro()
+func next_card() -> void:
+	state.next_card()
+	_changed()
+
+
+func back_card() -> void:
+	state.back_card()
+	_changed()
+
+
+func skip_learn() -> void:
+	state.skip_learn()
 	_changed()
 
 

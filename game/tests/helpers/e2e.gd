@@ -161,10 +161,10 @@ func grid(s: LevelScreen, g: Vector2) -> Vector2:
 	return s.editor.global_position + s.editor.grid_to_screen(g)
 
 
-## Clicks through Pip's intro.
+## Clicks through the lesson's cards with Next.
 func skip_intro(s: LevelScreen) -> void:
-	for i in 12:
-		if s.game.state.session.phase != "intro":
+	for i in 16:
+		if s.game.state.session.phase != "learn":
 			break
 		await click_control(s.guide.action_buttons()[0])
 	await frames(2)

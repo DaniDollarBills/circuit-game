@@ -33,7 +33,7 @@ var _ch1_ids := PackedStringArray()
 ## otherwise on a fresh copy of the start circuit.
 func start_level(l: LevelDef) -> void:
 	level = l
-	session = LevelSession.start(l)
+	session = LevelSession.start(l, true)
 	zoom_layer = "editor"
 	zoom_seen = {}
 	ui_flags = {}
@@ -115,10 +115,24 @@ func run_tests() -> void:
 	_after_evaluation(was)
 
 
-func next_intro() -> void:
+func next_card() -> void:
 	if level == null:
 		return
-	LevelSession.next_intro(session, level)
+	LevelSession.next_card(session, level)
+	_update()
+
+
+func back_card() -> void:
+	if level == null:
+		return
+	LevelSession.back_card(session)
+	_update()
+
+
+func skip_learn() -> void:
+	if level == null:
+		return
+	LevelSession.skip_learn(session, level)
 	_update()
 
 

@@ -26,6 +26,9 @@ var opener: Callable = func(url: String) -> Error: return OS.shell_open(url)
 
 var _choices := {}
 var _about: Label
+var _col: VBoxContainer
+var _licenses: LicensesPage
+var _licenses_button: Button
 var _music: HSlider
 var _updates: Button
 var _toggles := {}
@@ -34,8 +37,16 @@ var _toggles := {}
 func _ready() -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
-	# Narrower on a phone, and scrolls when it is still too tall.
-	CardFit.wrap(self, col)
+	# Two pages, the settings and the licenses; narrower on a phone, and
+	# scrolling when still too tall.
+	_col = col
+	_licenses = LicensesPage.new()
+	_licenses.game = game
+	_licenses.closed.connect(func() -> void: _col.visible = true)
+	var pages := VBoxContainer.new()
+	pages.add_child(col)
+	pages.add_child(_licenses)
+	CardFit.wrap(self, pages)
 	var top := HBoxContainer.new()
 	col.add_child(top)
 	var title := Label.new()
@@ -89,10 +100,11 @@ func _ready() -> void:
 	_music.value_changed.connect(func(v: float) -> void: game.set_setting("music_volume", v))
 	music.add_child(_music)
 	col.add_child(music)
-	# About: the version, and the way to new versions (the game never goes
-	# online itself).
-	var about := HBoxContainer.new()
-	about.add_theme_constant_override("separation", 12)
+	# About: the version, the way to new versions (the game never goes online
+	# itself), and the credits and licenses.
+	var about := HFlowContainer.new()
+	about.add_theme_constant_override("h_separation", 12)
+	about.add_theme_constant_override("v_separation", 8)
 	_about = Label.new()
 	_about.text = "Circuit %s" % Version.text()
 	_about.theme_type_variation = "SoftLabel"
@@ -104,8 +116,22 @@ func _ready() -> void:
 	_updates.tooltip_text = "Opens the downloads page in your browser"
 	_updates.pressed.connect(func() -> void: opener.call(Version.RELEASES_URL))
 	about.add_child(_updates)
+	_licenses_button = Button.new()
+	_licenses_button.text = "Licenses"
+	_licenses_button.pressed.connect(func() -> void:
+		_col.visible = false
+		_licenses.show_page())
+	about.add_child(_licenses_button)
 	col.add_child(about)
 	visible = false
+
+
+func licenses_button() -> Button:
+	return _licenses_button
+
+
+func licenses_page() -> LicensesPage:
+	return _licenses
 
 
 func updates_button() -> Button:
@@ -118,6 +144,8 @@ func about_text() -> String:
 
 func open() -> void:
 	sync()
+	_col.visible = true
+	_licenses.visible = false
 	visible = true
 	HudText.introduce_in(game, self)
 

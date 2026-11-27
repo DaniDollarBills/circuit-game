@@ -150,6 +150,7 @@ func _aa_cell(time: float) -> void:
 	_callout(Vector2(40, 186), Vector2(140, 130), "separator")
 	_callout(Vector2(214, 186), Vector2(250, 122), "zinc gel")
 	_callout(Vector2(40, 212), Vector2(76, 116), "brass pin: the − end")
+	speed_note()
 
 
 func _switch(time: float) -> void:
@@ -191,3 +192,4 @@ func _meters(time: float) -> void:
 	symbol("resistor", Vector2(300, 120), 0, {}, 14.0, {"ohms": 1.0e7})
 	label(Vector2(300, 160), "10 MΩ across the part:", LABEL, col("ink_soft"))
 	label(Vector2(300, 180), "almost no current goes in", LABEL, col("ink_soft"))
+	speed_note(Vector2(200, 210))

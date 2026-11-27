@@ -11,6 +11,11 @@ signal back_pressed
 signal skip_pressed
 
 const MAX_W := 560.0
+## A short, wide screen (a landscape phone) puts the picture beside the words,
+## in a wider deck, so the whole picture shows without scrolling.
+const SIDE_BELOW_H := 420.0
+const SIDE_MIN_W := 520.0
+const SIDE_W := 760.0
 
 var game: Game
 ## The Notebook's mode: no Skip, and the closing card closes the deck.
@@ -26,8 +31,11 @@ var _title: Label
 var _dots: _Dots
 var _scroll: ScrollContainer
 var _pip: Pip
+var _body: VBoxContainer
+var _row: HBoxContainer
 var _text: RichTextLabel
 var _picture: Control
+var _side := false
 var _diagram: Diagram
 var _meet_holder: VBoxContainer
 var _meet: MeetPartCard
@@ -88,18 +96,22 @@ func _ready() -> void:
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 10)
 	_scroll.add_child(body)
+	_body = body
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	body.add_child(row)
+	_row = row
 	_pip = Pip.new()
 	_pip.custom_minimum_size = Vector2(56, 56)
 	_pip.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	row.add_child(_pip)
 	_text = HudText.label(game, 18)
 	_text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(_text)
 	_picture = Control.new()
 	_picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_picture.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	body.add_child(_picture)
 	_meet_holder = VBoxContainer.new()
 	body.add_child(_meet_holder)
@@ -110,7 +122,6 @@ func _ready() -> void:
 	_deeper_button = Button.new()
 	_deeper_button.text = "Go deeper"
 	_deeper_button.theme_type_variation = "FlatButton"
-	_deeper_button.flat = true
 	_deeper_button.toggle_mode = true
 	_deeper_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_deeper_button.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
@@ -126,7 +137,6 @@ func _ready() -> void:
 	_skip = Button.new()
 	_skip.text = "Skip lesson"
 	_skip.theme_type_variation = "FlatButton"
-	_skip.flat = true
 	_skip.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
 	_skip.pressed.connect(func() -> void: skip_pressed.emit())
 	buttons.add_child(_skip)
@@ -205,16 +215,37 @@ func deeper_button() -> Button:
 
 
 ## Sizes the deck to `width` (at most MAX_W) and its content's height (at most
-## the area's; past that its body scrolls), centered in `area`.
+## the area's; past that its body scrolls), centered in `area`. On a short,
+## wide area the picture goes beside the words, sized to the room there is.
 func fit_into(area: Rect2, width: float) -> void:
-	var w := minf(minf(width, MAX_W), area.size.x)
+	var side := _diagram != null and area.size.y < SIDE_BELOW_H and area.size.x >= SIDE_MIN_W
+	_set_side(side)
+	var w := minf(SIDE_W if side else minf(width, MAX_W), area.size.x)
 	size = Vector2(w, 0)
-	var body := _scroll.get_child(0) as Control
 	var pad := get_theme_stylebox("panel").get_minimum_size()
 	var fixed := (get_child(0) as VBoxContainer).get_combined_minimum_size().y - _scroll.get_combined_minimum_size().y
-	var h := minf(fixed + body.get_combined_minimum_size().y + pad.y, area.size.y)
+	if side:
+		var room := area.size.y - fixed - pad.y
+		var pic_w := clampf((w - pad.x - _pip.custom_minimum_size.x - 24.0) * 0.5, 240.0, 420.0)
+		var pic_h := minf(pic_w * 0.55, room)
+		_picture.custom_minimum_size = Vector2(pic_h / 0.55, pic_h).round()
+	var h := minf(fixed + _body.get_combined_minimum_size().y + pad.y, area.size.y)
 	size = Vector2(w, h)
 	position = (area.position + (area.size - size) / 2.0).round()
+
+
+## The picture beside the words (`on`) or under them.
+func _set_side(on: bool) -> void:
+	if on == _side:
+		return
+	_side = on
+	_picture.get_parent().remove_child(_picture)
+	if on:
+		_row.add_child(_picture)
+	else:
+		_body.add_child(_picture)
+		_body.move_child(_picture, 1)
+	_size_picture()
 
 
 func _on_next() -> void:
@@ -273,7 +304,7 @@ func _render() -> void:
 				HudText.put(_text, "Now let's try it!" if _level.has_try() else "Now let's build it!", game)
 		"meet":
 			var intro := PartIntros.get_intro(str(c.get("part", "")))
-			HudText.put(_text, "Meet the %s!" % str(intro.get("title", c.get("part", ""))).to_lower(), game)
+			HudText.put(_text, "Meet the %s!" % mid_sentence(str(intro.get("title", c.get("part", "")))), game)
 		_:
 			HudText.put(_text, str(c.get("text", "")), game)
 	_show_diagram(str(c.get("diagram", "")))
@@ -298,6 +329,8 @@ func _render() -> void:
 		HudText.put(_source, "Source: " + source, game)
 	_back.disabled = _index <= 0
 	_skip.visible = not read_only
+	# Lesson 0's deck is a tour; "Skip Lesson 0" beside it skips the lesson.
+	_skip.text = "Skip the tour" if _level.kind == "tutorial" else "Skip lesson"
 	if kind == "closing":
 		_next.text = "Close" if read_only else ("Try it" if _level.has_try() else "Build it")
 	else:
@@ -338,9 +371,19 @@ func meet_card() -> MeetPartCard:
 	return _meet if _meet != null and _meet_holder.visible else null
 
 
-## The picture keeps the diagrams' 400 × 220 shape at the deck's width.
+## A part's name in the middle of a sentence: "Battery pack" becomes
+## "battery pack", and a name in capitals ("LED") stays as it is.
+static func mid_sentence(title: String) -> String:
+	var first := title.get_slice(" ", 0)
+	if first.length() > 1 and first == first.to_upper():
+		return title
+	return title.left(1).to_lower() + title.substr(1)
+
+
+## The picture keeps the diagrams' 400 × 220 shape at the deck's width (beside
+## the words, fit_into sizes it).
 func _size_picture() -> void:
-	if _picture == null:
+	if _picture == null or _side:
 		return
 	var w := maxf(size.x - get_theme_stylebox("panel").get_minimum_size().x, 240.0)
 	_picture.custom_minimum_size = Vector2(0, clampf(w * 0.55, 132.0, 260.0)) if _diagram != null else Vector2.ZERO

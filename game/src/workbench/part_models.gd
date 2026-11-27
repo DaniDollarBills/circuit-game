@@ -24,7 +24,9 @@ static var _gold: StandardMaterial3D
 static var _smoke: StandardMaterial3D
 
 
-static func build(p: Part) -> Node3D:
+## `loose`: a new part off the board, legs uncut (Meet the part shows an LED
+## this way, so its longer + leg shows).
+static func build(p: Part, loose := false) -> Node3D:
 	var root := Node3D.new()
 	root.name = p.id
 	root.position = PartDims.grid_to_world(Vector2(p.x, p.y))
@@ -33,7 +35,7 @@ static func build(p: Part) -> Node3D:
 		"resistor":
 			_resistor(root, p)
 		"led":
-			_led(root, p)
+			_led(root, p, loose)
 		"switch":
 			_switch(root, p)
 		"battery":
@@ -43,6 +45,8 @@ static func build(p: Part) -> Node3D:
 		"voltmeter":
 			_posts(root, p, {"pos": LEAD_RED, "neg": LEAD_BLACK}, true)
 	for pin in Catalog.pin_names(p.kind):
+		if root.has_node("tip_" + pin):
+			continue
 		var tip := Marker3D.new()
 		tip.name = "tip_" + pin
 		tip.position = _pin_local(p, pin) + _v(0, -PartDims.BOARD_THICK, 0)
@@ -253,7 +257,7 @@ static func _trimmer(root: Node3D, p: Part) -> void:
 		_lead(root, "lead_" + pin, WireMesh.fillet(pts, _mm(0.4)), 0.25, 4, Materials.tin())
 
 
-static func _led(root: Node3D, p: Part) -> void:
+static func _led(root: Node3D, p: Part, loose := false) -> void:
 	var color := str(p.props.get("color", "red"))
 	var tint := Palette.led_tint(color)
 	var base := STANDOFF + 1.0
@@ -298,6 +302,16 @@ static func _led(root: Node3D, p: Part) -> void:
 		var px := _pin_local(p, pin).x
 		var s := signf(px)
 		var inner := s * PartDims.LED_LEAD_PITCH / 2.0
+		if loose:
+			# Straight and uncut, as a new LED comes: the + leg is longer.
+			var bottom := base - (PartDims.LED_ANODE_LEG if pin == "anode" else PartDims.LED_CATHODE_LEG)
+			_lead(root, "lead_" + pin, PackedVector3Array([_v(inner, frame_top - 2.4, 0), _v(inner, bottom, 0)]),
+					lead_r, 4, Materials.tin())
+			var tip := Marker3D.new()
+			tip.name = "tip_" + pin
+			tip.position = _v(inner, bottom, 0)
+			root.add_child(tip)
+			continue
 		var pts := PackedVector3Array([_v(inner, frame_top - 2.4, 0), _v(inner, 1.2, 0), Vector3(px, _mm(0.4), 0),
 				Vector3(px, -_mm(PartDims.BOARD_THICK), 0)])
 		_lead(root, "lead_" + pin, WireMesh.fillet(pts, _mm(0.5)), lead_r, 4, Materials.tin())

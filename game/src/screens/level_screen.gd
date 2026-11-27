@@ -75,6 +75,10 @@ var _last_mistake := ""
 var _formula_offered := false
 var _hint_tier_shown := 0
 var _ghosts := {}
+## The phase at the last refresh, to notice coming back to a passed bench.
+var _last_phase := ""
+## The step row last scrolled into view.
+var _row_in_view: Control
 var _highlights: Array = []
 var _board_key := ""
 var _view_style := ""
@@ -234,6 +238,11 @@ func _refresh() -> void:
 		# Started over (or reading the lesson again): the recap described a
 		# board that's gone.
 		recap.visible = false
+	if s.session.phase == "passed" and _last_phase in ["learn", "try"] and not recap.visible:
+		# Back from reading the lesson again to a bench that still passes:
+		# the recap again, with the way on.
+		_start_outro()
+	_last_phase = s.session.phase
 	if bool(st.get("night", false)) != _night:
 		_night = not _night
 		HudText.refresh_all(get_tree(), game)
@@ -276,15 +285,23 @@ func _refresh() -> void:
 		try_panel.refresh(s)
 	goals.visible = not trying
 	goals.refresh(s.level, s.session, s.outcome.circuit)
-	checklist.visible = _help() == "heavy" and not s.level.steps.is_empty() and not trying
+	# A tutorial is its steps: they (and the lightbulb its last step uses) show
+	# at every help level.
+	var tutorial := s.level.kind == "tutorial"
+	checklist.visible = (_help() == "heavy" or tutorial) and not s.level.steps.is_empty() and not trying
 	if checklist.visible:
 		checklist.refresh(s.level, s.session)
+		# On a short screen the column scrolls: keep the current step in view.
+		var row := checklist.current_row()
+		if row != null and row != _row_in_view:
+			_row_in_view = row
+			column_scroll.ensure_control_visible.call_deferred(row)
 	test_button.visible = not s.level.tests.is_empty() and not trying
 	test_sheet.visible = test_button.visible and not (s.session.test_report.get("cases", []) as Array).is_empty()
 	if test_sheet.visible:
 		test_sheet.refresh(s.session)
-	hint_button.visible = _help() != "off" and not s.level.hints.is_empty() \
-			and (s.session.phase in ["build", "passed"] or s.level.kind == "tutorial")
+	hint_button.visible = (_help() != "off" or tutorial) and not s.level.hints.is_empty() \
+			and (s.session.phase in ["build", "passed"] or tutorial)
 	lesson_button.visible = s.session.phase in ["build", "passed"] and (s.level.deck_size() > 0 or s.level.has_try())
 	back_to_building.visible = s.zoom_layer != "editor"
 	zoom_caption.visible = s.zoom_layer == "wire.copper"
@@ -332,7 +349,8 @@ func _handle_events(events: Array[Dictionary]) -> void:
 ## Pip explains a burn: the goal's own message when it says what to do,
 ## otherwise why the part burned.
 func _burn_help(p: Part) -> void:
-	var m := _first_failing()
+	# In Try it the build's goals aren't being checked: explain the part.
+	var m := "" if game.state.trying() else _first_failing()
 	if not _is_mistake(m):
 		m = Explain.part(p, game.state.outcome.result)[0]
 	_last_mistake = m
@@ -460,6 +478,20 @@ func _start_outro() -> void:
 	_place_floating()
 
 
+## The Lesson button opens the lesson again, or on a passed bench brings the
+## recap back (and from there, Read again).
+func _on_lesson_button() -> void:
+	if game.state.session.phase == "passed":
+		_start_outro()
+	else:
+		game.reopen_lesson()
+
+
+## The answer's ghost parts and wires the hints show now ({} when none).
+func hint_ghosts() -> Dictionary:
+	return _ghosts
+
+
 func _next_level_id() -> String:
 	var ids := Levels.chapter_ids(game.state.level.chapter)
 	var i := ids.find(game.state.level.id)
@@ -473,7 +505,8 @@ func _update_hints() -> void:
 	var tier := s.session.hint_tier
 	_ghosts = {}
 	_highlights = []
-	if tier <= 0 or s.level.hints.is_empty():
+	# Hints are for the build: Try it's ready-made circuit isn't the answer's.
+	if tier <= 0 or s.level.hints.is_empty() or s.trying():
 		return
 	var h: Dictionary = s.level.hints[mini(tier, s.level.hints.size()) - 1]
 	_highlights = (h.get("highlight", []) as Array).duplicate(true)
@@ -672,6 +705,9 @@ func close_top() -> bool:
 		return true
 	if textbook.close_top():
 		return true
+	if recap.visible:
+		recap.visible = false
+		return true
 	if meet_card != null and meet_card.visible:
 		meet_card.close_button().pressed.emit()
 		return true
@@ -746,10 +782,11 @@ func _connect() -> void:
 			game.open_level(next_id))
 	recap.to_map.connect(game.open_map)
 	recap.read_again.connect(game.reopen_lesson)
+	recap.put_away.connect(func() -> void: recap.visible = false)
 	deck.next_pressed.connect(game.next_card)
 	deck.back_pressed.connect(game.back_card)
 	deck.skip_pressed.connect(game.skip_learn)
-	lesson_button.pressed.connect(game.reopen_lesson)
+	lesson_button.pressed.connect(_on_lesson_button)
 	editor.commit_requested.connect(game.commit)
 	editor.datasheet_requested.connect(_open_datasheet)
 	editor.toast_requested.connect(func(text: String) -> void: toasts.show_text(text))
@@ -800,7 +837,6 @@ func _build_hud() -> void:
 	skip_tutorial_button = Button.new()
 	skip_tutorial_button.text = "Skip Lesson 0"
 	skip_tutorial_button.theme_type_variation = "FlatButton"
-	skip_tutorial_button.flat = true
 	skip_tutorial_button.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
 	skip_tutorial_button.visible = false
 	try_panel = _with_game(TryPanel.new())
@@ -938,6 +974,12 @@ func tour_rect(target: String) -> Rect2:
 			return _local_rect(tray)
 		"top_bar":
 			return _local_rect(top_bar)
+		"map_button":
+			return _buttons_rect(["map"])
+		"edit_buttons":
+			return _buttons_rect(["restart", "undo", "redo"])
+		"tool_buttons":
+			return _buttons_rect(["calculator", "notebook", "settings"])
 		"column":
 			return _local_rect(column_scroll)
 		"hint":
@@ -947,6 +989,15 @@ func tour_rect(target: String) -> Rect2:
 			var b := demo_target({"pin": "B1:neg"})
 			return Rect2(a.min(b), (a - b).abs()).grow(40.0)
 	return Rect2()
+
+
+## The top bar's buttons `ids`, as one rectangle.
+func _buttons_rect(ids: Array) -> Rect2:
+	var out := Rect2()
+	for id in ids:
+		var r := _local_rect(top_bar.button(id))
+		out = r if out.size == Vector2.ZERO else out.merge(r)
+	return out
 
 
 func _local_rect(c: Control) -> Rect2:
@@ -1048,7 +1099,9 @@ func _update_hand() -> void:
 ## portrait the scale bar sits beside the row when it fits, else above it.
 func _place_button_row() -> void:
 	var narrow := _portrait and size.x < 420.0
-	lesson_button.text = "" if narrow else "Lesson"
+	var passed := game.state.session.phase == "passed"
+	lesson_button.text = "" if narrow else ("Recap" if passed else "Lesson")
+	lesson_button.tooltip_text = "See the recap again" if passed else "Open the lesson again"
 	lesson_button.custom_minimum_size = Vector2(52, 52) if narrow else Vector2(112, 52)
 	lesson_button.size = lesson_button.custom_minimum_size
 	var anchor_x := test_button.position.x if test_button.visible else hint_button.position.x

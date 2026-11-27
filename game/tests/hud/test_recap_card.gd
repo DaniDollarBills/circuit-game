@@ -123,3 +123,58 @@ func test_recap_shown_after_a_pass() -> void:
 	s.recap.next_button().pressed.emit()
 	await wait_frames(2)
 	assert_eq(game.state.level.id, "ch1.pop", "Next lesson goes on")
+
+
+## A passed Lesson 1 on a screen of `size`.
+func _passed(size := Vector2(390, 844)) -> LevelScreen:
+	var game := _game()
+	var host := Control.new()
+	host.size = size
+	add_to_tree(host)
+	game.open_level("ch1.light-it-up", true)
+	var s: LevelScreen = load("res://src/screens/level_screen.tscn").instantiate()
+	s.game = game
+	host.add_child(s)
+	await wait_frames(3)
+	game.skip_learn()
+	game.finish_try()
+	game.state.progress.parts_seen = {"battery": 1, "wire": 1, "resistor": 1, "led": 1}
+	game.commit(game.state.level.solution.copy())
+	await wait_frames(3)
+	return s
+
+
+## Code review (checkpoint S): on a phone the recap covered the whole board,
+## with no way to put it away and see the LED just lit. "Back to my circuit"
+## (or Back) puts it away, and the Recap button on the passed bench brings it
+## back.
+func test_recap_can_be_put_away_and_brought_back() -> void:
+	var s := await _passed()
+	assert_true(s.recap.visible)
+	s.recap.back_button().pressed.emit()
+	await wait_frames(2)
+	assert_false(s.recap.visible, "Back to my circuit")
+	assert_true(s.lesson_button.visible)
+	assert_eq(s.lesson_button.tooltip_text, "See the recap again", "on a passed bench the button brings the recap back")
+	s.lesson_button.pressed.emit()
+	await wait_frames(2)
+	assert_true(s.recap.visible)
+	assert_eq(s.game.state.session.phase, "passed", "and the lesson stays passed")
+	assert_true(s.close_top(), "Back closes the recap too")
+	assert_false(s.recap.visible)
+
+
+## Code review: Read again, the deck, Try it, then Ready landed on a passed
+## bench with no recap and no way on.
+func test_reading_again_comes_back_to_the_recap() -> void:
+	var s := await _passed(Vector2(1280, 720))
+	s.recap.read_again.emit()
+	await wait_frames(2)
+	assert_eq(s.game.state.session.phase, "learn")
+	s.game.skip_learn()
+	s.game.finish_try()
+	await wait_frames(3)
+	assert_eq(s.game.state.session.phase, "passed")
+	assert_true(s.recap.visible or (s.lesson_button.visible and s.lesson_button.text == "Recap"),
+			"the recap, or the button that brings it back: %s" % s.lesson_button.text)
+	assert_true(s.recap.next_button().visible)

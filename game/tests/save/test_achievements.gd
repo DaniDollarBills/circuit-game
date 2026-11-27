@@ -61,3 +61,15 @@ func test_spark_graduate_needs_all_nine() -> void:
 	p.mark_complete(CH1[8], false, 1)
 	assert_true("spark_graduate" in Achievements.newly_earned(p, _ids()))
 	assert_false("spark_graduate" in Achievements.newly_earned(p, PackedStringArray()), "an empty chapter never counts")
+
+
+## Code review (checkpoint S): Lesson 0 joined Chapter 1, but the badge is for
+## its lessons. A v0.2.0 player who never saw Lesson 0 still graduates.
+func test_spark_graduate_counts_lessons_not_the_tutorial() -> void:
+	var s := GameState.new()
+	s.progress = Progress.defaults()
+	for id in Levels.chapter_ids("ch1"):
+		if Levels.by_id(id).kind != "tutorial":
+			s.progress.mark_complete(id, false, 1)
+	s.check_achievements(2)
+	assert_true(s.progress.achievements.has("spark_graduate"), str(s.progress.achievements))

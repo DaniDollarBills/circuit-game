@@ -1,10 +1,11 @@
 class_name MeetPartCard
 extends PanelContainer
 ## Meet the part: the real 3D part on a turntable (drag to spin it), its legs
-## labeled, its circuit symbol, what it does, where you'd find one, one number
-## from its datasheet with its source, and a cutaway to look inside. The full
-## card pops up the first time a part appears; a compact one sits in a Learn
-## deck.
+## labeled, its circuit symbol, what it does and where you'd find one, and a
+## cutaway to look inside. One number from its datasheet, with its source,
+## waits under Go deeper. The full card pops up the first time a part appears
+## (its body scrolls, so its close button is always on screen); a compact one
+## sits in a Learn deck, which scrolls for it.
 
 signal closed(key: String)
 
@@ -33,6 +34,7 @@ var _model: Node3D
 var _chips: Control
 var _cutaway: Diagram
 var _inside_button: Button
+var _scroll: ScrollContainer
 var _text: RichTextLabel
 var _source: RichTextLabel
 var _deeper_button: Button
@@ -78,6 +80,16 @@ func _ready() -> void:
 	_close.pressed.connect(_on_close)
 	_close.visible = not compact
 	head.add_child(_close)
+	# The full card scrolls below its header; a compact one is in a deck,
+	# which scrolls for it.
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 8)
+	if compact:
+		col.add_child(body)
+	else:
+		_scroll = CardFit.wrap(col, body)
+		_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	col = body
 	_stage = Control.new()
 	_stage.custom_minimum_size = Vector2(0, 150.0 if compact else 210.0)
 	_stage.clip_contents = true
@@ -92,27 +104,28 @@ func _ready() -> void:
 		_cutaway.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_inside_button = Button.new()
 	_inside_button.theme_type_variation = "FlatButton"
-	_inside_button.flat = true
 	_inside_button.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
 	_inside_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_inside_button.pressed.connect(func() -> void: look_inside(not _inside))
 	col.add_child(_inside_button)
 	_text = HudText.label(game, 16)
 	col.add_child(_text)
-	_source = HudText.label(game, 13)
-	col.add_child(_source)
 	_deeper_button = Button.new()
 	_deeper_button.text = "Go deeper"
 	_deeper_button.theme_type_variation = "FlatButton"
-	_deeper_button.flat = true
 	_deeper_button.toggle_mode = true
 	_deeper_button.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
 	_deeper_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_deeper_button.pressed.connect(func() -> void: _deeper.visible = _deeper_button.button_pressed)
+	_deeper_button.pressed.connect(func() -> void:
+		_deeper.visible = _deeper_button.button_pressed
+		_source.visible = _deeper.visible)
 	col.add_child(_deeper_button)
 	_deeper = HudText.label(game, 15)
 	_deeper.visible = false
 	col.add_child(_deeper)
+	_source = HudText.label(game, 13)
+	_source.visible = false
+	col.add_child(_source)
 	_fill_text()
 	look_inside(false)
 
@@ -174,17 +187,47 @@ func close_button() -> Button:
 	return _close
 
 
+## What the card says before Go deeper.
 func body_text() -> String:
-	return _text.get_parsed_text() + "\n" + _source.get_parsed_text()
+	return _text.get_parsed_text()
 
 
-## Sizes the card to `width` (at most MAX_W) and its content's height (at
-## most the area's), centered in `area`.
+## The datasheet number, the deeper story and the source, once Go deeper is
+## open ("" until then).
+func deeper_text() -> String:
+	if not _deeper.visible:
+		return ""
+	return _deeper.get_parsed_text() + "\n" + _source.get_parsed_text()
+
+
+func deeper_button() -> Button:
+	return _deeper_button
+
+
+func inside_button() -> Button:
+	return _inside_button
+
+
+## The full card's scrolling body (null for a compact card).
+func body_scroll() -> ScrollContainer:
+	return _scroll
+
+
+## Sizes the card to `width` (at most MAX_W) and its content's height, at most
+## the area's (past that the body scrolls under the header and its close
+## button), centered in `area`. A short area gets a shorter turntable.
 func fit_into(area: Rect2, width: float) -> void:
 	var w := minf(minf(width, MAX_W), area.size.x)
+	if not compact:
+		_stage.custom_minimum_size.y = clampf(area.size.y * 0.42, 120.0, 210.0)
 	size = Vector2(w, 0)
-	reset_size()
-	size = Vector2(w, minf(get_combined_minimum_size().y, area.size.y))
+	var h := get_combined_minimum_size().y
+	if _scroll != null:
+		var pad := get_theme_stylebox("panel").get_minimum_size()
+		var col := get_child(0) as VBoxContainer
+		var fixed := col.get_combined_minimum_size().y - _scroll.get_combined_minimum_size().y
+		h = fixed + (_scroll.get_child(0) as Control).get_combined_minimum_size().y + pad.y
+	size = Vector2(w, minf(h, area.size.y))
 	position = (area.position + (area.size - size) / 2.0).round()
 
 
@@ -198,14 +241,15 @@ func _fill_text() -> void:
 	for leg in _intro.get("legs", []):
 		lines.append("• " + str(leg.get("text", "")))
 	lines.append("Where you'll find one: " + str(_intro.get("where", "")))
-	var spec: Dictionary = _intro.get("spec", {})
-	lines.append(str(spec.get("text", "")))
 	HudText.put(_text, "\n".join(lines), game)
+	var spec: Dictionary = _intro.get("spec", {})
+	var more := PackedStringArray()
+	for part in [str(spec.get("text", "")), str(_intro.get("deeper", ""))]:
+		if part != "":
+			more.append(part)
+	_deeper_button.visible = not more.is_empty()
+	HudText.put(_deeper, "\n".join(more), game)
 	HudText.put(_source, "Source: " + str(spec.get("source", "")), game)
-	var deeper := str(_intro.get("deeper", ""))
-	_deeper_button.visible = deeper != ""
-	if deeper != "":
-		HudText.put(_deeper, deeper, game)
 
 
 ## The part in its own small world: studio light, a soft backdrop, a camera
@@ -271,7 +315,8 @@ func _build_model() -> Node3D:
 		"wire":
 			return _jumper_wire()
 	var p := PartIntros.sample_part(key)
-	return PartModels.build(p) if p != null else null
+	# An LED comes new, legs uncut, so its longer + leg shows.
+	return PartModels.build(p, key == "led") if p != null else null
 
 
 ## A short jumper wire: green insulation in an arch, bare copper at each end.

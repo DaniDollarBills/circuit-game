@@ -66,7 +66,7 @@ func _rebuild() -> void:
 		var b := TrayItem.new()
 		b.index = i
 		b.part = Part.make("?", item["kind"], 0, 0, 0, item.get("props", {}))
-		b.custom_minimum_size = Vector2(104, 80)
+		b.custom_minimum_size = Vector2(104, 96)
 		b.pressed.connect(func() -> void: place_requested.emit(i))
 		cell.add_child(b)
 		var info := IconButton.make("info", "Datasheet")
@@ -91,10 +91,13 @@ func _update_counts() -> void:
 		b.queue_redraw()
 
 
-## One tray item: its symbol, its value and how many are left. It can be
-## dragged onto the board.
+## One tray item: its symbol, its name, its value and how many are left. It
+## can be dragged onto the board.
 class TrayItem:
 	extends Button
+
+	## The name's font size; every Chapter 1 name fits the item at this size.
+	const NAME_SIZE := 14
 
 	var index := 0
 	var part: Part
@@ -111,7 +114,7 @@ class TrayItem:
 
 	func _draw() -> void:
 		var ink := get_theme_color("font_disabled_color" if disabled else "font_color")
-		var icon_rect := Rect2(10, 10, size.x - 44, size.y * 0.5)
+		var icon_rect := Rect2(10, 8, size.x - 44, size.y * 0.38)
 		var ops := PartArt.ops(part, {}, false, false).filter(func(op: Dictionary) -> bool: return op["type"] != "text")
 		var tile := Rect2()
 		for op in ops:
@@ -121,13 +124,28 @@ class TrayItem:
 		var origin := (icon_rect.position + icon_rect.size / 2.0) / ppu - tile.get_center()
 		DrawKit.draw_ops(self, ops, origin, 0, ppu)
 		var font := get_theme_default_font()
-		draw_string(font, Vector2(6, size.y - 26), _value_text(), HORIZONTAL_ALIGNMENT_CENTER, size.x - 12, 15, ink)
-		draw_string(font, Vector2(6, size.y - 9), "%d left" % maxi(left, 0), HORIZONTAL_ALIGNMENT_CENTER, size.x - 12, 12, Color(ink, 0.75))
+		var value := value_text()
+		draw_string(font, Vector2(6, size.y - (40.0 if value != "" else 26.0)), name_text(), HORIZONTAL_ALIGNMENT_CENTER,
+				size.x - 12, NAME_SIZE, ink)
+		if value != "":
+			draw_string(font, Vector2(6, size.y - 24), value, HORIZONTAL_ALIGNMENT_CENTER, size.x - 12, 15, ink)
+		draw_string(font, Vector2(6, size.y - 8), "%d left" % maxi(left, 0), HORIZONTAL_ALIGNMENT_CENTER, size.x - 12, 12, Color(ink, 0.75))
 
-	func _value_text() -> String:
-		match part.kind:
-			"resistor":
-				return Catalog.format_ohms(float(part.props.get("ohms", 220.0)))
+	## What the part is called ("Resistor", "Red LED", "Switch A").
+	func name_text() -> String:
+		return name_for(part)
+
+	## Its value, for parts that have one ("220 Ω"); else "".
+	func value_text() -> String:
+		if part.kind == "resistor":
+			return Catalog.format_ohms(float(part.props.get("ohms", 220.0)))
+		return ""
+
+	static func name_for(p: Part) -> String:
+		match p.kind:
 			"led":
-				return str(part.props.get("color", "red")).capitalize() + " LED"
-		return Catalog.title(part.kind)
+				return str(p.props.get("color", "red")).capitalize() + " LED"
+			"switch":
+				var label := str(p.props.get("label", ""))
+				return "Switch " + label if label != "" else "Switch"
+		return str(PartIntros.get_intro(PartIntros.key_for(p)).get("title", Catalog.title(p.kind)))

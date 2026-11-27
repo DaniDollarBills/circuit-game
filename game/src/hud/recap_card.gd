@@ -8,6 +8,8 @@ extends PanelContainer
 signal next_lesson
 signal to_map
 signal read_again
+## "Back to my circuit": put the recap away to look at the bench.
+signal put_away
 
 const MAX_W := 560.0
 
@@ -24,6 +26,7 @@ var _history: VBoxContainer
 var _next: Button
 var _map: Button
 var _again: Button
+var _back: Button
 var _scroll: ScrollContainer
 
 
@@ -62,7 +65,6 @@ func _ready() -> void:
 	_check = Button.new()
 	_check.text = "Check yourself"
 	_check.theme_type_variation = "FlatButton"
-	_check.flat = true
 	_check.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
 	_check.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_check.pressed.connect(func() -> void: _questions.visible = true; _check.visible = false)
@@ -77,6 +79,8 @@ func _ready() -> void:
 	buttons.add_theme_constant_override("h_separation", 8)
 	buttons.add_theme_constant_override("v_separation", 8)
 	col.add_child(buttons)
+	_back = _button("Back to my circuit", func() -> void: put_away.emit(), true)
+	buttons.add_child(_back)
 	_again = _button("Read again", func() -> void: read_again.emit(), true)
 	buttons.add_child(_again)
 	_map = _button("Map", func() -> void: to_map.emit())
@@ -92,7 +96,6 @@ func _button(text: String, on_press: Callable, flat := false) -> Button:
 	b.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
 	if flat:
 		b.theme_type_variation = "FlatButton"
-		b.flat = true
 	b.pressed.connect(on_press)
 	return b
 
@@ -206,6 +209,10 @@ func questions_shown() -> bool:
 
 func next_button() -> Button:
 	return _next
+
+
+func back_button() -> Button:
+	return _back
 
 
 func map_button() -> Button:

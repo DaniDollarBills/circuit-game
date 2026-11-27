@@ -98,7 +98,8 @@ func test_render_unit_symbols_after_numbers() -> void:
 	assert_eq(r["terms"], PackedStringArray(["resistor", "volt", "amp", "ohm", "watt"]))
 	assert_eq(GlossaryText.render("A 1 kΩ resistor", {})["terms"], PackedStringArray(["ohm", "resistor"]))
 	assert_eq(GlossaryText.render("The battery says 5V", {})["terms"], PackedStringArray(["battery", "volt"]))
-	assert_eq(GlossaryText.render("Switch A and B, and 4 × AA cells.", {})["terms"], PackedStringArray(["switch"]))
+	# "AA" and the switch's "A" stay plain; "cells" is a word of its own.
+	assert_eq(GlossaryText.render("Switch A and B, and 4 × AA cells.", {})["terms"], PackedStringArray(["switch", "cell"]))
 
 
 ## Checkpoint B (I7): links meet the spec's 7:1 contrast for main text, in

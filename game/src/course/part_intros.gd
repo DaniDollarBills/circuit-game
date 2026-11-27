@@ -11,20 +11,20 @@ const KEYS: PackedStringArray = ["battery", "wire", "resistor", "resistor_1w", "
 const INTROS := {
 	"battery": {
 		"title": "Battery pack",
-		"does": "Four AA cells in a row. Together they push charges out of the + end, round your circuit, and back into the − end.",
+		"does": "Four AA [[cell|cells]] in a row. Together they push a current out of the + end, round your circuit, and back into the − end.",
 		"legs": [
-			{"pin": "pos", "chip": "+", "text": "Red lead, +: the push comes out here."},
-			{"pin": "neg", "chip": "−", "text": "Black lead, −: the charges come back in here."},
+			{"pin": "pos", "chip": "+", "text": "Red [[lead]], +: the current comes out here."},
+			{"pin": "neg", "chip": "−", "text": "Black [[lead]], −: the current comes back in here."},
 		],
 		"where": "TV remotes, toys, torches and game controllers.",
-		"spec": {"text": "A new AA cell gives 1.5 V. This pack is partly used, so its four cells give 5 V together.",
+		"spec": {"text": "Four new AA cells give about 6 V. Their push falls as they're used, and this pack gives 5 V.",
 				"source": "IEC 60086-2 (LR6 alkaline cells, 1.5 V nominal)"},
 		"inside": "aa_cell_inside",
 		"deeper": "Inside each cell a chemical reaction pushes electrons out of the − end. The pack also has about 1 Ω of resistance inside it.",
 	},
 	"wire": {
 		"title": "Jumper wire",
-		"does": "Copper inside plastic. It joins one metal dot to another, so current can flow between them.",
+		"does": "Copper inside plastic. It joins one part's metal end to another's, so current can flow between them.",
 		"legs": [
 			{"pin": "a", "chip": "end", "text": "Either end can go first: a wire works both ways round."},
 			{"pin": "b", "chip": "end", "text": "The plastic outside keeps it from touching other metal."},
@@ -36,13 +36,13 @@ const INTROS := {
 	},
 	"resistor": {
 		"title": "Resistor",
-		"does": "It makes it harder for current to flow, so it limits the current. Its value is in ohms (Ω).",
+		"does": "It makes it harder for current to flow. That keeps the current low, so an LED doesn't burn out.",
 		"legs": [
 			{"pin": "a", "chip": "leg", "text": "Either leg can go first: a resistor works the same both ways round."},
 			{"pin": "b", "chip": "leg", "text": "Its stripes tell you its value."},
 		],
 		"where": "Inside almost every electronic device, from chargers to TVs.",
-		"spec": {"text": "Stripes show its value: brown, green, brown means 150 Ω, and gold means within 5%.",
+		"spec": {"text": "Stripes show its value: red, red, brown means 220 Ω, and gold means within 5%.",
 				"source": "IEC 60062 (resistor color code)"},
 		"inside": "resistor_inside",
 		"deeper": "A thin carbon film is cut in a spiral round a ceramic rod. The longer and thinner the path, the higher the resistance.",
@@ -81,7 +81,7 @@ const INTROS := {
 			{"pin": "cathode", "chip": "− (cathode)", "text": "Short leg, − (cathode): it's on the side with the flat edge."},
 		],
 		"where": "Indicator lights, torches, screens and light bulbs.",
-		"spec": {"text": "A red LED takes about 2 V of the push while it glows.",
+		"spec": {"text": "While it glows, a red LED uses about 2 V of the battery's 5 V push.",
 				"source": "E. F. Schubert, Light-Emitting Diodes, 2nd ed., Cambridge University Press (2006)"},
 		"inside": "led_inside",
 		"deeper": "The chip is a tiny crystal of semiconductor. As current crosses it, electrons give up energy as light.",
@@ -147,7 +147,7 @@ static func get_intro(key: String) -> Dictionary:
 static func sample_part(key: String) -> Part:
 	match key:
 		"resistor":
-			return Part.make("R1", "resistor", 0, 0, 0, {"ohms": 150.0})
+			return Part.make("R1", "resistor", 0, 0, 0, {"ohms": 220.0})
 		"resistor_1w":
 			return Part.make("R1", "resistor", 0, 0, 0, {"ohms": 47.0, "watts": 1.0})
 		"trimmer":

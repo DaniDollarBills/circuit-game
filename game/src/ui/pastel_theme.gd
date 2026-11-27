@@ -40,6 +40,7 @@ static func build(night := false, large_text := false) -> Theme:
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
 		t.set_color(c, "FlatButton", ink)
 	t.set_color("font_disabled_color", "FlatButton", ink_soft)
+	_flat_buttons(t, night)
 	t.set_type_variation("PillPanel", "PanelContainer")
 	var pill := StyleBoxFlat.new()
 	pill.bg_color = Palette.color("paper", night)
@@ -54,6 +55,26 @@ static func build(night := false, large_text := false) -> Theme:
 	t.set_font("normal_font", "RichTextLabel", regular)
 	t.set_font("bold_font", "RichTextLabel", bold)
 	return t
+
+
+## A flat button (Go deeper, Look inside, Why?, Skip) keeps the card's own
+## color but has an edge you can see, 3:1 against the card, so it reads as a
+## button; hover and pressed tint it lavender, keeping its text 4.5:1.
+static func _flat_buttons(t: Theme, night: bool) -> void:
+	var edge := Palette.color("lavender") if night else Color("#8E7CC3")
+	var lavender := Palette.color("lavender")
+	for pair in [["normal", 0.0], ["hover", 0.25], ["pressed", 0.4], ["hover_pressed", 0.4], ["disabled", 0.0]]:
+		var sb := StyleBoxFlat.new()
+		sb.set_corner_radius_all(14)
+		sb.set_border_width_all(2)
+		sb.border_color = Palette.color("line", night) if pair[0] == "disabled" else edge
+		sb.bg_color = Color(lavender, float(pair[1]))
+		sb.draw_center = float(pair[1]) > 0.0
+		sb.content_margin_left = 12
+		sb.content_margin_right = 12
+		sb.content_margin_top = 10
+		sb.content_margin_bottom = 10
+		t.set_stylebox(pair[0], "FlatButton", sb)
 
 
 static func _buttons(t: Theme, night: bool, ink: Color, ink_soft: Color) -> void:

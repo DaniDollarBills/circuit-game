@@ -42,7 +42,9 @@ func test_lesson0_tour() -> void:
 	for c in _l0().learn:
 		if c["type"] == "tour":
 			targets.append(c["target"])
-	assert_eq(targets, ["board", "tray", "battery", "top_bar", "column", "hint"])
+	# The top bar is three cards, one per group of buttons, each lit up in turn
+	# (checkpoint S: seven buttons in one sentence taught none of them).
+	assert_eq(targets, ["board", "tray", "battery", "map_button", "edit_buttons", "tool_buttons", "column", "hint"])
 
 
 func test_lesson0_passes_when_every_step_is_done() -> void:
@@ -55,3 +57,25 @@ func test_lesson0_passes_when_every_step_is_done() -> void:
 	assert_true(Goals.evaluate_all(l.goals, ctx).all(func(r: Dictionary) -> bool: return r["pass"]))
 	ctx["ui_flags"] = {}
 	assert_false(Goals.evaluate_all(l.goals, ctx).all(func(r: Dictionary) -> bool: return r["pass"]), "not before")
+
+
+## Checkpoint S: "metal dot" read as the board's holes, which look like black
+## dots. A wire joins the metal ends of parts, and the copy says so.
+func test_lesson0_says_what_a_wire_joins() -> void:
+	var l := _l0()
+	var texts := PackedStringArray()
+	for st in l.steps:
+		texts.append(str(st["text"]))
+	texts.append_array(l.recap)
+	for q in l.questions:
+		texts.append(str(q["prompt"]))
+		for ch in q["choices"]:
+			texts.append(str(ch["text"]))
+			texts.append(str(ch["why"]))
+	for t in texts:
+		assert_false("metal dot" in t or "posts" in t, t)
+	var wire_step := ""
+	for st in l.steps:
+		if st["check"].get("flag", "") == "did:wired":
+			wire_step = str(st["text"])
+	assert_true("lead" in wire_step and "resistor" in wire_step, wire_step)

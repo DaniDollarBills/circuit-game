@@ -15,7 +15,7 @@ const SAVE_DELAY_S := 0.5
 const DAMAGED_SAVE_KEPT := "Your saved progress couldn't be read, so a fresh save was started. The old file was kept as a backup."
 const DAMAGED_SAVE_LOST := "Your saved progress couldn't be read, so a fresh save was started."
 const SAVE_FAILED := "Couldn't save your progress. Check that the disk isn't full."
-const LOCKED_LEVEL := "Finish the level before this one to unlock it."
+const LOCKED_LEVEL := "Finish the lesson before this one to unlock it."
 
 var state := GameState.new()
 var save_path := "user://progress.json"
@@ -123,6 +123,7 @@ func skip_tutorial() -> void:
 	if l == null:
 		return
 	state.progress.mark_complete(l.id, false, state.now())
+	state.check_achievements(state.now())
 	save_soon()
 	var ids := Levels.chapter_ids(l.chapter)
 	var i := ids.find(l.id)

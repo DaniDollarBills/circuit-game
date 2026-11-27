@@ -12,6 +12,7 @@ var _signature := ""
 var _why_open := -1
 var _why_button: Button
 var _why_label: RichTextLabel
+var _current_row: Control
 
 
 func _ready() -> void:
@@ -43,6 +44,7 @@ func refresh(level: LevelDef, session: LevelSession) -> void:
 	_signature = sig
 	_why_button = null
 	_why_label = null
+	_current_row = null
 	_last_level = level
 	_last_session = session
 	for c in _rows.get_children():
@@ -81,7 +83,6 @@ func refresh(level: LevelDef, session: LevelSession) -> void:
 			_why_button = Button.new()
 			_why_button.text = "Why?"
 			_why_button.theme_type_variation = "FlatButton"
-			_why_button.flat = true
 			_why_button.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
 			_why_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			var at := i
@@ -93,10 +94,17 @@ func refresh(level: LevelDef, session: LevelSession) -> void:
 				_why_label = HudText.make(game, why, 14)
 				stack.add_child(_why_label)
 		_rows.add_child(row)
+		if i == current:
+			_current_row = row
 
 
 var _last_level: LevelDef
 var _last_session: LevelSession
+
+
+## The current step's row (null when every step is ticked).
+func current_row() -> Control:
+	return _current_row
 
 
 ## The current step's Why? button (null when it has no why).

@@ -14,8 +14,10 @@ static func build() -> LevelDef:
 	b.idea("Hi, I'm Pip, a tiny spark of [[electricity]]. Let's look around your workbench before we build.", "", "happy")
 	b.tour("This is your workbench. You build on the board, a grid of holes for the parts' legs.", "board")
 	b.tour("New parts wait in the tray. You drag them out onto the board.", "tray")
-	b.tour("The battery pack sits beside the board. Its red and black leads bring the power in.", "battery")
-	b.tour("Up top: back to the map, start over, undo and redo, the calculator, your Notebook and settings.", "top_bar")
+	b.tour("The battery pack sits beside the board. Its red and black [[lead|leads]] bring the power in.", "battery")
+	b.tour("Top left, the arrow takes you back to the map of lessons.", "map_button")
+	b.tour("Start over clears your circuit. Undo and redo step back and forward, one change at a time.", "edit_buttons")
+	b.tour("The calculator does sums, your Notebook keeps what you've learned, and the cog opens settings.", "tool_buttons")
 	b.tour("Your goals and steps live here. Steps tick themselves off as you go.", "column")
 	b.tour("When you get stuck, tap the lightbulb for a hint. Each tap gives a little more help.", "hint")
 	b.step("Drag the resistor from the tray onto the board.", {"kind": "ui_flag", "flag": "did:placed"})
@@ -27,7 +29,7 @@ static func build() -> LevelDef:
 	b.step("Turn it: press R, or hold it and choose Rotate.", {"kind": "ui_flag", "flag": "did:rotated"})
 	b.why("Turning a part helps its legs reach where you need them.")
 	b.demo({"gesture": "long_press", "from": {"part": "placed"}, "mouse": {"gesture": "key", "key": "R"}})
-	b.step("Drag from one metal dot to another to make a wire.", {"kind": "ui_flag", "flag": "did:wired"})
+	b.step("Make a wire: drag from the tip of the battery's red [[lead]] to an end of the resistor.", {"kind": "ui_flag", "flag": "did:wired"})
 	b.why("Wires carry the current from one part to the next.")
 	b.demo({"gesture": "drag", "from": {"pin": "B1:pos"}, "to": {"pin": "placed:a"}})
 	b.step("Delete the wire: hold it (or right-click it), then choose Delete.", {"kind": "ui_flag", "flag": "did:deleted"})
@@ -53,18 +55,18 @@ static func build() -> LevelDef:
 			"did:panned", "datasheet:L1", "did:hint"]:
 		every_step.append({"kind": "ui_flag", "flag": st})
 	b.goal({"kind": "all", "goals": every_step, "label": "Try every control once",
-			"message": "Follow the steps: the moving hand shows each one."})
-	b.hint("Do what the moving hand shows. You can skip any step.")
+			"message": "Follow the steps: the moving pointer shows each one."})
+	b.hint("Do what the moving pointer shows. You can skip any step.")
 	b.outro("You know your way around the bench!", "wow")
 	b.recap("Parts come from the tray: drag them out, move them and turn them.")
-	b.recap("Wires go from one metal dot to another.")
+	b.recap("Wires join the metal ends of parts, like a lead and a resistor's leg.")
 	b.recap("Undo takes back mistakes, and the lightbulb gives hints.")
 	b.question("How do you make a wire?", [
-		{"text": "Drag from one metal dot to another.", "correct": true,
-				"why": "Right: a wire always joins two metal dots, the legs and posts of the parts."},
+		{"text": "Drag from one part's metal end to another's.", "correct": true,
+				"why": "A wire joins the metal ends of two parts, like the battery's lead and a resistor's leg."},
 		{"text": "Drag one part onto another.", "correct": false,
-				"why": "Not here: parts don't join by touching. A wire joins their metal dots."},
+				"why": "Parts don't join by touching. A wire joins their metal ends."},
 		{"text": "Tap the battery twice.", "correct": false,
-				"why": "Tapping a part opens its datasheet. Wires come from dragging between dots."},
+				"why": "Tapping a part opens its datasheet. Wires come from dragging between metal ends."},
 	])
 	return b.done()

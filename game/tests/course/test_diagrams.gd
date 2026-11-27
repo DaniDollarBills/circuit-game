@@ -78,3 +78,31 @@ func test_rules_flag_unknown_diagram() -> void:
 	b.idea("A loop.", "loop_flow").idea("No picture.").idea("A made-up one.", "no_such_diagram")
 	b.control("Turn the dial.", "no_such_demo")
 	assert_eq(LessonRules.problems(b.done()).size(), 2)
+
+
+## Checkpoint S: the "gap" label (coral on the card) was too faint to read.
+## Every word a picture draws keeps 4.5:1 against what it's drawn on (the
+## card, or the shape under it), by day and by night.
+func test_diagram_text_is_readable() -> void:
+	for night in [false, true]:
+		var game := _game({"night": night})
+		for id in Diagrams.IDS:
+			var d := _shown(id, game, Vector2(400, 220))
+			await wait_frames(2)
+			assert_false(d.text_log.is_empty(), id + " draws words")
+			for entry in d.text_log:
+				var r := Palette.contrast_ratio(entry[0], entry[1])
+				assert_true(r >= 4.5, "%s (%s): '%s' %s on %s is %.2f:1" % [id, "night" if night else "day", entry[2],
+						(entry[0] as Color).to_html(false), (entry[1] as Color).to_html(false), r])
+
+
+## Code review (checkpoint S): a picture that moves charges faster than life
+## says so (the spec's anti-goal: a sped-up animation that doesn't say so);
+## its still frame for Reduced motion doesn't move, so it doesn't.
+func test_sped_up_pictures_say_so() -> void:
+	for id in ["charges_in_wire", "battery_push", "loop_flow", "current_direction", "aa_cell_inside", "meter_inside"]:
+		for still in [false, true]:
+			var d := _shown(id, _game({"reduced_motion": still}), Vector2(400, 220))
+			await wait_frames(2)
+			var words := d.text_log.map(func(e: Array) -> String: return str(e[2]))
+			assert_eq("sped up" in words, not still, "%s%s: %s" % [id, " (still)" if still else "", words])

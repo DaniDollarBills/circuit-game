@@ -321,7 +321,7 @@ func test_every_fact_has_source() -> void:
 
 
 func test_glossary_definition_lengths() -> void:
-	assert_eq(Glossary.ENTRIES.size(), 58)
+	assert_eq(Glossary.ENTRIES.size(), 63)
 	for term in Glossary.ENTRIES:
 		var e: Dictionary = Glossary.ENTRIES[term]
 		assert_false(str(e["title"]).is_empty(), term)
@@ -342,6 +342,32 @@ func test_jargon_list_in_glossary() -> void:
 	for w in words:
 		var terms: PackedStringArray = GlossaryText.render(w, {})["terms"]
 		assert_eq(terms.size(), 1, "%s → %s" % [w, terms])
+
+
+## Checkpoint S (the beginner read-through): words a beginner met with no
+## definition, and a "charge" that was a property on one card and a thing on
+## the next.
+func test_beginner_words_defined() -> void:
+	for w in ["cell", "four AA cells", "drift", "leg", "two legs", "22 gauge wire"]:
+		var terms: PackedStringArray = GlossaryText.render(w, {})["terms"]
+		assert_eq(terms.size(), 1, "%s → %s" % [w, terms])
+	assert_eq(GlossaryText.render("its [[lead|leads]]", {})["terms"], PackedStringArray(["lead"]))
+	assert_eq(GlossaryText.render("it leads to", {})["terms"].size(), 0, "'leads to' stays a plain word")
+	var charge := str(Glossary.ENTRIES["charge"]["simple"])
+	assert_false(charge.begins_with("A property"), charge)
+	assert_true("called charges" in charge, "the cards' 'charges' are the particles: " + charge)
+
+
+## Code review (checkpoint S): the recap adds "Right!" or "Not quite." before
+## each why, so a why that starts the same way read "Right! Right: …".
+func test_question_whys_leave_the_verdict_to_the_card() -> void:
+	for l in Levels.all():
+		for q in l.questions:
+			for ch in q["choices"]:
+				var why := str(ch["why"])
+				for start in ["Right", "Correct", "Yes", "No ", "No,", "No:", "No.", "Not ", "Wrong"]:
+					assert_false(why.begins_with(start), "%s: %s" % [l.id, why])
+	assert_true("lesson" in Game.LOCKED_LEVEL and not "level" in Game.LOCKED_LEVEL, Game.LOCKED_LEVEL)
 
 
 ## Datasheet rows link glossary terms, so every one must be defined.

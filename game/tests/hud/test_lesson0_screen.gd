@@ -36,6 +36,8 @@ func test_tour_spotlights_its_target() -> void:
 	var s := await _screen()
 	assert_eq(s.game.state.session.phase, "learn")
 	assert_false(s.spotlight.visible, "the goals card points at nothing")
+	# The deck's own Skip skips the tour; "Skip Lesson 0" skips the lesson.
+	assert_eq(s.deck.skip_button().text, "Skip the tour")
 	var seen := 0
 	for i in range(1, s.game.state.level.learn.size() + 1):
 		s.game.next_card()
@@ -49,7 +51,20 @@ func test_tour_spotlights_its_target() -> void:
 		assert_true(hole.has_point(s.tour_rect(card["target"]).get_center()), "%s: %s in %s" % [card["target"], s.tour_rect(card["target"]), hole])
 		if card["target"] != "board":
 			assert_false(s.deck.get_rect().intersects(hole), "the deck keeps out of the way of the %s" % card["target"])
-	assert_eq(seen, 6)
+	assert_eq(seen, 8)
+
+
+## Each top-bar card lights up its own buttons and no others.
+func test_top_bar_tour_lights_each_group() -> void:
+	var s := await _screen()
+	var groups := {"map_button": ["map"], "edit_buttons": ["restart", "undo", "redo"],
+			"tool_buttons": ["calculator", "notebook", "settings"]}
+	for target in groups:
+		var hole := s.tour_rect(target)
+		for id in ["map", "restart", "undo", "redo", "calculator", "notebook", "settings"]:
+			var b := s.top_bar.button(id)
+			var center := b.get_global_rect().get_center() - s.global_position
+			assert_eq(hole.has_point(center), id in groups[target], "%s and the %s button" % [target, id])
 
 
 func test_hand_shows_the_current_step() -> void:
@@ -103,3 +118,52 @@ func test_tutorial_keeps_its_tools_in_view() -> void:
 	assert_true(s.column_scroll.visible)
 	assert_true(s.hint_button.visible)
 	assert_true(s.meet_card == null or not s.meet_card.visible, "Lesson 0 is about the controls, not the parts")
+
+
+## Checkpoint S: on a landscape phone, Lesson 0's first step sat below the
+## fold of the column, cut off by its edge. The current step is always in view.
+func test_current_step_in_view_on_every_screen() -> void:
+	for size in [Vector2(844, 390), Vector2(640, 360), Vector2(390, 844), Vector2(1280, 720)]:
+		var s := await _screen(size)
+		s.game.skip_learn()
+		await wait_frames(4)
+		for i in 2:
+			var row := s.checklist.current_row()
+			assert_true(row != null, str(size))
+			if row == null:
+				break
+			var view := s.column_scroll.get_global_rect()
+			assert_true(view.grow(0.5).encloses(row.get_global_rect()), "%s, step %d: %s inside %s" % [size, i + 1, row.get_global_rect(), view])
+			s.game.set_ui_flag("did:placed")
+			await wait_frames(4)
+
+
+## Code review (checkpoint S): with help Off the lightbulb was hidden, so
+## Lesson 0's last step could never be done (and at Light and Off its steps
+## were hidden too). A tutorial keeps its steps and Hint at every help level.
+func test_lesson0_completes_at_every_help_level() -> void:
+	for help in ["heavy", "light", "off"]:
+		var s := await _screen()
+		s.game.set_setting("help_level", help)
+		s.game.skip_learn()
+		await wait_frames(3)
+		assert_true(s.checklist.visible, help + ": the steps show")
+		assert_true(s.hint_button.visible, help + ": the lightbulb shows")
+		for st in s.game.state.level.steps:
+			var flag := str(st["check"]["flag"])
+			if flag != "did:hint":
+				s.game.set_ui_flag(flag)
+		s.hint_button.pressed.emit()
+		await wait_frames(3)
+		assert_eq(s.game.state.session.phase, "passed", help)
+
+
+## Code review (checkpoint S): skipping Lesson 0 counts it as done, so the
+## badges are checked then too.
+func test_skipping_lesson0_checks_badges() -> void:
+	var s := await _screen()
+	s.game.state.progress.mark_complete("ch1.light-it-up", false, 1)
+	assert_false(s.game.state.progress.achievements.has("first_light"))
+	s.game.skip_tutorial()
+	await wait_frames(2)
+	assert_true(s.game.state.progress.achievements.has("first_light"), "checked when Lesson 0 is skipped")

@@ -69,3 +69,39 @@ func test_guide_why_expands() -> void:
 	why.pressed.emit()
 	await wait_frames(1)
 	assert_true("30 mA" in s.guide.plain_text(), s.guide.plain_text())
+
+
+## Code review (checkpoint S): build help leaked into Try it. After using the
+## hints' ghost wires, reading the lesson again showed those ghosts over Try
+## it's circuit; and a burn in Try it was explained with the build's old goals.
+func test_build_help_stays_out_of_try_it() -> void:
+	var game := _game()
+	var host := Control.new()
+	host.size = Vector2(1280, 720)
+	add_to_tree(host)
+	game.open_level("ch1.light-it-up", true)
+	var s: LevelScreen = load("res://src/screens/level_screen.tscn").instantiate()
+	s.game = game
+	host.add_child(s)
+	await wait_frames(3)
+	game.skip_learn()
+	game.finish_try()
+	game.state.progress.parts_seen = {"battery": 1, "wire": 1, "resistor": 1, "led": 1}
+	for i in 3:
+		game.use_hint()
+	await wait_frames(2)
+	assert_false(s.hint_ghosts().is_empty(), "the third hint shows the answer's ghosts")
+	# A short on the bench: the build's goals now say "Short circuit!".
+	game.commit(CircuitEdits.add_wire(game.state.history.present, "B1", "pos", "B1", "neg"))
+	await wait_frames(2)
+	game.reopen_lesson()
+	game.skip_learn()
+	await wait_frames(3)
+	assert_true(game.state.trying())
+	assert_true(s.hint_ghosts().is_empty(), "no build ghosts over Try it's circuit")
+	# Bypass the resistor: the LED burns, and Pip explains the LED.
+	game.commit(CircuitEdits.add_wire(game.state.history.present, "B1", "pos", "L1", "anode"))
+	await wait_frames(3)
+	assert_true(s.guide.visible, "burn help")
+	assert_false(s.guide.plain_text().begins_with("Short circuit"), s.guide.plain_text())
+	assert_true("LED" in s.guide.plain_text(), s.guide.plain_text())

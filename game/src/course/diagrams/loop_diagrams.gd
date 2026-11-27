@@ -44,16 +44,17 @@ func _charges_in_wire(time: float) -> void:
 		var x := 50.0 + row * spacing / 2.0 + shift
 		while x < 352.0:
 			dot(Vector2(x, y), 8.0, ELECTRON, col("ink"), 1.2)
-			label(Vector2(x, y - 0.5), "−", 13.0, col("ink"), true)
+			label(Vector2(x, y - 0.5), "−", 13.0, Palette.color("ink"), true, ELECTRON)
 			x += spacing
 	if still:
 		for x in [110.0, 200.0, 290.0]:
 			arrow(Vector2(x - 18.0, 62.0), Vector2(x + 18.0, 62.0), col("ink"), 3.0)
 	label(Vector2(200, 40), "a metal wire", 17.0, col("ink"), true)
 	label(Vector2(200, 180), "full of charges that can move", 16.0, col("ink_soft"))
+	speed_note()
 
 
-## The battery pushing: out of +, round, and back into −.
+## The battery pushing: current drawn out of +, round, and back into −.
 func _battery_push(time: float) -> void:
 	var c := Vector2(130, 112)
 	var unit := 26.0
@@ -70,9 +71,10 @@ func _battery_push(time: float) -> void:
 		sparks(path, 7, 70.0, time)
 	label(pos + Vector2(-34, 0), "+", 26.0, col("ink"), true)
 	label(neg + Vector2(-34, 0), "−", 26.0, col("ink"), true)
-	label(Vector2(262, 112), "the push goes", 15.0, col("ink_soft"))
+	label(Vector2(262, 112), "current flows", 15.0, col("ink_soft"))
 	label(Vector2(262, 132), "out of +, round,", 15.0, col("ink_soft"))
 	label(Vector2(262, 152), "back into −", 15.0, col("ink_soft"))
+	speed_note()
 
 
 ## The loop, whole (sparks and a lit LED) or with a gap (nothing anywhere).
@@ -96,6 +98,7 @@ func _loop(time: float, whole: bool) -> void:
 	symbol("led", Vector2(LOOP_R, 110), 90, {"brightness": 1.0 if whole else 0.0, "color": "red"})
 	if whole:
 		label(Vector2(200, 112), "a complete loop", 18.0, col("ink"), true)
+		speed_note()
 	else:
 		label(Vector2(254, LOOP_T - 18), "gap", 16.0, col("coral"), true)
 		label(Vector2(200, 112), "one gap stops it all", 18.0, col("ink"), true)
@@ -122,3 +125,4 @@ func _current_direction(time: float) -> void:
 		x -= 32.0
 	label(Vector2(200, 38), "current: drawn from + to −", 16.0, col("ink"), true)
 	label(Vector2(200, 200), "electrons drift slowly the other way", 15.0, col("ink_soft"))
+	speed_note()

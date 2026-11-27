@@ -76,7 +76,7 @@ func test_drop_on_nothing_toasts() -> void:
 	ctl.handle(_g("drag_start", _pin(c, "R1", "b")), _ctx(c))
 	ctl.handle(_g("drag_move", Vector2(20, 20)), _ctx(c))
 	var fx := ctl.handle(_g("drag_end", Vector2(20, 20)), _ctx(c))
-	assert_eq(fx, [{"type": "toast", "text": "Drop the wire on a metal dot."}] as Array[Dictionary])
+	assert_eq(fx, [{"type": "toast", "text": "Drop the wire on a part's metal end."}] as Array[Dictionary])
 	assert_eq(ctl.mode["kind"], "idle")
 
 

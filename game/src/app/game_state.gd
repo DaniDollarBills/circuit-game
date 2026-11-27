@@ -277,7 +277,11 @@ func mark_terms_seen(terms: PackedStringArray, now: int) -> PackedStringArray:
 
 func check_achievements(now: int) -> void:
 	if _ch1_ids.is_empty():
-		_ch1_ids = Levels.chapter_ids("ch1")
+		# The chapter's lessons: Lesson 0 is a tour of the controls, and a
+		# v0.2.0 player who never saw it has still finished every lesson.
+		for id in Levels.chapter_ids("ch1"):
+			if Levels.by_id(id).kind != "tutorial":
+				_ch1_ids.append(id)
 	for id in Achievements.newly_earned(progress, _ch1_ids):
 		progress.achievements[id] = now
 		events.append({"type": "badge", "id": id})

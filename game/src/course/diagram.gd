@@ -16,6 +16,8 @@ var still := false
 var night := false
 ## Frames drawn, for tests.
 var painted := 0
+## The words drawn in the last frame: [color, the color under them, text].
+var text_log: Array = []
 
 var _k := 1.0
 
@@ -48,6 +50,7 @@ func _draw() -> void:
 	if _k <= 0.0:
 		return
 	draw_set_transform(((size - DESIGN * _k) / 2.0).round())
+	text_log.clear()
 	_paint(t)
 	draw_set_transform(Vector2.ZERO)
 	painted += 1
@@ -72,8 +75,32 @@ func dot(c: Vector2, r: float, fill: Color, stroke := Color(0, 0, 0, 0), stroke_
 	DrawKit.circle(self, c, r, fill, stroke, stroke_w, _k)
 
 
-func label(at: Vector2, s: String, size_units := 16.0, color := Color(0, 0, 0, 0), bold := false) -> void:
-	DrawKit.text(self, at, s, size_units, color if color.a > 0.0 else col("ink"), bold, _k)
+## Words centered on `at`, in `color` (ink by default) on the card, or on the
+## shape colored `on` under them. A color too faint to read there (4.5:1) is
+## darkened, or lightened at night, until it reads.
+func label(at: Vector2, s: String, size_units := 16.0, color := Color(0, 0, 0, 0), bold := false,
+		on := Color(0, 0, 0, 0)) -> void:
+	var under := on if on.a > 0.0 else col("paper")
+	var c := readable(color if color.a > 0.0 else col("ink"), under)
+	text_log.append([c, under, s])
+	DrawKit.text(self, at, s, size_units, c, bold, _k)
+
+
+## `c`, darkened on a light background or lightened on a dark one until it
+## reads at 4.5:1.
+static func readable(c: Color, under: Color) -> Color:
+	var out := c
+	var tries := 0
+	while Palette.contrast_ratio(out, under) < 4.5 and tries < 24:
+		out = out.darkened(0.1) if under.get_luminance() > 0.4 else out.lightened(0.1)
+		tries += 1
+	return out
+
+
+## A moving picture that runs faster than life says so, in its corner.
+func speed_note(at := Vector2(368, 14)) -> void:
+	if not still:
+		label(at, "sped up", 12.0, col("ink_soft"))
 
 
 func box(r: Rect2, radius: float, fill: Color, stroke := Color(0, 0, 0, 0), stroke_w := 0.0) -> void:

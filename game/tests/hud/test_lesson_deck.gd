@@ -202,3 +202,50 @@ func test_lesson_has_the_stage_to_itself() -> void:
 	await wait_frames(2)
 	assert_true(s.tray.visible)
 	assert_true(s.column_scroll.visible)
+
+
+## Checkpoint S: "Meet the led!" — the title keeps its capitals.
+func test_meet_title_keeps_acronyms() -> void:
+	var game := _game()
+	var deck := _deck(game)
+	var l := Levels.by_id("ch1.light-it-up")
+	var titles := {}
+	for i in l.learn.size():
+		if l.learn[i]["type"] == "meet":
+			deck.show_card(l, i + 1)
+			titles[l.learn[i]["part"]] = deck.body_text().get_slice("\n", 0)
+	assert_eq(titles["led"], "Meet the LED!")
+	assert_eq(titles["battery"], "Meet the battery pack!")
+	assert_eq(titles["resistor"], "Meet the resistor!")
+
+
+## Checkpoint S: on a landscape phone the pictures were cut in half (the card
+## is short, and the picture only showed by scrolling). Every picture shows
+## whole, at a readable size, without scrolling, on every screen.
+func test_pictures_whole_on_every_screen() -> void:
+	for screen in [Vector2(844, 390), Vector2(640, 360), Vector2(390, 844), Vector2(1280, 720)]:
+		var game := _game()
+		var host := Control.new()
+		host.size = screen
+		add_to_tree(host)
+		game.open_level("ch1.light-it-up", true)
+		var s: LevelScreen = load("res://src/screens/level_screen.tscn").instantiate()
+		s.game = game
+		host.add_child(s)
+		await wait_frames(3)
+		var l := game.state.level
+		for i in l.learn.size():
+			game.next_card()
+			if str(l.learn[i].get("diagram", "")) == "" or l.learn[i]["type"] == "meet":
+				continue
+			await wait_frames(3)
+			var d := s.deck.diagram()
+			var where := "%s, card %d" % [screen, i + 1]
+			assert_true(d != null and d.is_visible_in_tree(), where)
+			var r := d.get_global_rect()
+			assert_true(r.size.x >= 240.0 and r.size.y >= 132.0, "%s: readable, %s" % [where, r.size])
+			assert_true(r.position.y >= s.deck.get_global_rect().position.y, where)
+			assert_true(r.end.y <= s.deck.next_button().get_global_rect().position.y + 0.5,
+					"%s: whole without scrolling, %s ends below %s" % [where, r, s.deck.next_button().get_global_rect().position.y])
+		host.queue_free()
+		await wait_frames(1)

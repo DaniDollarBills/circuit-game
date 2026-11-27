@@ -5,7 +5,7 @@ extends RefCounted
 ## EXPLICIT_ONLY are linked only through [[ ]] markup, because they are also
 ## everyday words ("a bit dim").
 
-const EXPLICIT_ONLY: PackedStringArray = ["bit"]
+const EXPLICIT_ONLY: PackedStringArray = ["bit", "lead"]
 
 ## term, title, simple, precise, aliases
 const _ROWS := [
@@ -13,8 +13,8 @@ const _ROWS := [
 		"What electric charges do: they push and pull on each other, and flow through wires as a current.",
 		"Everything to do with electric charge: charges at rest make electric fields, and moving charges are an electric current.", []],
 	["charge", "Electric charge",
-		"A property of tiny particles that makes them push or pull on each other. Electrons are negative, protons positive.",
-		"Measured in coulombs. Like charges repel, and opposite charges attract.", ["electric charge"]],
+		"Something tiny particles carry that makes them push or pull on each other. Particles that carry it, like electrons, are called charges for short.",
+		"Measured in coulombs. Electrons are negative and protons positive. Like charges repel, and opposite charges attract.", ["electric charge"]],
 	["electron", "Electron",
 		"A tiny particle with a negative charge. Moving electrons carry electricity through metal.",
 		"A fundamental particle with a charge of −1.602 × 10⁻¹⁹ coulombs and a mass of 9.109 × 10⁻³¹ kg.", []],
@@ -177,6 +177,21 @@ const _ROWS := [
 	["polarity", "Polarity",
 		"Which side is + and which is −. Some parts only work one way round.",
 		"LEDs and other diodes conduct forward only when the anode is higher in voltage than the cathode, by about their forward voltage.", []],
+	["cell", "Cell",
+		"One battery unit, like a single AA. A battery pack holds several cells in a row, and their pushes add up.",
+		"An electrochemical cell: two different electrodes in a chemical electrolyte. A new alkaline AA cell gives about 1.5 V.", []],
+	["lead", "Lead",
+		"A wire coming out of a part, like the battery pack's red and black wires. You say it 'leed'.",
+		"Any wire that connects a part or a meter to a circuit: battery leads, a meter's test leads, or the legs of a resistor.", []],
+	["leg", "Leg",
+		"A metal wire sticking out of a part. A part joins a circuit through its legs.",
+		"A component's lead. Through-hole parts like resistors and LEDs have legs that go through holes in a circuit board.", []],
+	["gauge", "Gauge",
+		"A number for how thick a wire is. The bigger the number, the thinner the wire.",
+		"American Wire Gauge (AWG): each step of 6 gauge halves the diameter, so 22 gauge is 0.644 mm across.", []],
+	["drift", "Drift",
+		"The slow, overall creep of electrons along a wire. Each one zigzags about fast, but together they edge along slowly.",
+		"Drift velocity: a few milliamps in a thin copper wire move the electrons along at well under a millimeter a second, while the push itself travels near light speed.", []],
 	["anode", "Anode",
 		"The + side of an LED, where current goes in.",
 		"The lead where conventional current enters. On an LED it's usually the longer leg.", []],

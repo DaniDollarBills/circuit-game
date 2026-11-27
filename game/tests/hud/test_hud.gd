@@ -793,3 +793,25 @@ func test_start_over_after_passing_builds_again() -> void:
 	assert_eq(s.game.state.session.phase, "passed")
 	assert_true(s.recap.visible, "solving it again celebrates again")
 	assert_true(s.game.state.progress.completed.has("ch1.light-it-up"), "the completion stays recorded")
+
+
+## Checkpoint S: "Drag the resistor", but the tray showed only "220 Ω". Every
+## tray item names its part, and the name fits the item.
+func test_tray_items_name_their_parts() -> void:
+	var s := await _screen("ch1.workbench")
+	await _skip_intro(s)
+	var item := s.tray.items()[0] as PartsTray.TrayItem
+	assert_eq(item.name_text(), "Resistor")
+	assert_eq(item.value_text(), "220 Ω")
+	var font := s.get_theme_default_font()
+	var seen := {}
+	for l in Levels.all():
+		for t in l.tray + l.try_tray:
+			var p := Part.make("T", t["kind"], 0, 0, 0, t.get("props", {}))
+			var name := PartsTray.TrayItem.name_for(p)
+			seen[name] = true
+			assert_false(name.is_empty(), str(t))
+			assert_true(font.get_string_size(name, HORIZONTAL_ALIGNMENT_LEFT, -1, PartsTray.TrayItem.NAME_SIZE).x <= 92.0,
+					"%s fits its item" % name)
+	assert_true(seen.has("Switch A") and seen.has("1 W resistor"), str(seen.keys()))
+	assert_eq(PartsTray.TrayItem.name_for(Part.make("L9", "led", 0, 0, 0, {"color": "red"})), "Red LED")

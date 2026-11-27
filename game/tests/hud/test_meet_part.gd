@@ -98,6 +98,40 @@ func test_meet_card_shows_model_and_legs() -> void:
 	assert_true("glows" in card.body_text())
 
 
+## Checkpoint S: the card read as a wall of numbers and citations. The card
+## says what the part does, which leg is which and where you'd find one; its
+## datasheet number and source wait under Go deeper.
+func test_numbers_and_sources_wait_in_go_deeper() -> void:
+	var card := _card("battery", _game())
+	await wait_frames(2)
+	var spec: Dictionary = PartIntros.get_intro("battery")["spec"]
+	assert_false("Source" in card.body_text(), card.body_text())
+	assert_false(GlossaryText.plain(str(spec["text"])) in card.body_text(), card.body_text())
+	assert_eq(card.deeper_text(), "", "hidden until asked for")
+	card.deeper_button().button_pressed = true
+	card.deeper_button().pressed.emit()
+	await wait_frames(1)
+	assert_true(GlossaryText.plain(str(spec["text"])) in card.deeper_text(), card.deeper_text())
+	assert_true("Source: " + str(spec["source"]) in card.deeper_text(), card.deeper_text())
+
+
+## Checkpoint S: "Short leg … the flat edge", but both legs looked the same.
+## The card's LED is a new one, legs uncut: the + leg is the longer one, as on
+## a real 5 mm LED.
+func test_led_card_shows_the_long_leg() -> void:
+	var card := _card("led", _game())
+	await wait_frames(2)
+	var bottom := func(leg: String) -> float:
+		var mi := card.model().find_child("lead_" + leg, true, false) as MeshInstance3D
+		return (mi.global_transform * mi.get_aabb()).position.y
+	var anode: float = bottom.call("anode")
+	var cathode: float = bottom.call("cathode")
+	assert_true(cathode - anode >= PartDims.mm(1.5), "the anode reaches lower: %.3f vs %.3f" % [anode, cathode])
+	assert_true(cathode - anode <= PartDims.mm(3.0), "by a couple of millimeters, not more")
+	var length: float = (card.model().find_child("lead_cathode", true, false) as MeshInstance3D).get_aabb().size.y
+	assert_true(length >= PartDims.mm(20.0), "legs as long as a new LED's: %.3f" % length)
+
+
 func test_spin_turns_the_part() -> void:
 	var card := _card("resistor", _game())
 	await wait_frames(2)
@@ -176,3 +210,46 @@ func test_rules_flag_unknown_part_key() -> void:
 	b.goal({"kind": "no_damage"})
 	b.meet("led").meet("flux_capacitor")
 	assert_eq(LessonRules.problems(b.done()).size(), 1)
+
+
+## Code review (checkpoint S, critical): on a landscape phone, or a small one
+## with Large text, the Meet the part card grew past the screen and its close
+## button went off the top, trapping the player. The card stays inside the
+## screen below the top bar, its close button shows, Go deeper can be scrolled
+## to, and it closes.
+func test_meet_card_fits_and_closes_on_every_screen() -> void:
+	for case in [[Vector2(844, 390), false], [Vector2(640, 360), false], [Vector2(360, 640), true],
+			[Vector2(360, 640), false], [Vector2(1280, 720), true]]:
+		var size: Vector2 = case[0]
+		var large: bool = case[1]
+		var game := _game({"large_text": large})
+		var host := Control.new()
+		host.size = size
+		host.theme = PastelTheme.build(false, large)
+		add_to_tree(host)
+		game.open_level("ch1.light-it-up", true)
+		game.skip_learn()
+		game.finish_try()
+		var s: LevelScreen = load("res://src/screens/level_screen.tscn").instantiate()
+		s.game = game
+		host.add_child(s)
+		await wait_frames(4)
+		var card := s.meet_card
+		var where := "%s%s" % [size, " large" if large else ""]
+		assert_true(card != null and card.visible, where + ": the battery card shows on Build")
+		if card == null:
+			host.queue_free()
+			continue
+		var bar_end := s.top_bar.get_global_rect().end.y
+		var room := Rect2(0, bar_end, size.x, size.y - bar_end)
+		assert_true(room.grow(0.5).encloses(card.get_global_rect()), "%s: %s inside %s" % [where, card.get_global_rect(), room])
+		assert_true(Rect2(Vector2.ZERO, size).encloses(card.close_button().get_global_rect()), where + ": close on screen")
+		card.body_scroll().ensure_control_visible(card.deeper_button())
+		await wait_frames(2)
+		assert_true(card.body_scroll().get_global_rect().grow(0.5).encloses(card.deeper_button().get_global_rect()),
+				where + ": Go deeper scrolls into view")
+		card.close_button().pressed.emit()
+		await wait_frames(2)
+		assert_true(not is_instance_valid(card) or not card.visible, where + ": and it closes")
+		host.queue_free()
+		await wait_frames(1)

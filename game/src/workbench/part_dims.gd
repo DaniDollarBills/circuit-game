@@ -17,6 +17,10 @@ const LED_HEIGHT := 8.6
 const LED_LEAD := 0.5
 const LED_LEAD_PITCH := 2.54
 const LED_FLAT := 2.5
+## A new 5 mm LED's legs below its rim, uncut: about 25 mm, with the + (anode)
+## leg a little longer (typically 1–2 mm) so the two can be told apart.
+const LED_CATHODE_LEG := 25.4
+const LED_ANODE_LEG := 27.4
 ## Resistor bodies, length × diameter: ¼ W carbon film and 1 W metal film.
 const RESISTOR_BODY := Vector2(6.3, 2.4)
 const RESISTOR_1W_BODY := Vector2(11.0, 4.5)

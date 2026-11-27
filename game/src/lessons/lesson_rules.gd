@@ -7,7 +7,8 @@ extends RefCounted
 const CARD_TYPES: PackedStringArray = ["idea", "analogy", "worked", "meet", "control", "real", "history", "tour"]
 const MOODS: PackedStringArray = ["happy", "curious", "wow", "oops"]
 ## Parts of the level screen a Lesson 0 tour card can spotlight.
-const TOUR_TARGETS: PackedStringArray = ["board", "tray", "battery", "top_bar", "column", "hint"]
+const TOUR_TARGETS: PackedStringArray = ["board", "tray", "battery", "top_bar", "map_button", "edit_buttons", "tool_buttons",
+		"column", "hint"]
 
 
 static func problems(l: LevelDef) -> PackedStringArray:

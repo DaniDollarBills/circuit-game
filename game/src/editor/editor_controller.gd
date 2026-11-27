@@ -183,7 +183,7 @@ func _drag_end(at: Vector2, ctx: Dictionary) -> Array[Dictionary]:
 					return []
 				snap = _snap(c, at, 1.5 * float(ctx["pin_r"]), m)
 			if snap[0] == "":
-				return [{"type": "toast", "text": "Drop the wire on a metal dot."}]
+				return [{"type": "toast", "text": "Drop the wire on a part's metal end."}]
 			return _connect(c, m["from_part"], m["from_pin"], snap[0], snap[1])
 		"moving":
 			var spot := Vector2i((at - (m["grab"] as Vector2)).round())

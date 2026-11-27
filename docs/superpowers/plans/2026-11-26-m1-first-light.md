@@ -53,11 +53,33 @@
 - LED tints: red `#FF8F9A`, yellow `#FFE27A`, green `#8FE3B0`, blue `#8FC2FF`.
 - Font: Nunito 400/700/800 (`@fontsource/nunito@5.3.0` woff2 files), imported with MSDF enabled.
 
+**Real-life look (3D)**
+- In workbench scenes, 1 world unit = 1 cm. The board's grid pitch is 0.254 units (2.54 mm), and the board top is at y = 0.
+- True-to-size dimensions in mm (exact):
+
+  | Item | Dimensions |
+  |---|---|
+  | LED, 5 mm | dome Ø5.0, flange Ø5.8, height 8.6; leads 0.5 mm square, 2.54 apart; flat on the cathode side |
+  | ¼ W carbon-film resistor | body 6.3 × Ø2.4, beige; leads Ø0.6; pin span 10.16 |
+  | 1 W metal-film resistor | body 11.0 × Ø4.5, blue; pin span 15.24 |
+  | Mini toggle switch | body 13 × 8 × 10; lever 10 |
+  | AA cell | 50.5 × Ø14.5 |
+  | 4 × AA holder | 63 × 58 × 15 |
+  | Jumper wire, 22 AWG | copper Ø0.64; insulation Ø1.4 |
+  | Perfboard | 1.6 thick FR-4; holes Ø1.0; tinned pads Ø1.8 at every grid point |
+  | Handheld multimeter | 150 × 75 × 35 |
+
+- The battery holder and the multimeters sit on the desk beside the board, joined to their pins by leads (battery) or clip leads (meters).
+- Assets are listed in `game/assets/third_party/manifest.json` with URL, license, credit and checksum. `tools/fetch_assets.mjs` downloads and verifies them, the files are committed, and `CREDITS.md` lists them.
+- M1 Poly Haven assets (CC0, 2K): `studio_small_09` (HDRI), `kloofendal_48d_partly_cloudy_puresky` (HDRI), `wood_table_001`, `aerial_beach_01` and `sand_01` (textures). NASA Earth imagery is added in Task 18.
+
 **Real life by default, heavy help**
 - Settings defaults:
   - `help_level = "heavy"` (`"heavy"`|`"light"`|`"off"`)
-  - `view_style = "schematic"` (`"schematic"`|`"physical"`)
+  - `view_style = "physical"` (`"physical"` is the real-looking 3D workbench; `"schematic"` shows circuit symbols)
   - `show_values = true`
+  - `show_current = true` (the glowing current-flow overlay)
+  - `quality = "auto"` (`"auto"`|`"low"`|`"medium"`|`"high"`|`"ultra"`)
 - Every part has a datasheet (`Catalog.datasheet`) with real-world values, and every value shown on screen can be explained (`Explain.part`).
 - The help level only changes how much guidance is shown, never the parts, values or physics.
 - UI flags record help actions so steps can tick:
@@ -113,6 +135,10 @@ game/src/content/    glossary.gd chapters.gd levels.gd ch1/l1_light_it_up.gd …
 game/src/ui/         palette.gd pastel_theme.gd glossary_text.gd gallery.tscn gallery.gd
 game/src/zoom/       zoom_camera.gd zoom_link.gd layer_info.gd zoom_math.gd scale_format.gd zoom_layer.gd zoom_stage.gd zoom_demo.tscn zoom_demo.gd
 game/src/input/      gesture_recognizer.gd pointer_input.gd
+game/src/render/     quality.gd studio_environment.gd materials.gd materials_gallery.tscn materials_gallery.gd
+game/src/workbench/  part_dims.gd part_models.gd wire_mesh.gd meter_rig.gd workbench_3d.gd workbench_gallery.tscn workbench_gallery.gd
+game/assets/third_party/ manifest.json CREDITS.md polyhaven/… nasa/…
+tools/fetch_assets.mjs
 game/src/editor/     draw_kit.gd resistor_bands.gd visual_state.gd explain.gd part_art.gd wire_art.gd hit_test.gd editor_controller.gd circuit_view.gd flow_view.gd editor_layer.gd editor_layer.tscn art_gallery.tscn art_gallery.gd
 game/src/screens/    title_screen.* map_screen.* level_screen.*
 game/src/hud/        top_bar.gd parts_tray.gd goals_panel.gd test_sheet.gd hint_button.gd context_menu.gd value_popover.gd toasts.gd pip.gd guide_bubble.gd glossary_popup.gd settings_sheet.gd scale_bar.gd steps_checklist.gd datasheet_card.gd formula_card.gd explain_popover.gd new_word_card.gd notebook_sheet.gd
@@ -282,13 +308,14 @@ func test_async_waits_frames() -> void:
     | kind | title | size | pins (rot 0) | defaults |
     |---|---|---|---|---|
     | `battery` | Battery pack (4 × AA) | (2,4) | `pos` (0,−2), `neg` (0,2) | `{volts: 5.0}` |
-    | `resistor` | Resistor | (4,1) | `a` (−2,0), `b` (2,0) | `{ohms: 220.0, adjustable: false, watts: 0.25}` |
+    | `resistor` | Resistor | (4,1); (6,1) when `watts ≥ 1.0` | `a` (−2,0), `b` (2,0); (−3,0) and (3,0) when `watts ≥ 1.0` | `{ohms: 220.0, adjustable: false, watts: 0.25}` |
     | `led` | LED | (2,1) | `anode` (−1,0), `cathode` (1,0) | `{color: "red"}` |
     | `switch` | Switch | (4,1) | `a` (−2,0), `b` (2,0) | `{closed: false}` |
     | `ammeter` | Current meter | (2,2) | `a` (−1,0), `b` (1,0) | `{}` |
     | `voltmeter` | Voltage meter | (2,2) | `pos` (−1,0), `neg` (1,0) | `{}` |
 
   - `Catalog.pin_names(kind) -> PackedStringArray` and `Catalog.title(kind) -> String`
+  - `Catalog.pins(kind, props := {}) -> Array` and `Catalog.size(kind, props := {}) -> Vector2i`. These are props-aware (1 W resistors are wider), and `CircuitGeometry` always uses them.
   - `Catalog.datasheet(p: Part) -> Array[Dictionary]`: rows `{label, value, term}`, where `term` is a glossary key or `""`. The copy is exact:
     - **battery:** Voltage "5.0 V" (voltage); Cells "4 × AA, partly used"; Internal resistance "1 Ω" (resistance); Short-circuit current "5 A, gets hot!" (short circuit)
     - **resistor:** Resistance "{ohms} Ω" (resistance); Tolerance "±5%"; Power rating "0.25 W (¼ W)" or "1 W" (power); Type "Carbon film"
@@ -317,6 +344,7 @@ func test_async_waits_frames() -> void:
   - `test_wire_path_via()`: a wire with `via` [(−4,−6),(9,−6),(9,1)] from R1.a to L1.cathode → `[(-4,-4),(-4,-6),(9,-6),(9,1),(6,1)]`.
   - `test_find_part_by_label()` and `test_copy_is_deep()`.
   - `test_resistor_default_watts_quarter()`
+  - `test_one_watt_resistor_pins_wider()` (`watts: 1.0` at (0,0) rot 0 puts pins at (−3,0) and (3,0))
   - `test_datasheet_red_led()` (has rows "Forward voltage" = "2.0 V at 20 mA" and "Absolute maximum" = "30 mA")
   - `test_datasheet_one_watt_resistor()` ("Power rating" = "1 W")
 - [ ] **Step 2: Run `tools/test.sh circuit/`.** Expected: FAIL.
@@ -1191,7 +1219,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
 - [ ] **Step 4: Run the tests.** Expected: PASS.
 - [ ] **Step 5: Commit** with `feat: gesture recognizer with pinch, long-press and drag`.
 
-### Task 14: Editor art (pure) and the art gallery
+### Task 14: Schematic art, values and explanations (pure)
 
 **Files:**
 - Create: `game/src/editor/{draw_kit,resistor_bands,visual_state,explain,part_art,wire_art}.gd`, `game/src/editor/art_gallery.tscn`, `game/src/editor/art_gallery.gd`, `game/tests/editor/{test_resistor_bands,test_visual_state,test_explain,test_part_art,test_wire_art}.gd`
@@ -1208,8 +1236,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
     - `hot` (battery in `shorts`)
     - `reading` (ammeter `"%.1f mA"` of |I|·1000; voltmeter `"%.2f V"`; `"—"` if NAN)
     - `closed`, `color`, `label`
-  - `PartArt.ops(p: Part, vis: Dictionary, selected: bool, highlighted: bool, style := "schematic") -> Array[Dictionary]`
-    - `style` is `"schematic"` (the default, real circuit symbols) or `"physical"`.
+  - `PartArt.ops(p: Part, vis: Dictionary, selected: bool, highlighted: bool) -> Array[Dictionary]`: the Schematic view's real circuit symbols. The real-looking 3D view is Task 14c.
     - Ops are in **part-local** grid units (before rotation).
     - Op types:
       - `rrect{rect, radius, fill, stroke, stroke_w}`
@@ -1236,19 +1263,13 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
     - Floating: `"Not connected to the battery yet."`
   - `DrawKit` static drawing helpers (`rrect`, `circle`, `capsule`, `glow`, `text`) taking a `CanvasItem` and `px_per_unit` (the circle segment count is clamp(r·px_per_unit/2, 12, 96)).
 - **Visual requirements** (the implementer chooses coordinates; the gallery capture checks them):
-  - **Schematic style (default):** real circuit symbols drawn with rounded ink strokes on soft pastel tiles.
+  - Real circuit symbols drawn with rounded ink strokes on soft pastel tiles:
     - battery: long and short plates with "+" by the long plate and "5V", on a mint tile; a coral tile and glow when hot
     - resistor: a zigzag polyline with 6 peaks on a butter tile, with the value below ("220 Ω", plus "1 W" when rated 1 W); an arrow across it when adjustable
     - LED: a triangle pointing anode → cathode with a bar at the cathode, filled in its tint, with two small light arrows that glow with brightness
     - switch: two contact dots and a lever line, flat when closed and raised 30° when open, with its label
     - meters: a circle with "A" or "V" (sky for current, lilac for voltage) and the reading below
-  - **Physical style:**
-    - battery: a mint 4 × AA pack with + and − labels
-    - resistor: a butter body with color bands; 1 W resistors are drawn 1.5× larger
-    - LED: a domed body in its tint with a flat cathode-side line, a "+" by the anode, and a glow scaled by brightness
-    - switch: a toggle with metal contacts
-    - meters: round dials with a paper display
-  - **Both styles:** burnt parts are dimmed with a scorch mark, and pins are metal dots.
+  - Burnt parts are dimmed with a scorch mark, and pins are metal dots.
 
 - [ ] **Step 1: Write the failing tests.**
   - `test_digits` (220 → [2,2,1]; 1000 → [1,0,2]; 47 → [4,7,0]; 500 → [5,0,1]; 150 → [1,5,1]; 1234 → [1,2,2])
@@ -1270,14 +1291,142 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
   - `test_engineer_labels_volts_and_amps` (`compact_loop(220)` gives `"4.99 V"` on the + net and `"13.8 mA"` on R1 and on L1)
   - `test_schematic_resistor_is_zigzag_polyline`
   - `test_schematic_led_has_triangle_poly`
-  - `test_physical_style_has_color_bands`
   - `test_explain_resistor_led_battery_220` (the exact lines above)
   - `test_explain_floating_and_burnt`
 - [ ] **Step 2: Run `tools/test.sh editor/`.** Expected: FAIL.
-- [ ] **Step 3: Implement.** The art gallery shows every part kind in each state, in both styles, on a cream board.
+- [ ] **Step 3: Implement.** The art gallery shows every part kind in each state on a cream board.
 - [ ] **Step 4: Run the tests.** Expected: PASS.
 - [ ] **Step 5: Visual check.** Capture `res://src/editor/art_gallery.tscn`. It passes if each part matches the visual requirements, edges stay crisp at 1× and at 4× zoom (the gallery reads `--zoom=`), and nothing clips.
 - [ ] **Step 6: Commit** with `feat: pastel part and wire art`.
+
+### Task 14b: Realistic rendering foundation — assets, studio lighting, materials, quality
+
+**Files:**
+- Create: `tools/fetch_assets.mjs`, `game/assets/third_party/manifest.json`, `game/assets/third_party/CREDITS.md`, the downloaded files under `game/assets/third_party/polyhaven/…`, `game/src/render/{quality,studio_environment,materials}.gd`, `game/src/render/materials_gallery.tscn` + `.gd`, `game/tests/render/{test_quality,test_materials,test_manifest}.gd`
+
+**Interfaces:**
+- Produces:
+  - `tools/fetch_assets.mjs` (Node 22, no dependencies):
+    - Reads the manifest.
+    - For Poly Haven entries, it resolves each file's URL and md5 from `https://api.polyhaven.com/files/<id>`: 2K resolution; HDRIs as `.hdr`; textures as `diff`, `nor_gl` and `rough` JPGs.
+    - It downloads to the listed path and verifies the md5 (Poly Haven) or the pinned `sha256` (any other source).
+    - It exits non-zero on any mismatch, and files that already verify are skipped.
+  - `manifest.json` entries: `{id, source: "polyhaven"|"nasa", kind: "hdri"|"texture"|"image", files: [{path, url?, md5?, sha256?}], license: "CC0"|"Public domain", credit}`.
+    - M1 entries: `studio_small_09` and `kloofendal_48d_partly_cloudy_puresky` (HDRIs); `wood_table_001`, `aerial_beach_01` and `sand_01` (textures).
+    - `CREDITS.md` lists each one with its license and a link.
+  - `Quality.PRESETS` (exact):
+
+    | preset | sdfgi | ssao | ssil | ssr | glow | dof | shadow_size | msaa_3d |
+    |---|---|---|---|---|---|---|---|---|
+    | low | no | no | no | no | yes | no | 1024 | 2x |
+    | medium | no | no | no | no | yes | yes | 2048 | 2x |
+    | high | no | yes | yes | yes | yes | yes | 2048 | 4x |
+    | ultra | yes | yes | yes | yes | yes | yes | 4096 | 4x |
+
+  - `Quality.auto(rendering_method: String) -> String`: `forward_plus` → `"high"`, `mobile` → `"medium"`, `gl_compatibility` → `"low"`. `Quality.resolve(setting: String, rendering_method: String) -> String` returns `auto` resolved, or the explicit preset.
+  - `StudioEnvironment.build(hdri_path: String, quality: String) -> Environment`:
+    - a panorama sky from the HDRI, which also provides the ambient light and reflections
+    - `tonemap_mode = TONE_MAPPER_ACES`, exposure 1.0
+    - glow with `glow_hdr_threshold = 1.0`, so only emissive parts bloom
+    - SSAO, SSIL, SSR and SDFGI as the preset says
+  - `StudioEnvironment.camera_attributes(quality: String, focus_distance: float) -> CameraAttributesPractical` (far and near DOF blur when the preset has `dof`).
+  - `Materials` static factory (all `StandardMaterial3D`, cached by name and arguments):
+
+    | name | albedo | metallic | roughness | notes |
+    |---|---|---|---|---|
+    | `plastic_matte(c)` | c | 0.0 | 0.6 | |
+    | `plastic_gloss(c)` | c | 0.0 | 0.25 | clearcoat 0.3 |
+    | `epoxy_clear(tint)` | tint, alpha 0.35 | 0.0 | 0.05 | transparent; refraction 0.05 where supported; rim 0.2 |
+    | `copper()` | `#B87333` | 1.0 | 0.35 | |
+    | `tin()` | `#C8CDD2` | 1.0 | 0.4 | leads, pads |
+    | `steel()` | `#9EA4AA` | 1.0 | 0.45 | |
+    | `fr4()` | `#C9B48A` | 0.0 | 0.7 | perfboard |
+    | `resistor_paint(c)` | c | 0.0 | 0.55 | carbon film `#D8C39A`, 1 W metal film `#6E9FCB` |
+    | `pvc(c)` | c | 0.0 | 0.45 | wire insulation |
+    | `rubber()` | `#2A2A2E` | 0.0 | 0.85 | |
+    | `lcd()` | `#9FB3A6` | 0.0 | 0.1 | meter display |
+    | `wood_desk()` | `wood_table_001` maps | 0.0 | from map | with normal map |
+    | `cutting_mat()` | mint `#BDEBD7` | 0.0 | 0.8 | 1 cm and 1 mm grid lines in a generated texture |
+
+- [ ] **Step 1: Write the failing tests.**
+  - `test_quality_auto_per_renderer`
+  - `test_quality_resolve_explicit_wins`
+  - `test_presets_monotonic` (every effect on in a lower preset is also on in every higher one)
+  - `test_materials_pbr_values` (copper metallic 1.0 and roughness 0.35; `epoxy_clear` transparent)
+  - `test_manifest_entries_have_license_and_credit`
+  - `test_manifest_files_verify` (`FileAccess.get_md5` / `get_sha256` of every listed file matches the manifest)
+- [ ] **Step 2: Run `tools/test.sh render/`.** Expected: FAIL.
+- [ ] **Step 3: Write the manifest and the fetch script, run `node tools/fetch_assets.mjs`, then implement `Quality`, `StudioEnvironment` and `Materials`.** Expected from the fetch: every file reported as verified.
+- [ ] **Step 4: Run the tests.** Expected: PASS.
+- [ ] **Step 5: Visual check.** Capture `res://src/render/materials_gallery.tscn` (a sphere and a cube of each material, plus a glowing LED die, under `studio_small_09`) with `forward_plus` (lavapipe) at High, and with `gl_compatibility`. It passes if:
+  - the metals reflect the studio
+  - the plastics look molded, not shiny
+  - the epoxy is see-through
+  - only the LED die blooms
+  - no highlights are blown out
+  - Compatibility still looks clean, just flatter
+- [ ] **Step 6: Commit** with `feat: realistic rendering foundation with CC0 studio lighting and PBR materials`.
+
+### Task 14c: True-to-size 3D parts, wires and the workbench
+
+**Files:**
+- Create: `game/src/workbench/{part_dims,part_models,wire_mesh,meter_rig,workbench_3d}.gd`, `game/src/workbench/workbench_gallery.tscn` + `.gd`, `game/tests/workbench/{test_part_dims,test_wire_mesh,test_part_models,test_workbench}.gd`
+
+**Interfaces:**
+- Consumes: Task 3 (catalog, geometry), Task 7 (`SimResult`), Task 14 (`VisualState`, `ResistorBands`, `WireArt.dots`), Task 14b (`Materials`, `StudioEnvironment`, `Quality`).
+- Produces:
+  - `PartDims`: the Global Constraints dimensions as constants (mm), plus `grid_to_world(p: Vector2) -> Vector3` (x·0.254, 0, y·0.254) and `world_to_grid(v: Vector3) -> Vector2`.
+  - `PartModels.build(p: Part) -> Node3D`: a true-to-size model whose lead tips end exactly in the holes at `CircuitGeometry.pin_position`.
+    - **resistor:** a body with 4 painted bands from `ResistorBands` (the 4th is gold tolerance) and tinned leads bent down into the holes.
+    - **led:** an epoxy dome and cylinder with its flange, a flat on the cathode side, and inside it an emissive die on a reflector cup with anvil and post; two tinned leads.
+    - **switch:** a mini toggle with a steel bushing and lever, tilted +15° when closed and −15° when open.
+    - **battery:** two header posts with red (`pos`) and black (`neg`) leads running off the board to a 4 × AA holder on the desk, with four AA cells.
+    - **ammeter / voltmeter:** two clip leads (red on `a`/`pos`, black on `b`/`neg`) running to a handheld multimeter on the desk. Its LCD shows `VisualState.reading`, and its dial points at mA or V.
+  - `PartModels.apply_state(node: Node3D, vis: Dictionary) -> void`:
+    - **LED:** die emission and an `OmniLight3D` (range 3 cm, energy proportional to brightness, colored by wavelength: red `#FF2A1A`, yellow `#FFC21A`, green `#9CFF3A`, blue `#2A6BFF`).
+    - **Burnt:** darkened epoxy or body, plus `GPUParticles3D` smoke for 3 s.
+    - **Overheated resistor:** a scorched body color.
+    - **Hot battery:** a red emissive tint on the holder.
+    - **Blown meter fuse:** the LCD shows "FUSE".
+  - `WireMesh.points(path: PackedVector2Array, lift_mm := 1.2) -> PackedVector3Array` (pure): a vertical drop into each end hole, then the path `lift_mm` above the board, with rounded corners of radius 1.5 mm and at least 6 segments per 90°.
+  - `WireMesh.tube(points: PackedVector3Array, radius_mm := 0.7, sides := 12) -> ArrayMesh`.
+  - `WireMesh.color_for(c: Circuit, w: Wire, index: int) -> Color`:
+    - red `#D2342B` when either end is on a battery `pos` net, black `#1E1E22` when on a `neg` net
+    - otherwise cycling yellow `#E8C547`, green `#4FA36B`, blue `#3D7CC9`, white `#EDEDED`, orange `#E8833A`
+  - `MeterRig.place(c: Circuit) -> Dictionary` maps each meter and battery part id to a desk position beside the board: batteries on the left, meters on the right, spaced so nothing overlaps.
+  - `class_name Workbench3D extends Node3D`:
+    - **The scene:**
+      - a desk (`wood_desk`), with a 30 × 20 cm cutting mat (`cutting_mat`)
+      - a perfboard (`fr4`) sized to the circuit bounds plus 4 holes of margin, with a pad `MultiMesh` at every grid point
+      - the parts, wires and off-board rigs
+      - a current overlay: emissive dots along the wire centerlines, using `WireArt.dots` spacing and speed, hidden when `show_current` is off
+      - a `Camera3D` (FOV 30°, pitched 25° from vertical), and a `WorldEnvironment` from `StudioEnvironment.build(studio_small_09, quality)`
+    - `set_state(c: Circuit, sim: SimResult, settings: Dictionary, ghosts: Dictionary, highlights: Array)`
+    - `apply_view(center: Vector2, view: float)` (the camera frames `view` grid units of board height)
+    - `screen_to_grid(screen_pos: Vector2) -> Vector2` (the ray meets the plane y = 0) and `grid_to_screen(p: Vector2) -> Vector2`
+    - Value labels are `Label3D` billboards when `show_values` is on.
+
+- [ ] **Step 1: Write the failing tests.**
+  - `test_grid_world_round_trip`
+  - `test_resistor_body_dims` (the body AABB is 6.3 × 2.4 × 2.4 mm within 0.05; the 1 W body is 11.0 × 4.5 × 4.5)
+  - `test_led_dims` (dome Ø5.0, flange Ø5.8, height 8.6, within 0.05)
+  - `test_leads_end_at_pin_holes` (for every kind and every rotation, each lead tip's grid position equals `pin_position` within 0.01)
+  - `test_wire_points_drop_into_holes_and_round_corners`
+  - `test_wire_colors_red_black_by_battery_net`
+  - `test_meter_rig_places_off_board_without_overlap`
+  - `test_screen_to_grid_round_trip` (scene test, headless: camera math works without rendering)
+- [ ] **Step 2: Run `tools/test.sh workbench/`.** Expected: FAIL.
+- [ ] **Step 3: Implement.** Build `workbench_gallery.tscn`: every part unlit, lit and burnt, plus the L1 solution with live current.
+- [ ] **Step 4: Run the tests.** Expected: PASS.
+- [ ] **Step 5: Visual check.** Capture the gallery at 1280×720 with `forward_plus` (High) and with `gl_compatibility`. It passes if:
+  - the parts read as real components at true size
+  - the resistor bands are readable when zoomed in
+  - the LED's light falls on the board around it
+  - wires sit just above the board with rounded bends
+  - the multimeter's display is readable
+  - nothing floats or intersects
+  - Compatibility stays clean
+- [ ] **Step 6: Commit** with `feat: true-to-size 3D parts, wires and the real-looking workbench`.
 
 ### Task 15: Editor — hit testing, controller and editor layer
 
@@ -1285,7 +1434,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
 - Create: `game/src/editor/{hit_test,editor_controller,circuit_view,flow_view,editor_layer}.gd`, `game/src/editor/editor_layer.tscn`, `game/src/editor/editor_preview.tscn` + `editor_preview.gd` (dev only: reads `--level=<id>` and `--solution`, shows that circuit with live sim), `game/tests/editor/{test_hit_test,test_editor_controller,test_editor_layer}.gd`
 
 **Interfaces:**
-- Consumes: Tasks 3, 4, 7, 8 (`SolutionDiff`), 12, 13, 14.
+- Consumes: Tasks 3, 4, 7, 8 (`SolutionDiff`), 12, 13, 14, 14b, 14c.
 - Produces:
   - `HitTest.at(c: Circuit, p: Vector2, pin_r: float, wire_r: float) -> Dictionary` returns `{kind: "pin"|"part"|"wire"|"empty", part, pin, wire, at}`.
     - Priority: nearest pin within `pin_r`, then the topmost part whose rotated rect contains `p`, then a wire within `wire_r` of its path, then empty.
@@ -1319,17 +1468,19 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
     - `long_press` or `secondary_tap` on a part or wire → `menu`.
     - `zoom` and `pan` → camera effects.
     - Keys: `rotate`, `delete`, `cancel`.
-  - `class_name EditorLayer extends ZoomLayer` (scene `editor_layer.tscn`: SubViewport → Node2D world → `Camera2D`, `CircuitView`, `FlowView`, `PointerInput`):
+  - `class_name EditorLayer extends ZoomLayer` (scene `editor_layer.tscn`):
+    - Its SubViewport holds two views of the same circuit, and `settings.view_style` picks which one renders: `Workbench3D` (Task 14c, the default real-looking view) or `Schematic2D` (a Node2D world with `Camera2D`, `CircuitView` and `FlowView`).
+    - One `PointerInput` feeds one `EditorController`. Screen-to-grid conversion goes through the active view (`Workbench3D.screen_to_grid` or the `Camera2D` transform).
     - `signal commit_requested(c: Circuit)`, `signal menu_requested(target: Dictionary, screen_pos: Vector2)`, `signal value_requested(part_id: String)`, `signal datasheet_requested(part_id: String)`, `signal selected(id: String)`, `signal toast_requested(text: String)`, `signal ghost_tapped(kind: String, data: Dictionary)`
     - `set_state(c: Circuit, sim: SimResult, settings: Dictionary, ghosts: Dictionary, highlights: Array)`
     - `set_tray(tray: Array, used: Array[int])`, `begin_placing(i: int)`
     - `fit_view() -> float` (circuit bounds plus 3 units of margin; the result is at least 12)
     - `pin_screen_pos(part_id, pin) -> Vector2` (for tests)
-    - `apply_view`: `Camera2D.position = center*32` and `zoom = size.y/(view*32)`
+    - `apply_view` forwards to the active view. Schematic: `Camera2D.position = center*32` and `zoom = size.y/(view*32)`. Workbench: `Workbench3D.apply_view(center, view)`.
     - `dynamic_child` returns null in this task (Task 19 adds it)
     - The pin radius in grid units is max(0.35, 22/px_per_unit). `FlowView` animates dots each frame when any |I| ≥ 1e-5, unless `reduced_motion` is on (then it draws static arrows).
     - Dot directions use `WireArt.display_amps`.
-    - `CircuitView` takes every color from `Palette.color(name, settings.night)`. It draws parts in `settings.view_style`, draws `VisualState.engineer_labels` when `show_values` is on (the default), and draws `WireArt.pattern_dashes` when `patterns` is on.
+    - `CircuitView` (the Schematic view) takes every color from `Palette.color(name, settings.night)`. It draws `VisualState.engineer_labels` when `show_values` is on (the default), and `WireArt.pattern_dashes` when `patterns` is on. The workbench shows the same values as floating labels.
     - Newly placed parts pop in with a 0.18 s scale overshoot. This is skipped when `reduced_motion` is on.
 
 - [ ] **Step 1: Write the failing tests.**
@@ -1353,11 +1504,11 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
     - `test_long_press_opens_menu`
     - `test_drag_cancel_while_wiring_commits_nothing`
     - `test_rotate_and_delete_keys_on_selection`
-  - Editor layer (scene test): load L1, push mouse press/motion/release events at `pin_screen_pos` for the three solution wires, and assert three `commit_requested` emissions whose last circuit lights L1 (via `Simulator`).
+  - Editor layer (scene test), once per view (`physical` and `schematic`): load L1, push mouse press/motion/release events at `pin_screen_pos` for the three solution wires, and assert three `commit_requested` emissions whose last circuit lights L1 (via `Simulator`).
 - [ ] **Step 2: Run `tools/test.sh editor/`.** Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run the tests.** Expected: PASS.
-- [ ] **Step 5: Visual check.** Capture `res://src/editor/editor_preview.tscn -- --level=ch1.light-it-up --solution`, once as is (circuit symbols with values) and once with `--physical`. It passes if:
+- [ ] **Step 5: Visual check.** Capture `res://src/editor/editor_preview.tscn -- --level=ch1.light-it-up --solution`, once as is (the real-looking workbench, with `forward_plus`) and once with `--schematic`. It passes if:
   - wires are tinted by voltage
   - sparks sit on the wires
   - the LED glows
@@ -1444,7 +1595,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
     - **GlossaryPopup:** opened by `meta_clicked`.
     - **StepsChecklist** (Heavy only): the level's steps, ticked from `session.step_results`. The first unticked step is highlighted.
     - **DatasheetCard:** opened by `datasheet_requested`, by the menu's Datasheet item, or by a tray item's ⓘ button.
-      - It shows the `Catalog.datasheet` rows with glossary links, the resistor color code from `ResistorBands`, and small previews of the part in both styles.
+      - It shows the `Catalog.datasheet` rows with glossary links, the resistor color code from `ResistorBands`, and a small turntable preview of the real 3D part (`PartModels`) next to its schematic symbol.
       - It sets the flag `"datasheet:<id>"`, or `"datasheet:tray"` when opened from the tray.
     - **FormulaCard** (the calculator, opened from the TopBar):
       - Tabs: LED resistor, Ohm's law, Power. Fields are prefilled from the level (supply 5.0 V; in L2, the LED's 2.0 V at 20 mA).
@@ -1459,7 +1610,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
       - Light hides all three.
       - Off also hides the HintButton.
     - **Flags:** the ValuePopover sets `"value:<id>"`, Test sets `"tested"`, and selecting a wire sets `"selected:<id>"`.
-    - **SettingsSheet:** Help (Heavy / Light / Off), Look (Circuit symbols / Physical), Show values, and toggles for reduced motion, electron flow, large text, patterns and night. They apply immediately; the theme rebuilds for night and large text.
+    - **SettingsSheet:** Help (Heavy / Light / Off), Look (Real 3D / Schematic), Show values, Show current flow, Graphics quality (Auto / Low / Medium / High / Ultra), and toggles for reduced motion, electron flow, large text, patterns and night. They apply immediately; the theme rebuilds for night and large text.
     - **NewWordCard** (at every help level):
       - A non-blocking card that slides in from the side, with a "New word" tag, the title, the `simple` definition, and the `precise` one under "More precisely".
       - It stays 8 s or until tapped (tapping opens the full GlossaryPopup).
@@ -1550,7 +1701,9 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
 
   - Globe:
     - Focus at Bude, UK (50.83, −4.55).
-    - `SphereMesh` with a radius of 6371 units and the land texture.
+    - `SphereMesh` with a radius of 6371 units, textured with NASA Blue Marble (day) and Black Marble city lights on the night side, plus a separate cloud shell, specular oceans and an atmosphere rim.
+    - Add the three NASA images to the manifest (public domain; sha256 pinned on first fetch).
+    - If `eoimages.gsfc.nasa.gov` is still unreachable, ledger a ruling and use `LandTexture` (Natural Earth land on a realistic ocean color) until it opens.
     - A soft lilac rim (Fresnel).
     - Seven stylized cable arcs at 20 km altitude, as tubes with emissive peach color and moving light pulses (`MultiMesh`). The pairs are:
       - New York (40.71,−74.01) ↔ Bude (50.83,−4.55)
@@ -1561,11 +1714,11 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
       - Singapore (1.35,103.82) ↔ Perth (−31.95,115.86)
       - Mumbai (19.08,72.88) ↔ Muscat (23.59,58.41)
     - Glow is enabled in a `WorldEnvironment`.
-  - Coast: a sea plane with gentle wave shading, a noise-generated mint coastline, a butter beach strip, a few houses, a small cable landing building, and a peach cable line into the sea.
-  - Beach: a sand plane, animated foam lines, the player's future workshop shack, shells.
-  - Grain: low-poly noise-displaced grains in pastel quartz tones. Below a view of 5 the micro-surface fades in.
-  - Silica: `MultiMesh` spheres (Si lavender, radius 0.9; O rose, radius 0.6) and thin bond cylinders.
-  - Atom: a nucleus of 14 rose protons and 14 lilac neutrons, plus shells at display radii 50/100/150 holding 2, 8 and 4 butter electrons orbiting on tilted rings.
+  - Coast: the `aerial_beach_01` photo texture for sand and shallows, an ocean shader with moving waves and foam, the `kloofendal_48d_partly_cloudy_puresky` sky, a few houses, a small cable landing building, and the undersea cable running into the sea (drawn glowing and labeled as a visualization).
+  - Beach: `sand_01` PBR sand, breaking waves with foam, the player's future workshop shack and shells, under the same sky.
+  - Grain: realistic quartz grains (translucent, slightly frosted, rounded by the sea) under studio light, with macro depth of field. Below a view of 5, a pitted micro-surface fades in.
+  - Silica: a ball-and-stick model the way chemists render it, under studio light. Si spheres of radius 0.9 in `#F0C8A0` and O spheres of radius 0.6 in `#FF0D0D` (the standard element colors), with thin bond cylinders.
+  - Atom: a nucleus of 14 protons and 14 neutrons, surrounded by a soft electron cloud whose density follows silicon's shells (2, 8 and 4 electrons). A "Simple picture" toggle shows the classic shells instead: display radii 50, 100 and 150, with 2, 8 and 4 electrons on tilted rings.
   - Captions (exact), one per layer:
     - globe: "This is Earth. The glowing lines are undersea cables that carry the internet."
     - coast: "Some of those cables come ashore on beaches like this one."
@@ -1573,7 +1726,7 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
     - grain: "One grain of sand."
     - silica: "Sand is mostly silica: silicon and oxygen atoms locked together."
     - atom: "A silicon atom. Everything you'll build starts here."
-  - Atom Go-deeper text (exact): "Real electrons are fuzzy clouds, not tiny planets. And the nucleus is drawn far too big: if this atom were a stadium, its nucleus would be a pea."
+  - Atom Go-deeper text (exact): "Electrons don't orbit like tiny planets. This cloud shows where they're likely to be. The nucleus is drawn far too big: if this atom were a stadium, its nucleus would be a pea."
   - Title UI: the "Circuit" heading, caption label, scale bar with jump badge, Skip, Settings, and Start/Continue (shown when the zoom finishes or is skipped).
   - Captions go through `GlossaryText.render`. Their new words (for example undersea cable, internet, silica, silicon, atom) appear as small subtitles under the caption with the `simple` definition only. They don't block anything, and they are marked seen. Any user zoom input stops autoplay. With reduced motion, the title shows a slideshow: each layer's home view for 4 s, fading through cream over 0.6 s.
 
@@ -1593,12 +1746,12 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
 - [ ] **Step 4: Implement the layers, director and title screen.**
 - [ ] **Step 5: Run the tests.** Expected: PASS.
 - [ ] **Step 6: Visual check.** Capture each title layer at its home view (the title screen reads `--layer=`), in `gl_compatibility` and in `forward_plus` (lavapipe). It passes if:
-  - continents are recognizable and Europe faces the camera
-  - cables glow peach
-  - the beach reads as a beach
+  - the Earth looks like a satellite photo with clouds, and Europe faces the camera
+  - the cables glow
+  - the coast and the beach look photographic
+  - the grains look like real quartz
   - the silica network shows tetrahedra
-  - the atom shows 2-8-4 shells
-  - the pastel palette is used throughout
+  - the atom's cloud is soft, and the simple picture shows the 2-8-4 shells
   - Compatibility shows no missing effects, only fewer of them
 - [ ] **Step 7: Commit** with `feat: title zoom from Earth to a silicon atom`.
 
@@ -1615,11 +1768,11 @@ Formulas (the calculator heavy help suggests): L2 `led_resistor`, L3 `ohms_law`,
   - `class_name WireCloseupLayer extends ZoomLayer`:
     - id `wire.closeup`, 1e-5 meters per unit, home 200
     - `set_wire(amps: float, dir: Vector2)`
-    - Content: a 3D wire along `dir` with a copper core of radius 30, a translucent insulation of radius 70 and a cutaway, plus current arrows moving at `WireArt.dot_speed(amps)` scaled ×40.
+    - Content: a 3D wire along `dir` with a copper core of radius 30 (`Materials.copper`), PVC insulation of radius 70 (`Materials.pvc`) and a cutaway, lit by `studio_small_09` with macro depth of field. Current arrows move at `WireArt.dot_speed(amps)` scaled ×40, as a teaching overlay.
     - Static link to copper: 8 → 60 (a jump of ≈ ×13,333).
   - `class_name CopperLayer extends ZoomLayer`:
     - id `wire.copper`, 1e-10 meters per unit, min view 15 (clamp)
-    - An FCC patch of 6×6×2 cells: copper-peach spheres of radius 1.28 Å.
+    - An FCC patch of 6×6×2 cells: copper atoms as spheres of radius 1.28 Å with a polished copper material.
     - 60 butter electrons with random thermal jitter, plus a net drift **opposite** to conventional current. The visual drift speed is clamp(0.5·log10(|I|/1e-5), 0, 3) Å per second.
     - Caption (exact): "Copper atoms sit in a neat grid called a crystal lattice. Electrons zip around them and drift slowly from − to +."
   - `LevelScreen` reports the active layer to `game.set_zoom_layer(id)` on `layer_changed`.

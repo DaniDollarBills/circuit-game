@@ -17,6 +17,7 @@ Condensed from the owner's messages:
 - **By default it is super advanced, just like real life, and it still gives heavy help.** Real-life depth is the starting point, not an option you unlock.
 - **Easy for beginners to understand.** Whenever something appears that a beginner might not know, the game defines it right then.
 - **Expert-level accuracy and precision**, while it walks you through and teaches you: "the ultimate game for learning and having fun with technology."
+- **As real-life looking as possible.**
 - **Include artificial intelligence**: the whole chain from having nothing to modern-day tech.
 - **Platform:** whatever makes the better game. The owner prefers a **downloadable game** over a website, because a download unlocks more power.
 
@@ -54,7 +55,10 @@ Everything is really simulated. If you wire something wrong, it really doesn't w
 5. **Expert accuracy.** Numbers come from the simulation or from verified constants. Every fact carries its source. Simplifications are always labeled in a "Go deeper" card.
 6. **You build it, you keep it.** Your NOT gate goes into your adder, your adder into your CPU, and your CPU into your phone. Your own creations carry forward.
 7. **Fun, not homework.** Playful failures (pop!, magic smoke), "wow" zooms, badges, stars, a Notebook that fills up with what you've learned, a workshop that grows, and a free-build sandbox.
-8. **Pastel, smooth, calm.** Soft colors, rounded shapes, gentle motion, and no timers or punishment for mistakes. Breaking things is part of learning.
+8. **Real-life looking, smooth, calm.**
+   - Parts and places look like the real thing: built to their real sizes, with real materials and studio lighting.
+   - The soft pastel palette stays in the interface and the backdrops.
+   - Gentle motion, and no timers or punishment for mistakes. Breaking things is part of learning.
 9. **Pretend and safe.** The internet and all hacking happen inside the game's own make-believe world. The game never touches real networks.
 
 ## 6. The journey: 13 chapters, from nothing to modern technology
@@ -194,7 +198,7 @@ How the zoom works:
 **What's real by default**
 - Real parts with real **datasheets**. Tap any part to see its specs, where every line is explained in plain words.
 - Real **standard values**, such as resistors in the E12 series: 100, 150, 220, 330, 470 Ω and so on.
-- Real **circuit symbols**, drawn in the pastel style. A **Physical look** toggle shows the actual objects instead.
+- **Real-looking parts on a real workbench**, built true to size in 3D. A **Schematic** toggle switches to standard circuit symbols, the way engineers draw them.
 - Real **numbers and units everywhere**: volts, milliamps, watts, and later nanoseconds, bytes and packets.
 - Real **formulas** and real **terminology**.
 - Real **limits**: maximum currents, power ratings, timing, bandwidth.
@@ -274,16 +278,45 @@ Real examples sit inside the game's own fiction. The phone is your own design, n
 
 ## 11. Look and feel
 
+**Real-life looking by default**
+- **Real materials and real sizes.** Physically based materials (molded plastic, clear epoxy, carbon film, copper, solder, glass, circuit board) on parts built to their datasheet dimensions:
+  - a 5 mm LED is 5.0 mm across its dome and 8.6 mm tall
+  - a ¼ W resistor body is 6.3 × 2.4 mm
+  - AA cells are 50.5 × 14.5 mm
+- **Real light.**
+  - Scenes are lit by photographed studio and sky lighting (HDRI).
+  - Soft shadows, global illumination, ambient occlusion and reflections.
+  - Depth of field for close-ups, like macro photography.
+  - Glow only where real light is made: an LED lights the board around it.
+- **The workbench:**
+  - a perforated prototyping board on a pastel self-healing cutting mat, on a wooden desk
+  - jumper wires with real insulation colors and gentle bends
+  - the battery pack and multimeters sit beside the board, connected by real-looking leads and clips
+- **Real effects:**
+  - burnt LEDs darken and smoke
+  - overloaded resistors scorch
+  - a shorted battery glows hot
+  - a blown meter fuse shows a dark display
+- **Real places:**
+  - Earth from public-domain NASA imagery, with oceans, clouds and city lights
+  - a real coastline, photographic sand, sand grains that look like real quartz
+  - atoms shown the way physicists picture them, as electron clouds. The simple shell picture is a labeled option.
+- **Teaching overlays** (on by default, and can be turned off):
+  - glowing current flow, live values and highlights, drawn on top of the real-looking scene like augmented reality
+  - they let you see what is invisible in real life
+- **Graphics quality** is picked automatically (Low / Medium / High / Ultra), and you can change it in Settings.
+
+**The pastel side** (menus, cards, Pip, backdrops)
 - **Palette (light):**
   - background cream `#FFF8EF`, panels `#FFFFFF`, ink `#3D3A4B`
   - lavender `#CDB8F0`, lilac `#E6DAFB`, mint `#BDEBD7`, sky `#BFDDF8`, peach `#FFD3B8`, butter `#FFF0A6`, rose `#F8C3D6`, warning coral `#FF9F8A`
   - signals: low `#B9B3D1`, high `#FF8FAB`; current sparks `#FFE58A`
 - **Night palette:** deep plum background `#24212F`, panels `#2F2B3D`, light ink `#F3EEFF`. The pastel accents stay the same.
 - **Shapes:** rounded everything (12–20 px corners on panels), soft drop shadows, 2 px soft-ink outlines.
-- **Part style:**
-  - By default, parts are drawn as **real circuit symbols** in the pastel style: zigzag resistor, LED triangle with light arrows, battery plates, a switch lever, round meters.
-  - The **Physical look** toggle shows the real objects instead: color bands on resistors, the LED dome with its flat cathode edge, the battery pack.
-  - Every datasheet card shows both.
+- **Part views:**
+  - By default you see the **real-looking 3D parts**.
+  - The **Schematic** toggle shows the real circuit symbols instead (zigzag resistor, LED triangle with light arrows, battery plates, switch lever, round meters), drawn crisply with pastel accents.
+  - Every datasheet card shows both views.
 - **Motion:** 60 fps, gentle ease-out, parts pop in with a tiny overshoot, current flows as moving sparks, glows breathe softly. A reduced-motion setting replaces large zooms with gentle fades and turns the flowing sparks into still arrows.
 - **Type:** Nunito, a rounded sans-serif (Open Font License).
 - **Sound** (from Milestone 2): soft clicks, chimes and lo-fi ambient music.
@@ -326,7 +359,15 @@ It's the same game and the same save format everywhere. Builds are produced auto
 - **Languages:**
   - **GDScript** for the game, the UI and the Milestone 1 simulation.
   - **Rust**, through godot-rust (crate `godot` 0.5.x), for the heavy engines from the digital-logic milestone on: the gate-level simulator, CPU co-simulation, the network simulator and neural-network training. These run natively at full speed on all CPU cores. GPU compute shaders are used for AI training.
-- **Renderers:** Forward+ on desktop (all effects), Mobile on phones, Compatibility for the browser version. Every visual must still work in Compatibility.
+- **Renderers:**
+  - Forward+ on desktop, with every realism effect: PBR materials, HDRI lighting, SDFGI global illumination, SSAO, screen-space reflections, depth of field and glow.
+  - Mobile on phones, with PBR and fewer effects.
+  - Compatibility for the browser version, with simpler lighting.
+  - Every visual must still work in Compatibility.
+- **Realistic assets:**
+  - Parts are modeled in code from datasheet dimensions.
+  - Photographic textures and HDRI lighting come from Poly Haven (CC0), and Earth imagery from NASA (public domain).
+  - A script downloads them with pinned checksums, and they are credited in `CREDITS.md`.
 - **Architecture:**
   - **Pure logic** (circuit model, simulators, lessons, saves, zoom math, gestures, editor rules) never touches scene nodes. It is tested headless.
   - **Presentation** (scenes, drawing, UI) is a thin layer over that logic.
@@ -377,7 +418,7 @@ It's the same game and the same save format everywhere. Builds are produced auto
 
 - It must run offline and make no network requests at runtime.
 - Touch and mouse are first-class from day one, in portrait and landscape.
-- All art, text and characters are original. Fonts and data must have open licenses (OFL, public domain).
+- All art, text and characters are original. Fonts, textures, lighting and data must have open licenses (OFL, CC0, public domain), with credits.
 - Every visual must work in the Compatibility renderer (browser version), even if desktop adds effects on top.
 - Main-path text: at most 2 sentences and about 30 words per guide bubble.
 - Every technical word on screen must have a glossary entry with a plain and a precise definition. Automatic checks keep this true.
@@ -410,15 +451,18 @@ It's the same game and the same save format everywhere. Builds are produced auto
 4. The game **starts on a beach with sand**, because sand is where silicon comes from.
 5. The PC and the phone are **your own designs**, with no real brands.
 6. Hacking is a **"White Hat" academy** in a pretend world: test with permission, then defend.
-7. **3D** for physical things (the globe, assembly, data centers, atoms). **Flat 2D boards** for designing circuits, because that's clearer for building.
+7. **Real-looking 3D everywhere**, including the circuit workbench. Flat schematic symbols are a toggle.
 8. **No accounts, ads or online features.** Saves stay on your device.
 9. **Milestone 1** is Chapter 1 plus the title zoom from Earth down to a silicon atom, delivered as downloadable builds.
 10. **Two CPUs in Chapter 6:** a small teaching CPU with the game's own instruction set (working name Petal-8) to learn the ideas, then a **real 32-bit RISC-V (RV32I)** CPU, which is what your PC or phone runs.
-11. **Real circuit symbols are the default look** for parts, with a Physical look toggle.
+11. **Real-looking 3D parts are the default look**, with a Schematic toggle for circuit symbols.
 12. **Software uses real C** (a subset) compiled to RISC-V. **Networking uses the real protocol formats**, shown in a packet inspector.
 13. The Chapter 1 battery is a **4 × AA pack treated as 5 V with 1 Ω internal resistance**, matching a partly used pack. Chapter 2 introduces regulated supplies.
 14. **New words are explained automatically** with a New word card the first time they appear, in a plain layer and a precise layer. This happens at every help level.
 15. **Badges and a Notebook** add the collecting side of the fun. M1 has 8 badges.
+16. **The world looks real and the interface stays pastel.** Real materials, real sizes and real lighting for everything you build and visit. Soft pastel colors for menus, cards, Pip and backdrops, such as the pastel cutting mat on the desk.
+17. **Big items sit beside the board, as in real life.** The battery holder and multimeters are on the desk, connected to the board by leads and clips.
+18. **A 1 W resistor has longer legs** (15.24 mm between its leads) than a ¼ W one (10.16 mm), because its body is bigger.
 
 ## 20. Roadmap
 
@@ -426,7 +470,7 @@ Each milestone ends with something playable and downloadable. Each one gets its 
 
 | # | Milestone | Contents |
 |---|---|---|
-| M1 | **First Light** | Foundation, circuit editor with real symbols and datasheets, analog simulator, lessons with heavy help (checklist, instant explanations, value explanations, formula calculator), automatic new-word definitions, Notebook and badges, the zoom system, the title zoom from Earth to an atom, Chapter 1 (9 levels), the wire zoom, downloadable builds |
+| M1 | **First Light** | Foundation, a realistic 3D workbench with true-to-size parts, datasheets and a schematic toggle, analog simulator, lessons with heavy help (checklist, instant explanations, value explanations, formula calculator), automatic new-word definitions, Notebook and badges, the zoom system, the title zoom from Earth to an atom, Chapter 1 (9 levels), the wire zoom, downloadable builds |
 | M2 | **Take It Home** | Android build, sound and music, an update check, polish from M1 feedback, an optional itch.io page |
 | M3 | **First Chip** | Chapter 2 (sand → transistor → your first chip), the transistor model, chip packaging and Library, part internals |
 | M4 | **Logic & Numbers** | Rust digital engine, Chapters 3–4, buses, star challenges |

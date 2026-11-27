@@ -17,6 +17,8 @@ func _init(t: SceneTree) -> void:
 ## Main in a `size` window (the headless runner's own window is 64 × 64),
 ## saving to `progress_path`, after its first frames.
 func start(progress_path: String, size := Vector2i(1280, 720)) -> Control:
+	# One Main at a time: a second start replaces the first.
+	stop()
 	_old_size = tree.root.size
 	_old_scale = tree.root.content_scale_size
 	tree.root.size = size

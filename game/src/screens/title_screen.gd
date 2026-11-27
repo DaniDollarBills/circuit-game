@@ -180,6 +180,9 @@ func _take_events() -> void:
 			"new_word":
 				_subtitle(str(e["term"]))
 			"badge":
+				var audio := get_tree().get_first_node_in_group("audio") as Audio
+				if audio != null:
+					audio.play("badge")
 				for a in Achievements.ALL:
 					if a["id"] == e["id"]:
 						game.toast.emit("Badge earned: %s" % a["name"])

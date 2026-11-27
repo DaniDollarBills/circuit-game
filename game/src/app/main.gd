@@ -22,6 +22,8 @@ var _look := []
 
 
 func _ready() -> void:
+	# Every button the game shows clicks softly when pressed.
+	get_tree().node_added.connect(_on_node_added)
 	get_window().size_changed.connect(_fit_window)
 	_fit_window()
 	game = Game.new()
@@ -88,6 +90,17 @@ func _open_from_args() -> bool:
 					(screen as LevelScreen).dev_show.call_deferred(a.substr("--show=".length()))
 			return screen != null
 	return false
+
+
+func _on_node_added(n: Node) -> void:
+	var b := n as BaseButton
+	if b != null and not b.pressed.is_connected(_click):
+		b.pressed.connect(_click)
+
+
+func _click() -> void:
+	if audio != null:
+		audio.play("click")
 
 
 ## The theme and background follow the night and large-text settings.

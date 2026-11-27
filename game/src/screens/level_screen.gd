@@ -68,6 +68,12 @@ var _highlights: Array = []
 var _board_key := ""
 var _view_style := ""
 var _night := false
+## What the last refresh saw, so sounds play only for what's new.
+var _heard := false
+var _parts_before := {}
+var _wires_before := {}
+var _lit_before := {}
+var _report_before: Dictionary = {}
 var _large := false
 var _cards: Array[NewWordCard] = []
 var _word_queue := PackedStringArray()
@@ -193,6 +199,7 @@ func _refresh() -> void:
 		closeup.quality = q
 		copper.quality = q
 	_handle_events(s.take_events())
+	_sounds_for(s)
 	if bool(st.get("night", false)) != _night:
 		_night = not _night
 		HudText.refresh_all(get_tree(), game)
@@ -252,16 +259,20 @@ func _handle_events(events: Array[Dictionary]) -> void:
 	for e in events:
 		match str(e["type"]):
 			"burnt":
+				_sound("pop")
 				var p := s.outcome.circuit.find_part(str(e["part"]))
 				var title := Catalog.title(p.kind) if p != null else str(e["part"])
 				toasts.show_text("Pop! %s burned out." % title)
 				if _help() == "heavy" and p != null and _page < 0:
 					_burn_help(p)
 			"passed":
+				_sound("success")
 				_start_outro()
 			"star":
+				_sound("badge")
 				toasts.show_text("Star earned: %s" % s.level.star.get("text", ""), true)
 			"badge":
+				_sound("badge")
 				for a in Achievements.ALL:
 					if a["id"] == e["id"]:
 						toasts.show_text("Badge earned: %s" % a["name"], true)
@@ -293,6 +304,42 @@ func _check_mistakes() -> void:
 	if m != _last_mistake:
 		_last_mistake = m
 		guide.show_line(m, "oops", "help")
+
+
+## Soft sounds for what changed since the last refresh: a part placed, a
+## wire joined, an LED lighting up, a test run.
+func _sounds_for(s: GameState) -> void:
+	var c := s.outcome.circuit
+	var parts := {}
+	var wires := {}
+	var lit := {}
+	for p in c.parts:
+		parts[p.id] = true
+		if p.kind == "led" and float(VisualState.for_part(p, s.outcome.result, {})["brightness"]) >= 0.05:
+			lit[p.id] = true
+	for w in c.wires:
+		wires[w.id] = true
+	if _heard:
+		if parts.keys().any(func(id: String) -> bool: return not _parts_before.has(id)):
+			_sound("place")
+		elif wires.keys().any(func(id: String) -> bool: return not _wires_before.has(id)):
+			_sound("connect")
+		if lit.keys().any(func(id: String) -> bool: return not _lit_before.has(id)):
+			_sound("light")
+		var report := s.session.test_report
+		if not report.is_empty() and not is_same(report, _report_before):
+			_sound("test_pass" if bool(report.get("pass", false)) else "test_fail")
+	_heard = true
+	_parts_before = parts
+	_wires_before = wires
+	_lit_before = lit
+	_report_before = s.session.test_report
+
+
+func _sound(name: String) -> void:
+	var audio := get_tree().get_first_node_in_group("audio") as Audio
+	if audio != null:
+		audio.play(name)
 
 
 func _any_burnt() -> bool:
@@ -529,6 +576,7 @@ func _pump_words() -> void:
 		card.finished.connect(_on_card_done)
 		_cards_root.add_child(card)
 		_cards.append(card)
+		_sound("word")
 
 
 ## Two cards when the board is tall enough for two, else one.

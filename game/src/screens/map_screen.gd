@@ -214,6 +214,7 @@ func _take_events() -> void:
 			"new_word":
 				_word_queue.append(str(e["term"]))
 			"badge":
+				_sound("badge")
 				for a in Achievements.ALL:
 					if a["id"] == e["id"]:
 						game.toast.emit("Badge earned: %s" % a["name"])
@@ -225,6 +226,7 @@ func _take_events() -> void:
 			_take_events())
 		_cards_root.add_child(card)
 		_word_cards.append(card)
+		_sound("word")
 
 
 ## New word cards slide in at the bottom left, one above another.
@@ -246,6 +248,12 @@ func word_card_terms() -> PackedStringArray:
 	for c in _word_cards:
 		out.append(c.term)
 	return out
+
+
+func _sound(name: String) -> void:
+	var audio := get_tree().get_first_node_in_group("audio") as Audio
+	if audio != null:
+		audio.play(name)
 
 
 func _night() -> bool:

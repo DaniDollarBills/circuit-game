@@ -174,8 +174,10 @@ func show_tab(id: String) -> void:
 func _fill_lessons(p: Progress) -> void:
 	var levels := Levels.all()
 	var first_tutorial := not levels.is_empty() and levels[0].kind == "tutorial"
-	var ids := Levels.chapter_ids("ch1")
-	if not ids.is_empty() and Array(ids).all(func(i: String) -> bool: return p.completed.has(i)):
+	# The chapter's lessons, not the Lesson 0 tour: a v0.2.0 graduate never had
+	# the tour, and Spark Graduate doesn't count it either.
+	var ids := Array(Levels.chapter_ids("ch1")).filter(func(i: String) -> bool: return Levels.by_id(i).kind != "tutorial")
+	if not ids.is_empty() and ids.all(func(i: String) -> bool: return p.completed.has(i)):
 		var lines: Array = Chapters.SUMMARY.get("ch1", [])
 		_summaries["ch1"] = "\n".join(lines.map(func(t: String) -> String: return "• " + t))
 		var title := _plain("Chapter 1 summary", 18, "ink")

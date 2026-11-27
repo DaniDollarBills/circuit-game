@@ -247,3 +247,37 @@ func test_new_word_cards_keep_off_the_deck() -> void:
 		assert_false(c.get_global_rect().intersects(s.deck.get_global_rect()),
 				"%s clear of the deck %s" % [c.get_global_rect(), s.deck.get_global_rect()])
 	await _done(s)
+
+
+## Final review (the browser smoke test): on a computer, a new player's first
+## card had its left edge, and Skip, under two New word cards. Too tall to go
+## above it there, the words go beside it.
+func test_new_word_cards_keep_off_the_deck_on_a_computer() -> void:
+	for size in [Vector2(1280, 720), Vector2(1024, 768), Vector2(1920, 1080)]:
+		var s := await _screen("ch1.light-it-up", size)
+		await wait_frames(30)
+		var cards := s.visible_word_cards()
+		assert_false(cards.is_empty(), "%s: Lesson 1's first card brings new words" % size)
+		for c in cards:
+			assert_false(c.get_global_rect().intersects(s.deck.get_global_rect()),
+					"%s: %s clear of the deck %s" % [size, c.get_global_rect(), s.deck.get_global_rect()])
+		assert_true(Rect2(Vector2.ZERO, size).grow(0.5).encloses(s.deck.get_global_rect()), "%s: the deck on screen" % size)
+		await _done(s)
+
+
+## And on a landscape phone, with no room above the deck or beside it, the
+## new words wait (each is a link in the card's text meanwhile) and come up
+## when the lesson's cards are put away.
+func test_new_word_cards_wait_on_a_landscape_phone() -> void:
+	for size in [Vector2(640, 360), Vector2(740, 360)]:
+		var s := await _screen("ch1.light-it-up", size)
+		await wait_frames(30)
+		for c in s.visible_word_cards():
+			assert_false(c.get_global_rect().intersects(s.deck.get_global_rect()),
+					"%s: %s clear of the deck %s" % [size, c.get_global_rect(), s.deck.get_global_rect()])
+		# Parts already met, so no Meet the part card comes up in Try it.
+		s.game.state.progress.parts_seen = {"battery": 1, "wire": 1, "resistor": 1, "led": 1}
+		s.game.skip_learn()
+		await wait_frames(30)
+		assert_false(s.visible_word_cards().is_empty(), "%s: the words come up after the cards" % size)
+		await _done(s)

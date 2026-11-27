@@ -51,7 +51,7 @@ static func build() -> LevelDef:
 	b.solution_wire("R1", "b", "SW1", "a").solution_wire("SW1", "b", "L1", "anode")
 	b.outro("On and off, 1 and 0. That's a [[bit]]!", "wow")
 	b.recap("A switch opens and closes the loop.")
-	b.recap("Closed means current flows.")
+	b.recap("Closed means current flows: with your switch closed, the LED ran at {L1.mA@closed}.")
 	b.recap("On and off are a bit: 1 and 0.")
 	b.question("A closed switch means…", [
 		{"text": "Current flows.", "correct": true, "why": "Closed joins the two sides, so the loop is complete."},

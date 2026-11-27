@@ -21,6 +21,8 @@ func _ready() -> void:
 	add_child(deck)
 	deck.next_pressed.connect(_next)
 	deck.back_pressed.connect(_back)
+	# Read again from the Notebook: Close on every card.
+	deck.skip_pressed.connect(func() -> void: deck.visible = false)
 
 
 func _process(_delta: float) -> void:
@@ -47,6 +49,13 @@ func open_part(key: String) -> void:
 	meet_card = MeetPartCard.make(game, key)
 	add_child(meet_card)
 	meet_card.visible = true
+
+
+## Escape puts away a lesson or part card read from the Notebook, as Back
+## does on Android.
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel") and close_top():
+		get_viewport().set_input_as_handled()
 
 
 ## Closes whatever is open (Android's Back); false when nothing was.

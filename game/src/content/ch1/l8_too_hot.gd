@@ -15,7 +15,7 @@ static func build() -> LevelDef:
 	b.idea("[[power|Power]] is how fast energy is turned into something else. Volts × amps gives it, in [[watt|watts]] (W).",
 			"power_heat", "curious")
 	b.idea("Resistors turn electrical energy into heat. That's how toasters work!", "", "happy")
-	b.idea("Every resistor so far has been a ¼ W one: it can safely turn a quarter of a watt into heat. That's its power rating.",
+	b.idea("Every fixed resistor so far, all but the trimmer, has been a ¼ W one: it can safely turn a quarter of a watt into heat. That's its power rating.",
 			"", "curious",
 			"A rating is for steady use: a little over won't burn a real part at once, but it wears out sooner. The bench is strict and burns it straight away.")
 	b.meet("resistor_1w")

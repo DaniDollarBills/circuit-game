@@ -56,6 +56,26 @@ func test_completed_lesson_opens_on_build() -> void:
 	assert_eq(s.session.phase, "build", "a v0.2.0 player who passed it isn't made to sit through it")
 
 
+## Final review: a lesson passed before, opened on a draft that still passes,
+## announced the pass again (the recap and its chime). It's already passed:
+## no announcement, and the recap's numbers are kept from that circuit.
+func test_completed_lesson_with_a_passing_draft_opens_quietly() -> void:
+	var s := _state()
+	var l := _lesson()
+	s.progress.completed["t.course"] = {"star": false, "at": 1}
+	var done := l.circuit.copy()
+	done = CircuitEdits.add_wire(done, "B1", "pos", "R1", "a")
+	done = CircuitEdits.add_wire(done, "R1", "b", "L1", "anode")
+	done = CircuitEdits.add_wire(done, "L1", "cathode", "B1", "neg")
+	s.progress.drafts["t.course"] = CircuitIO.to_dict(done)
+	s.start_level(l)
+	assert_eq(s.session.phase, "passed")
+	assert_true(s.take_events().filter(func(e: Dictionary) -> bool: return e["type"] == "passed").is_empty(),
+			"not announced again")
+	assert_true(s.passed_outcome != null, "the passing circuit is kept for the recap")
+	assert_true(absf(float(s.passed_outcome.result.part_amps.get("L1", 0.0))) > 0.001, "with its LED lit")
+
+
 func test_seen_lesson_opens_on_build() -> void:
 	var s := _state()
 	s.progress.mark_lesson("t.course", "learn", 5)

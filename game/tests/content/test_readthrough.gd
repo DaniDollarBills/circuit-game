@@ -251,3 +251,55 @@ func test_sped_up_explained_on_the_first_moving_picture() -> void:
 	var first: Dictionary = Levels.by_id("ch1.light-it-up").learn[0]
 	assert_eq(first.get("diagram", ""), "charges_in_wire")
 	assert_true("sped up" in str(first.get("deeper", "")), str(first.get("deeper", "")))
+
+
+## Final review: Lesson 8 said every resistor so far was ¼ W, but Lesson 3's
+## trimmer is ½ W. The claim is about fixed resistors, and every one placed
+## before Lesson 8 is ¼ W.
+func test_every_fixed_resistor_before_lesson_8_is_a_quarter_watt() -> void:
+	var cards := Levels.by_id("ch1.too-hot").learn.filter(
+			func(c: Dictionary) -> bool: return "¼ W" in str(c.get("text", "")))
+	assert_true("fixed resistor" in str(cards[0]["text"]), cards[0]["text"])
+	for l in Levels.all():
+		if l.id == "ch1.too-hot":
+			break
+		var parts: Array = []
+		for c in [l.circuit, l.solution, l.try_circuit]:
+			if c != null:
+				parts.append_array(c.parts)
+		for item in l.tray + l.try_tray:
+			parts.append(Part.make("?", item["kind"], 0, 0, 0, item.get("props", {})))
+		for p in parts:
+			if p.kind == "resistor" and not bool(p.props.get("adjustable", false)):
+				assert_eq(float(p.props.get("watts", 0.25)), 0.25, "%s: %s" % [l.id, p.props])
+
+
+## Final review: the chapter summary kept "side-by-side paths", the words the
+## read-through found confusing.
+func test_chapter_summary_says_what_series_and_parallel_mean() -> void:
+	var text := "\n".join(Chapters.SUMMARY["ch1"]).to_lower()
+	for phrase in ["in a row", "side by side", "side-by-side"]:
+		assert_false(phrase in text, phrase)
+
+
+## Final review: the water analogy's second "break" (the push races along
+## while the water drifts) isn't one: a pressure wave in a full pipe also
+## outruns the water.
+func test_analogy_breaks_are_real() -> void:
+	var a: Dictionary = _cards("ch1.push-and-flow", "analogy")[0]
+	var breaks := str(a["breaks"])
+	assert_false("light" in breaks or "races" in breaks, breaks)
+	assert_true("spills nothing" in breaks, breaks)
+
+
+## Final review, and the spec ("using your own circuit's numbers"): the
+## switch lessons' recaps had none of the player's numbers.
+func test_every_recap_has_the_players_numbers() -> void:
+	for l in Levels.all():
+		# Lesson 0's recap is about the controls: it has no circuit to quote.
+		if l.recap.is_empty() or l.kind == "tutorial":
+			continue
+		var templated := false
+		for point in l.recap:
+			templated = templated or ("{" in point and "}" in point)
+		assert_true(templated, l.id)

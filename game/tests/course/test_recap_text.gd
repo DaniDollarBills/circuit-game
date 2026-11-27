@@ -51,3 +51,20 @@ func test_recap_names_a_part_by_kind() -> void:
 	c = CircuitEdits.add_wire(c, "R2", "b", "B1", "neg")
 	var out := Simulator.simulate(c)
 	assert_eq(RecapText.fill("Your resistor made {resistor.W} of heat.", out.circuit, out.result), "Your resistor made 0.51 W of heat.")
+
+
+## Final review: Lessons 4–6 had none of the player's numbers, because the
+## switches may be open when the lesson ends. {L1.mA@closed} reads the
+## player's own circuit with every switch closed, the "on" case Test tries.
+func test_fill_with_the_switches_closed() -> void:
+	var c := Levels.by_id("ch1.both").solution.copy()
+	var out := Simulator.simulate(c)
+	assert_eq(RecapText.fill("{L1.mA}", out.circuit, out.result), "0.0 mA", "both open: dark")
+	var closed := c
+	for p in c.parts:
+		if p.kind == "switch":
+			closed = CircuitEdits.set_props(closed, p.id, {"closed": true})
+	var lit := Simulator.simulate(closed)
+	var want := RecapText.fill("{L1.mA}", lit.circuit, lit.result)
+	assert_false(want == "0.0 mA", "closed, the LED lights")
+	assert_eq(RecapText.fill("{L1.mA@closed}", out.circuit, out.result), want)

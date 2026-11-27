@@ -164,6 +164,51 @@ func test_recap_can_be_put_away_and_brought_back() -> void:
 	assert_false(s.recap.visible)
 
 
+## Final review: with the recap put away, changing the passed circuit and
+## bringing the recap back showed the changed circuit ("0.0 mA"). The recap
+## keeps the numbers the lesson was passed with.
+func test_recap_keeps_the_passing_numbers() -> void:
+	var s := await _passed(Vector2(1280, 720))
+	assert_true("13.8 mA" in "\n".join(s.recap.point_texts()), str(s.recap.point_texts()))
+	s.recap.back_button().pressed.emit()
+	await wait_frames(2)
+	var c := s.game.state.history.present
+	s.game.commit(CircuitEdits.delete_wire(c, c.wires[0].id))
+	await wait_frames(2)
+	s.lesson_button.pressed.emit()
+	await wait_frames(2)
+	assert_true(s.recap.visible)
+	var points := "\n".join(s.recap.point_texts())
+	assert_true("13.8 mA" in points and not "0.0 mA" in points, points)
+
+
+## Final review: a lesson finished before, opened on a draft that still
+## passes, threw the recap (and its chime) at a returning player. It opens
+## on the bench, with the Recap button.
+func test_finished_lesson_reopens_on_its_bench() -> void:
+	var game := _game()
+	var l := Levels.by_id("ch1.light-it-up")
+	game.state.progress.mark_complete(l.id, false, 1)
+	game.state.progress.drafts[l.id] = CircuitIO.to_dict(l.solution)
+	game.state.progress.parts_seen = {"battery": 1, "wire": 1, "resistor": 1, "led": 1}
+	var host := Control.new()
+	host.size = Vector2(1280, 720)
+	add_to_tree(host)
+	game.open_level(l.id, true)
+	var s: LevelScreen = load("res://src/screens/level_screen.tscn").instantiate()
+	s.game = game
+	host.add_child(s)
+	await wait_frames(4)
+	assert_eq(game.state.session.phase, "passed")
+	assert_false(s.recap.visible, "no recap thrown at them")
+	assert_false(game.state.progress.lesson_marks(l.id).has("recap"))
+	assert_true(s.lesson_button.visible and s.lesson_button.tooltip_text == "See the recap again")
+	s.lesson_button.pressed.emit()
+	await wait_frames(2)
+	assert_true(s.recap.visible)
+	assert_true("13.8 mA" in "\n".join(s.recap.point_texts()))
+
+
 ## Code review: Read again, the deck, Try it, then Ready landed on a passed
 ## bench with no recap and no way on.
 func test_reading_again_comes_back_to_the_recap() -> void:

@@ -54,7 +54,7 @@ static func build() -> LevelDef:
 	b.outro("Parts one after the other are in [[series]]. Every switch must be on.", "wow")
 	b.recap("Series: one path, so both must be closed.")
 	b.recap("That's AND: the LED lights only for A AND B.")
-	b.recap("Both closed, the loop is complete, just like Lesson 1's.")
+	b.recap("Both closed, the loop is complete: your LED ran at {L1.mA@closed}.")
 	b.question("Two switches in series: which cases light the LED?", [
 		{"text": "Only both closed.", "correct": true, "why": "One path: a gap at either switch stops the current."},
 		{"text": "Either one closed.", "correct": false, "why": "That's two switches on separate paths, in parallel. Lesson 6!"},

@@ -60,13 +60,14 @@ func test_reading_a_lesson_again() -> void:
 	await wait_frames(2)
 	var deck := s.textbook.deck
 	assert_true(deck.visible and deck.read_only)
-	assert_false(deck.skip_button().visible, "reading, not skipping")
+	assert_eq(deck.skip_button().text, "Close", "reading, not skipping: the button puts it away")
 	assert_eq(game.state.session.phase, phase, "the lesson underneath isn't touched")
 	var l := game.state.level
 	for i in l.deck_size() - 1:
 		deck.next_button().pressed.emit()
 	await wait_frames(1)
 	assert_eq(deck.card_kind(), "closing")
+	assert_false(deck.skip_button().visible, "one Close on the last card")
 	assert_true("example numbers" in deck.body_text().to_lower(), deck.body_text())
 	assert_true("13.8 mA" in deck.body_text(), "the recap filled from the solution")
 	deck.next_button().pressed.emit()
@@ -114,3 +115,50 @@ func test_map_notebook_reads_lessons_too() -> void:
 	map.notebook.open_lesson.emit("ch1.light-it-up")
 	await wait_frames(2)
 	assert_true(map.textbook.deck.visible)
+
+
+## Final review: a v0.2.0 graduate finished every lesson but never had
+## Lesson 0, the tour, so the summary never came. It follows the chapter's
+## lessons, not the tour.
+func test_chapter_summary_needs_no_tour() -> void:
+	var game := _game()
+	var s := await _screen(game)
+	for l in Levels.all():
+		if l.chapter == "ch1" and l.kind != "tutorial":
+			game.state.progress.mark_complete(l.id, false, 1)
+	s.notebook.open()
+	s.notebook.show_tab("lessons")
+	assert_true(s.notebook.has_chapter_summary("ch1"))
+
+
+## Final review: a lesson read again from the Notebook had no way out on a
+## computer but paging through every card. Close is on every card, and
+## Escape puts it away too.
+func test_reread_lesson_closes_on_any_card() -> void:
+	var game := _game()
+	game.state.progress.mark_lesson("ch1.light-it-up", "learn", 2)
+	var host := Control.new()
+	host.size = Vector2(1280, 720)
+	add_to_tree(host)
+	var map: MapScreen = load("res://src/screens/map_screen.tscn").instantiate()
+	map.game = game
+	host.add_child(map)
+	await wait_frames(3)
+	map.notebook.open_lesson.emit("ch1.light-it-up")
+	await wait_frames(2)
+	var close := map.textbook.deck.skip_button()
+	assert_true(close.visible, "a way out on the first card")
+	assert_eq(close.text, "Close")
+	close.pressed.emit()
+	await wait_frames(1)
+	assert_false(map.textbook.deck.visible)
+	map.notebook.open_lesson.emit("ch1.light-it-up")
+	await wait_frames(2)
+	map.textbook.deck.next_button().pressed.emit()
+	await wait_frames(1)
+	var esc := InputEventAction.new()
+	esc.action = "ui_cancel"
+	esc.pressed = true
+	Input.parse_input_event(esc)
+	await wait_frames(2)
+	assert_false(map.textbook.deck.visible, "Escape")

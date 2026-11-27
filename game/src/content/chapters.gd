@@ -28,7 +28,7 @@ const SUMMARY := {
 		"Voltage pushes, current flows, and resistance slows it: V = I × R.",
 		"An LED needs a resistor to keep its current safe.",
 		"A switch opens and closes the loop: on and off are a bit.",
-		"Series is one path, so everything on it must be on (AND); parallel is side-by-side paths (OR).",
+		"Series is one path, so every switch on it must be closed (AND); parallel is separate paths, so either will do (OR).",
 		"A short circuit skips your parts, and every part has a power rating it mustn't pass.",
 		"Inside a wire, electrons drift slowly while the push travels fast.",
 	],

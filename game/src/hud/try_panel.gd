@@ -59,7 +59,7 @@ func refresh(s: GameState) -> void:
 	HudText.put(_prompt, s.level.try_prompt, game)
 	_refresh_table(s)
 	_flow.visible = _wants_flow(s.level)
-	var electrons := bool(game.state.progress.settings.get("electron_flow", false))
+	var electrons := bool(game.state.view_settings().get("electron_flow", false))
 	_flow.text = "Show the current's way" if electrons else "Show the electrons' way"
 	var reads := s.readouts()
 	var sig := "%s|%s|%s" % [s.session.poke_done, reads, game.state.progress.settings.get("night", false)]
@@ -127,9 +127,11 @@ static func _wants_flow(level: LevelDef) -> bool:
 	return false
 
 
+## Switches Try it's own picture; the saved Electron flow setting stays as it
+## is, so nothing carries into later lessons.
 func _toggle_flow() -> void:
-	var electrons := not bool(game.state.progress.settings.get("electron_flow", false))
-	game.set_setting("electron_flow", electrons)
+	var electrons := not game.state.try_electron_flow
+	game.state.try_electron_flow = electrons
 	game.set_ui_flag("did:electron_flow" if electrons else "did:current_flow")
 
 

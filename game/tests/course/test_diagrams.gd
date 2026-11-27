@@ -138,6 +138,33 @@ func test_led_graph_says_its_formula_in_words() -> void:
 	assert_true("current = (5 V − 2 V) ÷ resistance" in words, str(words))
 
 
+## Final review: the water picture moved the water at one speed through the
+## narrow pipe. The same amount passes every point each second (that's the
+## current), so where the pipe narrows the water moves faster.
+func test_water_speeds_up_in_the_narrow_pipe() -> void:
+	var d := _shown("water_analogy", _game(), Vector2(400, 220))
+	await wait_frames(1)
+	var compared := false
+	var time := 0.3
+	while time < 6.0 and not compared:
+		var a: PackedVector2Array = d.call("water_dots", time)
+		var b: PackedVector2Array = d.call("water_dots", time + 0.02)
+		var narrow := -1
+		var wide := -1
+		for i in a.size():
+			if absf(a[i].y - 62.0) < 0.5 and absf(b[i].y - 62.0) < 0.5 and a[i].x > 176.0 and b[i].x < 244.0:
+				narrow = i
+			if absf(a[i].y - 166.0) < 0.5 and absf(b[i].y - 166.0) < 0.5 and a[i].x < 320.0 and b[i].x > 80.0:
+				wide = i
+		if narrow >= 0 and wide >= 0:
+			compared = true
+			var fast := a[narrow].distance_to(b[narrow])
+			var slow := a[wide].distance_to(b[wide])
+			assert_true(fast > 1.1 * slow, "at %.1f s: %.2f in the narrow pipe, %.2f in the wide one" % [time, fast, slow])
+		time += 0.1
+	assert_true(compared, "a moment with water in both the narrow and the wide pipe")
+
+
 ## Lessons 5 and 6: the truth table starts with every case unknown ("?"), and
 ## Try it fills each row with what the LED did as the player sees that case.
 ## Row n is switch A = n >> 1 and switch B = n & 1 (0 open, 1 closed).

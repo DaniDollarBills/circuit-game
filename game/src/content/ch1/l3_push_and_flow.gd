@@ -27,7 +27,7 @@ static func build() -> LevelDef:
 	b.formula("ohms_law")
 	b.learn_goals(["What voltage, current and resistance are", "How to use Ohm's law", "How to measure current and voltage"])
 	b.analogy("Think of water in pipes. The pump is the battery's push, the flow is the current, and a narrow pipe is a resistor.",
-			"A cut pipe spills water, but a cut wire spills nothing: the charges just stop. And the push races along at near light speed, while the electrons only drift.",
+			"A cut pipe spills water, but a cut wire spills nothing: the charges just stop.",
 			"water_analogy")
 	b.idea("[[voltage|Voltage]] is measured in [[volt|volts]] (V), [[current]] in [[amp|amps]] (A) and [[resistance]] in [[ohm|ohms]] (Ω). One [[milliamp]] is a thousandth of an amp: 1 mA = 0.001 A.",
 			"unit_ladder")

@@ -7,6 +7,11 @@ const WATER := Color("#8FC2EE")
 const PIPE := Color("#9AA3B5")
 const PROBE_RED := Color("#E0565B")
 const PROBE_BLACK := Color("#3D3A4B")
+## The water picture: the wide pipe's water width, how far along the loop the
+## top pipe starts (its left side is 104 long), and how many drops go round.
+const WATER_WIDE := 14.0
+const WATER_PATH_TOP := 104.0
+const WATER_DOTS := 14
 
 
 func _paint(time: float) -> void:
@@ -23,16 +28,15 @@ func _paint(time: float) -> void:
 
 ## A pump pushes water round a loop of pipe, and a narrow section squeezes
 ## it. Squeeze harder and the flow slows all the way round, not just there.
+## In the narrow part the water moves faster: the same amount passes every
+## point each second, and that amount is the current.
 func _water(time: float) -> void:
 	var l := 70.0
 	var r := 330.0
 	var t := 62.0
 	var b := 166.0
-	var w := TAU / 6.0
-	# How hard the narrow section squeezes, 0 (wide) to 1 (tight), and the
-	# distance the water has moved: its speed is 37.5 − 22.5 sin(wt).
-	var squeeze := 0.6 if still else 0.5 + 0.5 * sin(time * w)
-	var moved := 0.0 if still else 37.5 * time + 22.5 / w * cos(time * w)
+	var squeeze := _squeeze(time)
+	var moved := _moved(time)
 	var path := PackedVector2Array([Vector2(l, b), Vector2(l, t), Vector2(r, t), Vector2(r, b), Vector2(l, b)])
 	line(path, PIPE, 22.0)
 	line(path, WATER, 14.0)
@@ -48,15 +52,12 @@ func _water(time: float) -> void:
 				Vector2(inner_x, t + narrow / 2.0), Vector2(outer_x, t + 7)]), WATER, Color(0, 0, 0, 0), 0.0, _k)
 	line(PackedVector2Array([Vector2(172, t), Vector2(248, t)]), PIPE, narrow + 8.0)
 	line(PackedVector2Array([Vector2(172, t), Vector2(248, t)]), WATER, narrow)
-	# The water moving round: thinner where the pipe is.
-	var length := Diagram.path_length(path)
-	for i in 14:
-		var d := fmod(moved + length * i / 14.0, length)
-		var c := Diagram.along(path, d)
-		var radius := 3.5
-		if absf(c.y - t) < 1.0 and c.x > 160.0 and c.x < 260.0:
-			radius = minf(3.5, narrow / 2.0)
-		dot(c, radius, Color(1, 1, 1, 0.9))
+	# The water moving round: faster, and thinner, where the pipe is narrow.
+	for c in water_dots(time):
+		var width := WATER_WIDE
+		if absf(c.y - t) < 1.0:
+			width = _water_width(c.x, narrow)
+		dot(c, minf(3.5, width / 2.0), Color(1, 1, 1, 0.9))
 	if still:
 		arrow(Vector2(290, b - 24), Vector2(236, b - 24), col("ink"), 3.0)
 		arrow(Vector2(r - 24, 92), Vector2(r - 24, 138), col("ink"), 3.0)
@@ -71,6 +72,64 @@ func _water(time: float) -> void:
 	label(Vector2(210, 28), "narrow pipe = resistor: it squeezes", 14.0, col("ink"))
 	label(Vector2(112, 198), "pump = battery: it pushes", 14.0, col("ink"))
 	label(Vector2(300, 198), "flow = current", 14.0, col("ink"))
+
+
+## The water's width in the pipe (design units): the wide pipe's, or across
+## the funnels and the narrow section on top, at `x`.
+static func _water_width(x: float, narrow: float) -> float:
+	if x <= 156.0 or x >= 264.0:
+		return WATER_WIDE
+	if x < 172.0:
+		return lerpf(WATER_WIDE, narrow, (x - 156.0) / 16.0)
+	if x > 248.0:
+		return lerpf(narrow, WATER_WIDE, (x - 248.0) / 16.0)
+	return narrow
+
+
+## How hard the narrow section squeezes, 0 (wide) to 1 (tight).
+func _squeeze(time: float) -> float:
+	return 0.6 if still else 0.5 + 0.5 * sin(time * TAU / 6.0)
+
+
+## How far the water in the wide pipe has moved: its speed, 37.5 − 22.5 sin(wt),
+## falls as the narrow section squeezes, all the way round the loop.
+func _moved(time: float) -> float:
+	var w := TAU / 6.0
+	return 0.0 if still else 37.5 * time + 22.5 / w * cos(time * w)
+
+
+## Where each drop is at `time`. The same amount of water passes every point
+## each second (that's the current), so where the pipe narrows the drops move
+## faster and spread out: speed goes as 1 ÷ width.
+func water_dots(time: float) -> PackedVector2Array:
+	var narrow := lerpf(12.0, 3.0, _squeeze(time))
+	var path := PackedVector2Array([Vector2(70, 166), Vector2(70, 62), Vector2(330, 62), Vector2(330, 166), Vector2(70, 166)])
+	var length := Diagram.path_length(path)
+	# Wide-pipe distance covered by each unit step along the path.
+	var steps := int(ceil(length))
+	var eq := PackedFloat64Array()
+	eq.resize(steps + 1)
+	for k in steps:
+		var d := float(k) + 0.5
+		var width := WATER_WIDE
+		if d > WATER_PATH_TOP and d < WATER_PATH_TOP + 260.0:
+			width = _water_width(70.0 + d - WATER_PATH_TOP, narrow)
+		eq[k + 1] = eq[k] + width / WATER_WIDE
+	var total := eq[steps]
+	var out := PackedVector2Array()
+	for i in WATER_DOTS:
+		var e := fmod(_moved(time) + total * i / WATER_DOTS, total)
+		var lo := 0
+		var hi := steps
+		while hi - lo > 1:
+			var mid := (lo + hi) / 2
+			if eq[mid] <= e:
+				lo = mid
+			else:
+				hi = mid
+		var d := lo + (e - eq[lo]) / maxf(eq[hi] - eq[lo], 1e-9)
+		out.append(Diagram.along(path, minf(d, length)))
+	return out
 
 
 ## V on top, I × R below. Cover the one you want, and the other two show how

@@ -337,9 +337,10 @@ func _render() -> void:
 	if _source.visible:
 		HudText.put(_source, "Source: " + source, game, false, false)
 	_back.disabled = _index <= 0
-	_skip.visible = not read_only
-	# Lesson 0's deck is a tour; "Skip Lesson 0" beside it skips the lesson.
-	_skip.text = "Skip the tour" if _level.kind == "tutorial" else "Skip lesson"
+	# Read again from the Notebook, the same button closes the lesson on any
+	# card. Lesson 0's deck is a tour; "Skip Lesson 0" beside it skips the lesson.
+	_skip.visible = not (read_only and kind == "closing")
+	_skip.text = "Close" if read_only else ("Skip the tour" if _level.kind == "tutorial" else "Skip lesson")
 	if kind == "closing":
 		_next.text = "Close" if read_only else ("Try it" if _level.has_try() else "Build it")
 	else:

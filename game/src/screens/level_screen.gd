@@ -12,6 +12,10 @@ const FORMULA_OFFER := "This step needs a calculation. The calculator can work i
 ## Goal messages that mean something went wrong (Pip steps in on Heavy).
 const MISTAKES: PackedStringArray = ["Pop!", "Short circuit!", "The LED is backwards", "Careful:", "Something burned out"]
 const MARGIN := 12.0
+## The narrowest a New word card gets when it goes beside a course card.
+const WORD_BESIDE_MIN_W := 240.0
+## A New word card's usual size, for the room a waiting word will need.
+const WORD_CARD_SIZE := Vector2(300.0, 220.0)
 const BAR_H := 52.0
 const COLUMN_W := 300.0
 const TRAY_W := 128.0
@@ -96,6 +100,10 @@ var _large := false
 var _column_room := 0.0
 var _cards: Array[NewWordCard] = []
 var _word_queue := PackedStringArray()
+## True while a course card leaves no room for New word cards (a landscape
+## phone): the cards wait, hidden with their clocks stopped, and no new ones
+## come up until it's put away. Each word is a link in the card meanwhile.
+var _words_wait := false
 var _carded := PackedStringArray()
 
 
@@ -193,7 +201,7 @@ func shown_word_terms() -> PackedStringArray:
 
 
 func visible_word_cards() -> Array[NewWordCard]:
-	return _cards
+	return _cards.filter(func(c: NewWordCard) -> bool: return c.visible)
 
 
 ## Counts toward Pip's "Stuck?" offer; any newly ticked step starts it over.
@@ -229,7 +237,7 @@ func _refresh() -> void:
 	var s := game.state
 	if s.level == null or not is_inside_tree():
 		return
-	var st := s.progress.settings
+	var st := s.view_settings()
 	var q := str(st.get("quality", "auto"))
 	if closeup.quality != q:
 		closeup.quality = q
@@ -485,7 +493,8 @@ func _update_guide() -> void:
 func _start_outro() -> void:
 	var s := game.state
 	guide.hide_bubble()
-	recap.show_recap(s.level, s.outcome, _next_level_id())
+	# The numbers the lesson was passed with, even if the circuit has changed.
+	recap.show_recap(s.level, s.passed_outcome if s.passed_outcome != null else s.outcome, _next_level_id())
 	recap.visible = true
 	zoom_caption.visible = false
 	game.mark_lesson_step("recap")
@@ -614,7 +623,8 @@ func _open_datasheet(id: String) -> void:
 
 
 func _open_tray_datasheet(i: int) -> void:
-	var item: Dictionary = game.state.level.tray[i]
+	# The tray on screen: Try it's own while trying.
+	var item: Dictionary = game.state.current_tray()[i]
 	datasheet.open(Part.make("?", item["kind"], 0, 0, 0, item.get("props", {})), false)
 	_open_card(datasheet)
 	game.set_ui_flag("datasheet:tray")
@@ -658,6 +668,8 @@ func _queue_word(term: String) -> void:
 
 
 func _pump_words() -> void:
+	if _words_wait:
+		return
 	while _cards.size() < _max_cards() and not _word_queue.is_empty():
 		var card := NewWordCard.make(game, _word_queue[0])
 		_word_queue.remove_at(0)
@@ -1224,18 +1236,44 @@ func _place_floating() -> void:
 	var y := board.position.y + 8.0
 	var x0 := board.position.x + 8.0
 	var room := board.size.x - 16.0
-	# While a course card is up, New word cards go above it: the course card
-	# moves to the bottom when that makes room, so a word never covers it.
+	# While a course card is up, a word never covers it. New word cards go above
+	# it, the course card moving to the bottom, when that makes room (a phone);
+	# else beside it, on the board's left, the course card moving right only
+	# as far as it has to (a computer).
 	var course := _course_card()
-	if course != null and not _cards.is_empty():
+	var waiting := false
+	if course != null and (not _cards.is_empty() or not _word_queue.is_empty()):
 		var need := 0.0
+		var widest := 0.0
 		for card in _cards:
-			need += _sized_word_card(card, minf(card.custom_minimum_size.x, area.size.x)).y + 8.0
+			var cw := minf(card.custom_minimum_size.x, area.size.x)
+			widest = maxf(widest, cw)
+			need += _sized_word_card(card, cw).y + 8.0
+		if _cards.is_empty():
+			# Words waiting to come up: room for one at a card's usual size.
+			widest = minf(WORD_CARD_SIZE.x, area.size.x)
+			need = WORD_CARD_SIZE.y + 8.0
+		var left := board.position.x + 8.0
 		if need <= area.size.y - course.size.y - 8.0:
-			course.position.y = area.end.y - course.size.y
-			y = area.position.y
-			x0 = area.position.x
-			room = area.size.x
+			if not _cards.is_empty():
+				course.position.y = area.end.y - course.size.y
+				y = area.position.y
+				x0 = area.position.x
+				room = area.size.x
+		elif area.end.x - course.size.x - 8.0 - left >= WORD_BESIDE_MIN_W:
+			if not _cards.is_empty():
+				course.position.x = clampf(course.position.x, left + widest + 8.0, area.end.x - course.size.x)
+				x0 = left
+				room = course.position.x - 8.0 - left
+		else:
+			waiting = true
+	for card in _cards:
+		card.visible = not waiting
+		card.process_mode = Node.PROCESS_MODE_DISABLED if waiting else Node.PROCESS_MODE_INHERIT
+	if waiting != _words_wait:
+		_words_wait = waiting
+		if not waiting:
+			_pump_words.call_deferred()
 	for card in _cards:
 		var cw := minf(card.custom_minimum_size.x, room)
 		_sized_word_card(card, cw)

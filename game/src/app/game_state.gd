@@ -23,11 +23,20 @@ var _truth_rows := {}
 var preview_circuit: Circuit
 var preview_outcome: SimOutcome
 var events: Array[Dictionary] = []
+## The circuit as it was when the lesson passed, for the recap: changing the
+## passed circuit afterwards doesn't change what the recap says.
+var passed_outcome: SimOutcome
+## Try it's own picture of the current (Lesson 9 switches it between the
+## current's way and the electrons'). The saved Electron flow setting stays.
+var try_electron_flow := false
 ## The clock, in Unix seconds, for actions that record a time on their own
 ## (passing on a commit, a badge for a burn). Tests replace it.
 var now_fn: Callable = func() -> int: return int(Time.get_unix_time_from_system())
 
 var _announced_pass := false
+## True while start_level judges the circuit it opened on: a lesson passed
+## before, opened on a draft that still passes, isn't announced again.
+var _opening := false
 ## The build's history and outcome, set aside while Try it's circuit is out.
 var _build_history: CircuitHistory
 var _build_outcome: SimOutcome
@@ -43,6 +52,7 @@ func start_level(l: LevelDef) -> void:
 	ui_flags = {}
 	preview_circuit = null
 	preview_outcome = null
+	passed_outcome = null
 	_announced_pass = false
 	_build_history = null
 	_build_outcome = null
@@ -52,7 +62,9 @@ func start_level(l: LevelDef) -> void:
 	history = CircuitHistory.new(outcome.circuit)
 	session = LevelSession.start(l, _plays_lesson(l))
 	_entered("build")
+	_opening = true
 	_update()
+	_opening = false
 
 
 ## The lesson plays by itself (Learn, then Try it) on a first visit at Heavy
@@ -187,6 +199,16 @@ func trying() -> bool:
 
 
 ## The tray the bench offers now: Try it's own while trying.
+## The settings the bench is drawn with: the saved ones, except that in Try
+## it the picture of the current is Try it's own.
+func view_settings() -> Dictionary:
+	if not trying():
+		return progress.settings
+	var st := progress.settings.duplicate()
+	st["electron_flow"] = try_electron_flow
+	return st
+
+
 func current_tray() -> Array[Dictionary]:
 	if level == null:
 		return []
@@ -222,7 +244,9 @@ func _entered(was: String) -> void:
 
 
 func _put_try_out() -> void:
-	# A fresh Try it: no switch cases seen yet.
+	# A fresh Try it: no switch cases seen yet, and the picture of the current
+	# as the settings have it.
+	try_electron_flow = bool(progress.settings.get("electron_flow", false))
 	_truth_rows = {}
 	for i in 4:
 		ui_flags.erase("row:%d" % i)
@@ -268,6 +292,11 @@ func complete(now: int) -> void:
 		return
 	_announced_pass = true
 	var star := _star_holds()
+	if _opening and progress.completed.has(level.id):
+		# Passed before, and opened on a circuit that still passes: no
+		# announcement (a star it now holds is still recorded).
+		progress.mark_complete(level.id, star, now)
+		return
 	progress.mark_complete(level.id, star, now)
 	events.append({"type": "passed", "star": star})
 	check_achievements(now)
@@ -349,6 +378,8 @@ func _update() -> void:
 func _after_evaluation(was: String) -> void:
 	if session.phase != "passed":
 		return
+	if was != "passed":
+		passed_outcome = outcome
 	if was != "passed" or not _announced_pass:
 		complete(now())
 	elif _star_holds() and not bool(progress.completed.get(level.id, {}).get("star", false)):

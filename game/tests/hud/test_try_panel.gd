@@ -131,7 +131,9 @@ func test_try_panel_fills_the_truth_table() -> void:
 
 
 ## Lesson 9: Try it has a button that switches the picture to the electrons'
-## way and back (the Electron flow setting), ticking its pokes.
+## way and back, ticking its pokes. Final review: it used to change the saved
+## Electron flow setting, so leaving after the first poke kept electrons on in
+## every later lesson. It's Try it's own view, gone when Try it ends.
 func test_electron_flow_toggle() -> void:
 	var game := Game.new()
 	add_to_tree(game)
@@ -151,9 +153,47 @@ func test_electron_flow_toggle() -> void:
 	assert_true(b != null and b.is_visible_in_tree(), "the toggle shows in Lesson 9's Try it")
 	b.pressed.emit()
 	await wait_frames(2)
-	assert_true(bool(game.state.progress.settings["electron_flow"]))
+	assert_true(bool(game.state.view_settings()["electron_flow"]), "the picture shows the electrons' way")
+	assert_false(bool(game.state.progress.settings["electron_flow"]), "the saved setting is untouched")
+	assert_eq(b.text, "Show the current's way")
 	assert_true(game.state.session.poke_done[0])
 	b.pressed.emit()
 	await wait_frames(2)
-	assert_false(bool(game.state.progress.settings["electron_flow"]))
+	assert_false(bool(game.state.view_settings()["electron_flow"]))
 	assert_true(game.state.session.poke_done[1])
+	b.pressed.emit()
+	await wait_frames(2)
+	game.finish_try()
+	await wait_frames(2)
+	assert_false(bool(game.state.view_settings()["electron_flow"]), "the build shows the saved setting again")
+
+
+## Final review: in Try it the tray's ⓘ opened the build tray's datasheet
+## (in Lesson 8 the ¼ W 47 Ω item showed "1 W, Metal film").
+func test_try_tray_datasheets_show_the_try_parts() -> void:
+	var game := Game.new()
+	add_to_tree(game)
+	game.boot(_dir.path_join("progress_l8.json"))
+	game.state.progress.parts_seen = {"battery": 1, "resistor": 1, "resistor_1w": 1, "led": 1, "wire": 1}
+	var host := Control.new()
+	host.size = Vector2(1280, 720)
+	add_to_tree(host)
+	game.open_level("ch1.too-hot", true)
+	var s: LevelScreen = load("res://src/screens/level_screen.tscn").instantiate()
+	s.game = game
+	host.add_child(s)
+	await wait_frames(3)
+	game.skip_learn()
+	await wait_frames(3)
+	var tray := game.state.current_tray()
+	var infos := s.tray.info_buttons()
+	assert_eq(infos.size(), tray.size())
+	for i in infos.size():
+		infos[i].pressed.emit()
+		await wait_frames(1)
+		var rows := "\n".join(s.datasheet.row_texts())
+		var props: Dictionary = tray[i].get("props", {})
+		assert_true(Catalog.format_ohms(float(props["ohms"])) in rows, "item %d: %s" % [i, rows])
+		assert_true("0.25 W" in rows and not "Metal film" in rows, "item %d: %s" % [i, rows])
+		s.datasheet.close()
+		await wait_frames(1)

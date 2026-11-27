@@ -55,7 +55,7 @@ static func build() -> LevelDef:
 	b.outro("This is the idea behind an OR gate.", "happy")
 	b.recap("Parallel: two paths, so either one works.")
 	b.recap("That's OR: the LED lights for A OR B, or both.")
-	b.recap("One switch or both, the LED gets the same current, because the resistor sets it.")
+	b.recap("One switch or both, your LED got {L1.mA@closed}, because the resistor sets it.")
 	b.question("Two switches in parallel: which cases light the LED?", [
 		{"text": "Either or both closed.", "correct": true, "why": "Each closed switch is a complete path on its own."},
 		{"text": "Only both closed.", "correct": false, "why": "That's switches one after the other, in series: Lesson 5."},

@@ -1,24 +1,21 @@
-# Circuit v0.2.0 — Take It Home
+# Circuit v0.3.0 — Class Is In
 
-The first public release: Chapter 1, "Spark", on your computer, your phone or in a browser.
-
-## What's in the game
-
-- **Nine levels** from your first lit LED to zooming inside a wire: closing a loop, sizing a resistor from a datasheet, Ohm's law with real meters, switches and logic (both and either), short circuits, power ratings, and copper atoms with drifting electrons.
-- **A real simulation.** Every circuit is solved properly (modified nodal analysis with a real LED model). Parts burn out when pushed past their real ratings, and the game says where it simplifies.
-- **A realistic workbench.** True-to-size parts on perfboard, a battery holder and multimeters, under studio lighting, with a schematic view a tap away.
-- **Heavy help by default.** Pip guides each level with a checklist, instant explanations, a step-by-step calculator, datasheets, three tiers of hints, and a definition for every new word the first time it appears.
-- **The zoom.** The title flies from the whole Earth, past an undersea cable coming ashore, down to one silicon atom in a grain of sand.
-- **Your progress saves itself**, and the Notebook collects every word and badge.
+Chapter 1 is now a course. Every lesson teaches before it asks: what you'll learn, one idea at a time with a picture, the parts you'll use, something to try with your own hands, then the build, then a recap. Nothing about the circuits got simpler: the same real simulation, explained.
 
 ## New in this version
 
-- **Android app.** Install `Circuit-android.apk` on your phone (see the README). It asks for no permissions.
-- **Sound and music.** Soft clicks, chimes and pops for what happens on the bench, and a calm lo-fi music loop. Settings has a Sound switch and a Music volume slider.
-- **Start over** returns a level to its start in one step (and Undo brings your work back).
-- **Phones:** the circuit is framed so pins are big enough to tap, cards scroll to fit, and every button is at least 44 px.
-- **Words:** everything on screen, from the map to the calculator, defines its words the first time you meet them.
-- **Readable everywhere:** night colors, large text and the title's captions all meet the contrast targets.
-- **About:** Settings shows the version, a Check for updates button (it opens the downloads page in your browser; the game itself never goes online), and the credits and licenses.
+- **Lesson 0, your workbench.** A tour of the screen, then one step for each control (place, move, turn, wire, delete, undo, zoom, pan, datasheet and hint), each shown by a moving hand. You can skip it.
+- **Learn first.** Each lesson opens on a short deck of cards, one idea each, most with a moving picture: charges in a wire, a battery's push, water in pipes, Ohm's triangle, switches as drawbridges, a truth table, a short circuit, copper's crystal. Worked examples show one step at a time, and Go deeper holds the extra detail and the sources.
+- **Meet the part.** Every part has its own card: the real part in 3D on a turntable (drag to spin it), its legs named, what it does, where you'd find one, and a cutaway to look inside.
+- **Try it.** A ready-made circuit to poke at before you build: break a loop and fix it, burn an LED on purpose, turn a dial and watch the current halve, fill in a truth table, make a short and watch the battery heat up, flip the picture to the electrons' way.
+- **Why?** on every step, and on each of Pip's warnings.
+- **Recap.** What you learned, with your own numbers; a question or two that explains every answer; and a fact from history. Put it away to look at your circuit, and bring it back with the Recap button.
+- **The Notebook is a textbook.** Read any lesson again, meet any part again, look up any word, and once Chapter 1 is done, read its summary.
+- **Easier for beginners.** Tray items name their parts, flat buttons have an edge, moving pictures say when they're sped up, and new words are defined where they first appear (cell, lead, leg, drift, gauge, probe, truth table, binary, circuit breaker).
+- **Phones.** On a landscape phone a card's picture sits beside its words; on the smallest phones, with Large text, every card fits or scrolls and every button can be reached.
+
+## Coming from v0.2.0
+
+Your progress carries over. Lessons you finished stay open and start on the build; the Lesson button opens the course for any of them.
 
 Downloads: Windows, Mac and Linux (each with a `Licenses` folder) and Android. The browser version plays on the project's web page; `Circuit-web.zip` is for hosting it on a web server, because browsers won't run it straight from a downloaded file.

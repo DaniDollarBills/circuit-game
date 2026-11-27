@@ -25,10 +25,10 @@ var _steps: VBoxContainer
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(340, 0)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
-	add_child(col)
+	# Narrower on a phone, and scrolls when it is still too tall.
+	CardFit.wrap(self, col)
 	var top := HBoxContainer.new()
 	col.add_child(top)
 	var title := Label.new()

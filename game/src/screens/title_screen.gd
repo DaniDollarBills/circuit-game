@@ -34,7 +34,11 @@ var layers := {}
 
 var _caption: RichTextLabel
 var _subtitles: VBoxContainer
-var _deeper: Label
+var _deeper: RichTextLabel
+## The caption, subtitles, Go deeper note and buttons: grows up from the
+## bottom edge as far as its content needs.
+var _bottom: VBoxContainer
+var glossary_popup: GlossaryPopup
 var _simple: CheckButton
 var _start: Button
 var _skip: Button
@@ -61,6 +65,7 @@ func _ready() -> void:
 	stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for id in TitleChain.ORDER:
 		var l: TitleLayer = LAYER_SCRIPTS[id].new()
+		l.quality = str(_settings_value("quality", "auto"))
 		layers[id] = l
 		stage.add_layer(l)
 	for link in TitleChain.links():
@@ -69,6 +74,7 @@ func _ready() -> void:
 	_build_input()
 	_build_ui()
 	stage.layer_changed.connect(_on_layer)
+	game.changed.connect(_follow_quality)
 	stage.view_changed.connect(func(meters: float, jump: String) -> void: _scale_bar.set_view(meters, jump, stage.size.y))
 	var first := "title.globe"
 	for arg in OS.get_cmdline_user_args():
@@ -80,6 +86,12 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_place_bottom()
+	var area := Rect2(12, 12, size.x - 24.0, size.y - 24.0)
+	for card: Control in [_settings, glossary_popup]:
+		if card.visible:
+			var w := minf(380.0, area.size.x)
+			CardFit.fit(card, w, area, area.position + (area.size - Vector2(w, card.size.y)) / 2.0)
 	if _slideshow:
 		_step_slideshow(delta)
 	elif autoplay and stage.camera() != null:
@@ -119,12 +131,22 @@ func _on_layer(id: String) -> void:
 		return
 	_layer = id
 	var p := game.state.progress
+	var atom := id == "title.atom"
 	# Light links: the title sits on dark space and photographs.
 	var r := GlossaryText.render(CAPTIONS.get(id, ""), p.seen_terms, true, true)
 	_caption.text = "[center]%s[/center]" % r["bbcode"]
+	var fresh: PackedStringArray = r["new_terms"]
+	if atom:
+		# The atom's "Go deeper" note defines its own words too.
+		var seen := p.seen_terms.duplicate()
+		for t in fresh:
+			seen[t] = 0
+		var deeper := GlossaryText.render(AtomLayer.GO_DEEPER, seen, true, true)
+		_deeper.text = "[center]%s[/center]" % deeper["bbcode"]
+		fresh.append_array(deeper["new_terms"])
 	for c in _subtitles.get_children():
 		c.queue_free()
-	for t in r["new_terms"]:
+	for t in fresh:
 		var e: Dictionary = Glossary.ENTRIES.get(t, {})
 		if e.is_empty():
 			continue
@@ -136,15 +158,14 @@ func _on_layer(id: String) -> void:
 		line.add_theme_font_size_override("font_size", 14)
 		line.add_theme_color_override("font_color", Color(0.86, 0.85, 0.92))
 		_subtitles.add_child(line)
-	if not (r["new_terms"] as PackedStringArray).is_empty():
-		game.mark_terms_seen(r["new_terms"])
+	if not fresh.is_empty():
+		game.mark_terms_seen(fresh)
 		# The subtitles stand in for New word cards here; badges become toasts.
 		for e in game.state.take_events():
 			if e["type"] == "badge":
 				for a in Achievements.ALL:
 					if a["id"] == e["id"]:
 						game.toast.emit("Badge earned: %s" % a["name"])
-	var atom := id == "title.atom"
 	_deeper.visible = atom
 	_simple.visible = atom
 
@@ -229,6 +250,7 @@ func _build_ui() -> void:
 	top.add_child(gear)
 	top.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	var bottom := VBoxContainer.new()
+	_bottom = bottom
 	bottom.alignment = BoxContainer.ALIGNMENT_END
 	bottom.add_theme_constant_override("separation", 8)
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -252,17 +274,21 @@ func _build_ui() -> void:
 	_subtitles = VBoxContainer.new()
 	_subtitles.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bottom.add_child(_subtitles)
-	_deeper = Label.new()
-	_deeper.text = AtomLayer.GO_DEEPER
+	_deeper = RichTextLabel.new()
+	_deeper.bbcode_enabled = true
+	_deeper.fit_content = true
+	_deeper.scroll_active = false
 	_deeper.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_deeper.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_deeper.add_theme_font_size_override("font_size", 14)
-	_deeper.add_theme_color_override("font_color", Color(0.8, 0.78, 0.9))
+	_deeper.add_theme_font_size_override("normal_font_size", 14)
+	_deeper.add_theme_color_override("default_color", Color(0.8, 0.78, 0.9))
+	_deeper.meta_clicked.connect(func(meta: Variant) -> void: game.term_requested.emit(str(meta)))
 	_deeper.visible = false
 	bottom.add_child(_deeper)
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 16)
+	# Wraps on a narrow phone instead of pushing past its edges.
+	var row := HFlowContainer.new()
+	row.alignment = FlowContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("h_separation", 16)
+	row.add_theme_constant_override("v_separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bottom.add_child(row)
 	_simple = CheckButton.new()
@@ -294,6 +320,27 @@ func _build_ui() -> void:
 	_settings.game = game
 	add_child(_settings)
 	_settings.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	# Underlined words open their definitions here too.
+	glossary_popup = GlossaryPopup.new()
+	glossary_popup.game = game
+	add_child(glossary_popup)
+	game.term_requested.connect(func(term: String) -> void: glossary_popup.open(term))
+
+
+## The quality setting can change in this screen's own settings card.
+func _follow_quality() -> void:
+	var q := str(_settings_value("quality", "auto"))
+	for id in layers:
+		if (layers[id] as ZoomLayer).quality != q:
+			(layers[id] as ZoomLayer).quality = q
+
+
+## The bottom block is as tall as its content; the scale bar sits above it.
+func _place_bottom() -> void:
+	_bottom.offset_top = _bottom.offset_bottom - _bottom.get_combined_minimum_size().y
+	var bar_h := _scale_bar.custom_minimum_size.y
+	_scale_bar.offset_bottom = _bottom.offset_top - 8.0
+	_scale_bar.offset_top = _scale_bar.offset_bottom - bar_h
 
 
 func _settings_value(key: String, fallback: Variant) -> Variant:

@@ -13,7 +13,7 @@ var _badges := 0
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(360, 420)
+	# Its list scrolls; CardFit gives the card its height (420 px, or less).
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	add_child(col)

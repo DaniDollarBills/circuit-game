@@ -26,7 +26,6 @@ func _ready() -> void:
 		add_child(_pointer)
 		_pointer.gesture.connect(_on_gesture)
 	viewport.own_world_3d = true
-	viewport.msaa_3d = Viewport.MSAA_4X
 	world = Node3D.new()
 	viewport.add_child(world)
 	camera = Camera3D.new()

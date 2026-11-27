@@ -23,10 +23,10 @@ var _explain: Button
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(360, 0)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
-	add_child(col)
+	# Narrower on a phone, and scrolls when it is still too tall.
+	CardFit.wrap(self, col)
 	var top := HBoxContainer.new()
 	col.add_child(top)
 	_title = HudText.label(game)
@@ -117,7 +117,6 @@ func _model_view() -> Control:
 	_viewport = SubViewport.new()
 	_viewport.own_world_3d = true
 	_viewport.transparent_bg = true
-	_viewport.msaa_3d = Viewport.MSAA_4X
 	box.add_child(_viewport)
 	var env := WorldEnvironment.new()
 	env.environment = StudioEnvironment.build(Workbench3D.HDRI, "low")
@@ -137,10 +136,21 @@ func _model_view() -> Control:
 
 ## Frames the real part, true to size, from a little above.
 func _show_model(p: Part) -> void:
+	# Anti-aliasing follows the quality setting, as on the board.
+	_viewport.msaa_3d = Quality.msaa(Quality.resolve(str(game.state.progress.settings.get("quality", "auto")), Quality.current_method()))
 	for c in _turntable.get_children():
 		_turntable.remove_child(c)
 		c.queue_free()
-	var model := PartModels.build(p)
+	# On the board a battery or meter is just the two posts its leads plug
+	# into; the card shows the real thing beside the board.
+	var model: Node3D
+	match p.kind:
+		"battery":
+			model = PartModels.build_holder()
+		"ammeter", "voltmeter":
+			model = PartModels.build_multimeter(p.kind)
+		_:
+			model = PartModels.build(p)
 	_turntable.add_child(model)
 	var box := _bounds(model)
 	model.position = -box.get_center()

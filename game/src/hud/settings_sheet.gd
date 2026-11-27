@@ -26,10 +26,10 @@ var _toggles := {}
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(360, 0)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
-	add_child(col)
+	# Narrower on a phone, and scrolls when it is still too tall.
+	CardFit.wrap(self, col)
 	var top := HBoxContainer.new()
 	col.add_child(top)
 	var title := Label.new()
@@ -51,6 +51,8 @@ func _ready() -> void:
 		var o := OptionButton.new()
 		o.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		o.clip_text = true
+		# Fits a narrow phone: the menu clips, its list still shows every item.
+		o.fit_to_longest_item = false
 		for label in c[3]:
 			o.add_item(label)
 		var key: String = c[0]

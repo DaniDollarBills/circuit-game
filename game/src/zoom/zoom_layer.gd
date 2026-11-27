@@ -20,12 +20,41 @@ var _display: TextureRect
 var view_center := Vector2.ZERO
 var view_height := 10.0
 var _resolution_scale := 1.0
+## The graphics preset from the settings ("auto", "low" … "ultra"): 3D
+## anti-aliasing, and how many screen pixels per layout pixel are worth
+## rendering, so a high-density screen gets a sharp picture.
+var quality := "auto":
+	set(value):
+		quality = value
+		apply_quality()
 
 
 func _ready() -> void:
 	stretch = false
 	_ensure_viewport()
-	resized.connect(_apply_resolution)
+	resized.connect(fit_resolution)
+	apply_quality()
+
+
+func apply_quality() -> void:
+	if viewport == null:
+		return
+	viewport.msaa_3d = Quality.msaa(preset())
+	fit_resolution()
+
+
+## The preset `quality` stands for on this renderer.
+func preset() -> String:
+	return Quality.resolve(quality, Quality.current_method())
+
+
+## Renders at the screen's own resolution, up to what the preset allows.
+func fit_resolution() -> void:
+	if not is_inside_tree():
+		_apply_resolution()
+		return
+	var screen_k := get_viewport().get_final_transform().get_scale().x
+	set_resolution_scale(minf(screen_k, Quality.max_resolution_scale(preset())))
 
 
 func info() -> LayerInfo:

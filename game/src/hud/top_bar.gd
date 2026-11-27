@@ -9,7 +9,8 @@ var show_title := true:
 	set(value):
 		show_title = value
 		if _title != null:
-			_title.modulate.a = 1.0 if value else 0.0
+			# The pill keeps its place as a spacer, unseen.
+			(_title.get_parent() as Control).modulate.a = 1.0 if value else 0.0
 
 var _title: Label
 var _buttons := {}

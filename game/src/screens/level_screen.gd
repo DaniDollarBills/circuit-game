@@ -30,6 +30,9 @@ var tray: PartsTray
 var goals: GoalsPanel
 var checklist: StepsChecklist
 var test_sheet: TestSheet
+var test_button: IconButton
+## The goals, steps and test results; scrolls when they don't fit.
+var column_scroll: ScrollContainer
 var hint_button: HintButton
 var guide: GuideBubble
 var toasts: Toasts
@@ -46,7 +49,7 @@ var back_to_building: Button
 var closeup: WireCloseupLayer
 var copper: CopperLayer
 ## The caption shown inside the copper.
-var zoom_caption: Label
+var zoom_caption: RichTextLabel
 
 var _column: VBoxContainer
 var _cards_root: Control
@@ -183,6 +186,10 @@ func _refresh() -> void:
 	if s.level == null or not is_inside_tree():
 		return
 	var st := s.progress.settings
+	var q := str(st.get("quality", "auto"))
+	if closeup.quality != q:
+		closeup.quality = q
+		copper.quality = q
 	_handle_events(s.take_events())
 	if bool(st.get("night", false)) != _night:
 		_night = not _night
@@ -213,12 +220,20 @@ func _refresh() -> void:
 	checklist.visible = _help() == "heavy" and not s.level.steps.is_empty()
 	if checklist.visible:
 		checklist.refresh(s.level, s.session)
-	test_sheet.visible = not s.level.tests.is_empty()
+	test_button.visible = not s.level.tests.is_empty()
+	test_sheet.visible = test_button.visible and not (s.session.test_report.get("cases", []) as Array).is_empty()
 	if test_sheet.visible:
 		test_sheet.refresh(s.session)
 	hint_button.visible = _help() != "off" and not s.level.hints.is_empty()
 	back_to_building.visible = s.zoom_layer != "editor"
 	zoom_caption.visible = s.zoom_layer == "wire.copper"
+	if zoom_caption.visible and zoom_caption.text == "":
+		# Light links: the caption sits on the dark copper scene.
+		var r := GlossaryText.render(CopperLayer.CAPTION, s.progress.seen_terms, true, true)
+		zoom_caption.text = "[center]%s[/center]" % r["bbcode"]
+		if not (r["new_terms"] as PackedStringArray).is_empty():
+			game.mark_terms_seen(r["new_terms"])
+			_queue_refresh()
 	if not _any_burnt():
 		toasts.drop("Pop! ")
 	_check_mistakes()
@@ -503,12 +518,22 @@ func _queue_word(term: String) -> void:
 
 
 func _pump_words() -> void:
-	while _cards.size() < (1 if _portrait else MAX_CARDS) and not _word_queue.is_empty():
+	while _cards.size() < _max_cards() and not _word_queue.is_empty():
 		var card := NewWordCard.make(game, _word_queue[0])
 		_word_queue.remove_at(0)
 		card.finished.connect(_on_card_done)
 		_cards_root.add_child(card)
 		_cards.append(card)
+
+
+## Two cards when the board is tall enough for two, else one.
+func _max_cards() -> int:
+	return MAX_CARDS if editor.safe_rect.size.y >= 520.0 else 1
+
+
+## Where the column is on screen (nothing while it's hidden).
+func column_area() -> Rect2:
+	return column_scroll.get_global_rect() if column_scroll.is_visible_in_tree() else Rect2()
 
 
 func _on_card_done(card: NewWordCard) -> void:
@@ -582,10 +607,14 @@ func _build_hud() -> void:
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hud)
 	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	column_scroll = ScrollContainer.new()
+	column_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	hud.add_child(column_scroll)
 	_column = VBoxContainer.new()
 	_column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_column.add_theme_constant_override("separation", 8)
-	hud.add_child(_column)
+	column_scroll.add_child(_column)
 	goals = _with_game(GoalsPanel.new())
 	checklist = _with_game(StepsChecklist.new())
 	test_sheet = _with_game(TestSheet.new())
@@ -595,20 +624,18 @@ func _build_hud() -> void:
 	top_bar = _add(TopBar.new())
 	scale_bar = _add(ScaleBar.new())
 	hint_button = _add(HintButton.create())
+	# Beside Hint, never scrolled away with the column.
+	test_button = _add(TestSheet.make_button(game))
 	guide = _add(GuideBubble.new())
 	back_to_building = Button.new()
 	back_to_building.text = "Back to building"
 	back_to_building.visible = false
 	hud.add_child(back_to_building)
-	zoom_caption = Label.new()
-	zoom_caption.text = CopperLayer.CAPTION
-	zoom_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	zoom_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	zoom_caption.add_theme_font_size_override("font_size", 18)
-	zoom_caption.add_theme_color_override("font_color", Color(0.97, 0.96, 1.0))
+	# Rendered when it first shows: its words count as met then, not before.
+	zoom_caption = HudText.label(game, 18)
+	zoom_caption.add_theme_color_override("default_color", Color(0.97, 0.96, 1.0))
 	zoom_caption.add_theme_color_override("font_outline_color", Color(0.08, 0.07, 0.12, 0.85))
 	zoom_caption.add_theme_constant_override("outline_size", 6)
-	zoom_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	zoom_caption.visible = false
 	hud.add_child(zoom_caption)
 	_cards_root = Control.new()
@@ -649,34 +676,53 @@ func _layout() -> void:
 	_portrait = portrait
 	if tray.vertical == portrait:
 		tray.vertical = not portrait
-	goals.compact = portrait
-	checklist.compact = portrait
+	# A landscape phone is short: the goals fold up as in portrait.
+	var short := not portrait and h < 560.0
+	goals.compact = portrait or short
+	checklist.compact = portrait or short
 	top_bar.show_title = w >= 520.0
 	top_bar.position = Vector2(MARGIN, MARGIN)
 	top_bar.size = Vector2(w - 2.0 * MARGIN, BAR_H)
 	var top := MARGIN + BAR_H + 8.0
 	var safe: Rect2
+	var hint_size := hint_button.custom_minimum_size
+	var test_size := test_button.custom_minimum_size
 	if portrait:
 		tray.position = Vector2(MARGIN, h - MARGIN - STRIP_H)
 		tray.size = Vector2(w - 2.0 * MARGIN, STRIP_H)
-		_column.position = Vector2(MARGIN, top)
-		_column.size = Vector2(w - 2.0 * MARGIN, 0)
-		var column_h := _column.get_combined_minimum_size().y
-		hint_button.position = Vector2(w - MARGIN - hint_button.custom_minimum_size.x, tray.position.y - 8.0 - hint_button.custom_minimum_size.y)
-		scale_bar.position = Vector2(MARGIN, tray.position.y - 8.0 - scale_bar.custom_minimum_size.y)
+		# Hint and Test sit in a row above the tray; the scale bar beside
+		# them when it fits, else above.
+		var row_y := tray.position.y - 8.0 - hint_size.y
+		hint_button.position = Vector2(w - MARGIN - hint_size.x, row_y)
+		test_button.position = Vector2(hint_button.position.x - 8.0 - test_size.x, row_y)
+		var bar_size := scale_bar.custom_minimum_size
+		var beside := MARGIN + bar_size.x + 8.0 <= (test_button.position.x if test_button.visible else hint_button.position.x)
+		scale_bar.position = Vector2(MARGIN, row_y + hint_size.y - bar_size.y if beside else row_y - 8.0 - bar_size.y)
+		var column_h := _column_height(w - 2.0 * MARGIN, h * 0.38)
+		column_scroll.position = Vector2(MARGIN, top)
+		column_scroll.size = Vector2(w - 2.0 * MARGIN, column_h)
 		safe = Rect2(MARGIN, top + column_h + 8.0, w - 2.0 * MARGIN, tray.position.y - 8.0 - (top + column_h + 8.0))
 	else:
 		tray.position = Vector2(MARGIN, top)
 		tray.size = Vector2(TRAY_W, h - top - MARGIN)
-		_column.position = Vector2(w - MARGIN - COLUMN_W, top)
-		_column.size = Vector2(COLUMN_W, 0)
-		hint_button.position = Vector2(w - MARGIN - hint_button.custom_minimum_size.x, h - MARGIN - hint_button.custom_minimum_size.y)
+		var row_y := h - MARGIN - hint_size.y
+		hint_button.position = Vector2(w - MARGIN - hint_size.x, row_y)
+		test_button.position = Vector2(hint_button.position.x - 8.0 - test_size.x, row_y)
+		column_scroll.position = Vector2(w - MARGIN - COLUMN_W, top)
+		column_scroll.size = Vector2(COLUMN_W, _column_height(COLUMN_W, row_y - 8.0 - top))
 		scale_bar.position = Vector2(MARGIN + TRAY_W + 12.0, h - MARGIN - scale_bar.custom_minimum_size.y)
 		safe = Rect2(MARGIN + TRAY_W + 8.0, top, w - MARGIN - COLUMN_W - 8.0 - (MARGIN + TRAY_W + 8.0), h - top - MARGIN)
 	editor.safe_rect = safe
 	scale_bar.size = scale_bar.custom_minimum_size
-	hint_button.size = hint_button.custom_minimum_size
+	hint_button.size = hint_size
+	test_button.size = test_size
 	_place_floating()
+
+
+## The column's height at `width`: its content's, up to `cap`.
+func _column_height(width: float, cap: float) -> float:
+	_column.size.x = width
+	return clampf(_column.get_combined_minimum_size().y, 0.0, maxf(cap, 0.0))
 
 
 ## Things whose size follows their content: the guide, cards and popups.
@@ -686,6 +732,9 @@ func _place_floating() -> void:
 	var w := size.x
 	var h := size.y
 	var top := MARGIN + BAR_H + 8.0
+	# The column grows and shrinks with its content, never past its room.
+	var column_cap := h * 0.38 if _portrait else hint_button.position.y - 8.0 - top
+	column_scroll.size.y = _column_height(column_scroll.size.x, column_cap)
 	if _portrait:
 		guide.size = Vector2(w - 2.0 * MARGIN, 0)
 		guide.reset_size()
@@ -712,13 +761,14 @@ func _place_floating() -> void:
 	toasts.size.x = minf(board.size.x - 16.0, 460.0)
 	var above := guide.position.y if guide.visible else (hint_button.position.y if _portrait else h - MARGIN - 48.0)
 	toasts.position = Vector2(board.get_center().x - toasts.size.x / 2.0, above - 8.0 - toasts.size.y)
+	var area := Rect2(MARGIN, top, w - 2.0 * MARGIN, h - top - MARGIN)
 	for card in [datasheet, formula, settings_sheet, notebook, glossary_popup]:
 		if card.visible:
-			var cw := minf(maxf(card.custom_minimum_size.x, 360.0), w - 2.0 * MARGIN)
-			card.size = Vector2(cw, 0)
-			card.reset_size()
-			card.size = Vector2(cw, minf(card.size.y, h - top - MARGIN))
-			card.position = ((Vector2(w, h) - card.size) / 2.0).max(Vector2(MARGIN, top)).round()
+			var cw := minf(380.0, area.size.x)
+			var ch := 420.0 if card == notebook else -1.0
+			CardFit.fit(card, cw, area, (area.position + (area.size - Vector2(cw, card.size.y)) / 2.0), ch)
+	if explain.visible:
+		CardFit.fit(explain, 360.0, area, explain.position)
 	var y := board.position.y + 8.0
 	for card in _cards:
 		var cw := minf(card.custom_minimum_size.x, board.size.x - 16.0)

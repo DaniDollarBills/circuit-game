@@ -58,9 +58,8 @@ func _ready() -> void:
 	pointer.gesture.connect(_on_gesture)
 	resized.connect(func() -> void: apply_view(view_center, view_height))
 	_apply_style()
-	_apply_quality()
+	quality = str(settings.get("quality", "auto"))
 	apply_view(view_center, view_height)
-	resized.connect(_fit_resolution)
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -96,7 +95,7 @@ func set_state(c: Circuit, s: SimResult, st: Dictionary, gh: Dictionary, hl: Arr
 	var quality_changed := str(st.get("quality", "auto")) != str(settings.get("quality", "auto"))
 	settings = st
 	if quality_changed:
-		_apply_quality()
+		quality = str(settings.get("quality", "auto"))
 	ghosts = gh
 	highlights = hl
 	_apply_style()
@@ -297,28 +296,16 @@ func _apply_style() -> void:
 		workbench.apply_view(view_center, view_height)
 
 
-## The graphics preset: 3D anti-aliasing, shadow detail and render resolution.
-## 2D anti-aliasing is off on the Compatibility renderer, which lacks it.
-func _apply_quality() -> void:
+## On top of the shared anti-aliasing and resolution: shadow detail, and 2D
+## anti-aliasing (off on the Compatibility renderer, which lacks it).
+func apply_quality() -> void:
+	super.apply_quality()
 	if viewport == null:
 		return
-	var method := Quality.current_method()
-	var preset := Quality.resolve(str(settings.get("quality", "auto")), method)
-	viewport.msaa_3d = Quality.msaa(preset)
-	viewport.msaa_2d = Viewport.MSAA_DISABLED if method == "gl_compatibility" else Viewport.MSAA_4X
-	var shadow := int(Quality.PRESETS[preset]["shadow_size"])
+	viewport.msaa_2d = Viewport.MSAA_DISABLED if Quality.current_method() == "gl_compatibility" else Viewport.MSAA_4X
+	var shadow := int(Quality.PRESETS[preset()]["shadow_size"])
 	viewport.positional_shadow_atlas_size = shadow
 	RenderingServer.directional_shadow_atlas_set_size(shadow, true)
-	_fit_resolution()
-
-
-## Renders at the screen's own resolution, up to what the preset allows.
-func _fit_resolution() -> void:
-	if not is_inside_tree():
-		return
-	var preset := Quality.resolve(str(settings.get("quality", "auto")), Quality.current_method())
-	var screen_k := get_viewport().get_final_transform().get_scale().x
-	set_resolution_scale(minf(screen_k, Quality.max_resolution_scale(preset)))
 
 
 ## In the real view the board is seen in perspective, so screen and grid

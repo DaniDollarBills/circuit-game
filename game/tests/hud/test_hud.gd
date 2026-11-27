@@ -636,3 +636,48 @@ func test_hud_text_is_readable_by_day_and_night() -> void:
 	for f in faint:
 		unique[f] = true
 	assert_eq("\n".join(unique.keys()), "")
+
+
+## Zooming into a wire from any level shows the copper caption; its words are
+## defined then, not before.
+func test_copper_caption_defines_its_words_when_it_shows() -> void:
+	var s := await _screen("ch1.pop")
+	await _skip_intro(s)
+	var words: PackedStringArray = GlossaryText.render(CopperLayer.CAPTION, {}, true, false)["new_terms"]
+	assert_true("crystal lattice" in words, str(words))
+	var seen := s.game.state.progress.seen_terms
+	assert_false(seen.has("crystal lattice"), "not before the caption shows")
+	s.game.state.set_zoom_layer("wire.copper")
+	s.game.changed.emit()
+	await wait_frames(2)
+	assert_true(s.zoom_caption.visible)
+	assert_true(s.zoom_caption is RichTextLabel and (s.zoom_caption as RichTextLabel).text.contains("[url=crystal lattice]"))
+	for w in words:
+		assert_true(seen.has(w), w)
+
+
+func test_wire_layers_and_datasheet_follow_the_quality_setting() -> void:
+	var s := await _screen("ch1.pop", Vector2(1280, 720), {"quality": "low"})
+	await _skip_intro(s)
+	assert_eq(s.closeup.quality, "low")
+	assert_eq(s.copper.quality, "low")
+	s.dev_show("datasheet:B1")
+	await wait_frames(1)
+	assert_eq(s.datasheet._viewport.msaa_3d, Viewport.MSAA_2X, "Low quality: 2× anti-aliasing")
+	s.game.set_setting("quality", "high")
+	await wait_frames(2)
+	assert_eq(s.closeup.quality, "high")
+	assert_eq(s.copper.quality, "high")
+
+
+## A battery's or meter's part on the board is just its two header posts; the
+## datasheet shows the real thing: the AA holder or the multimeter.
+func test_datasheet_shows_the_holder_and_multimeters() -> void:
+	var s := await _screen("ch1.push-and-flow")
+	await _skip_intro(s)
+	for pair in [["B1", "holder"], ["M1", "multimeter"], ["V1", "multimeter"], ["R1", "R1"]]:
+		s.datasheet.open(s.game.state.outcome.circuit.find_part(pair[0]), true)
+		await wait_frames(1)
+		var shown: Array = s.datasheet._turntable.get_children().filter(func(n: Node) -> bool: return not n.is_queued_for_deletion())
+		assert_eq(shown.size(), 1, pair[0])
+		assert_eq(str((shown[0] as Node).name), pair[1], pair[0])

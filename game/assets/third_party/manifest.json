@@ -1,0 +1,116 @@
+[
+  {
+    "id": "studio_small_09",
+    "source": "polyhaven",
+    "kind": "hdri",
+    "license": "CC0",
+    "credit": "Studio Small 09 by Sergej Majboroda, Poly Haven",
+    "files": [
+      {
+        "path": "assets/third_party/polyhaven/hdri/studio_small_09_2k.hdr",
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/studio_small_09_2k.hdr",
+        "md5": "b056fea247bc84b81d2e0987d44c87d8"
+      }
+    ]
+  },
+  {
+    "id": "kloofendal_48d_partly_cloudy_puresky",
+    "source": "polyhaven",
+    "kind": "hdri",
+    "license": "CC0",
+    "credit": "Kloofendal 48d Partly Cloudy (Pure Sky) by Greg Zaal and Jarod Guest, Poly Haven",
+    "files": [
+      {
+        "path": "assets/third_party/polyhaven/hdri/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
+        "md5": "2eba3a4d7eeb23cbfbeca364c97e7980"
+      }
+    ]
+  },
+  {
+    "id": "wood_table_001",
+    "source": "polyhaven",
+    "kind": "texture",
+    "license": "CC0",
+    "credit": "Wood Table 001 by Dimitrios Savva and Rico Cilliers, Poly Haven",
+    "files": [
+      {
+        "path": "assets/third_party/polyhaven/textures/wood_table_001/wood_table_001_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/wood_table_001/wood_table_001_diff_2k.jpg",
+        "md5": "a36483628b915dabf82961ab2a62a85c"
+      },
+      {
+        "path": "assets/third_party/polyhaven/textures/wood_table_001/wood_table_001_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/wood_table_001/wood_table_001_nor_gl_2k.jpg",
+        "md5": "50dbc9fe086df00f6bce819eae6091d1"
+      },
+      {
+        "path": "assets/third_party/polyhaven/textures/wood_table_001/wood_table_001_rough_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/wood_table_001/wood_table_001_rough_2k.jpg",
+        "md5": "a291ec6bc35b9827175cdd1592c62e03"
+      }
+    ]
+  },
+  {
+    "id": "aerial_beach_01",
+    "source": "polyhaven",
+    "kind": "texture",
+    "license": "CC0",
+    "credit": "Aerial Beach 01 by Rob Tuytel, Poly Haven",
+    "files": [
+      {
+        "path": "assets/third_party/polyhaven/textures/aerial_beach_01/aerial_beach_01_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/aerial_beach_01/aerial_beach_01_diff_2k.jpg",
+        "md5": "b06496ad69bc0587e03e9cbcf9a80d76"
+      },
+      {
+        "path": "assets/third_party/polyhaven/textures/aerial_beach_01/aerial_beach_01_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/aerial_beach_01/aerial_beach_01_nor_gl_2k.jpg",
+        "md5": "fdf59672f1e41cd406c2107f6cea538d"
+      },
+      {
+        "path": "assets/third_party/polyhaven/textures/aerial_beach_01/aerial_beach_01_rough_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/aerial_beach_01/aerial_beach_01_rough_2k.jpg",
+        "md5": "e372484429ef0b815b5387429d199c6d"
+      }
+    ]
+  },
+  {
+    "id": "sand_01",
+    "source": "polyhaven",
+    "kind": "texture",
+    "license": "CC0",
+    "credit": "Sand 01 by Rob Tuytel, Poly Haven",
+    "files": [
+      {
+        "path": "assets/third_party/polyhaven/textures/sand_01/sand_01_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/sand_01/sand_01_diff_2k.jpg",
+        "md5": "e5b22b6d5c2bbe3b6ec0b9dfa137bea1"
+      },
+      {
+        "path": "assets/third_party/polyhaven/textures/sand_01/sand_01_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/sand_01/sand_01_nor_gl_2k.jpg",
+        "md5": "b8298e9007b3983f9e10d35cd87a4b1f"
+      },
+      {
+        "path": "assets/third_party/polyhaven/textures/sand_01/sand_01_rough_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/sand_01/sand_01_rough_2k.jpg",
+        "md5": "ae89a58489a0cf49e899fb6abd5f65c9"
+      }
+    ]
+  },
+  {
+    "id": "natural_earth_ii",
+    "source": "naturalearth",
+    "kind": "image",
+    "license": "Public domain; tiles Apache-2.0",
+    "credit": "Natural Earth II shaded relief, naturalearthdata.com (public domain), as tiled for the Cesium project (@cesium/engine 9.0.0, Apache-2.0)",
+    "generator": "tools/make_earth.mjs",
+    "files": [
+      {
+        "path": "assets/third_party/naturalearth/natural_earth_ii_2048.jpg",
+        "sha256": "a4cd3a2ed63716e5502ae9bc9eb72dca7ec15bca0dce6b60f0d039b06d68f2f5"
+      }
+    ]
+  }
+]

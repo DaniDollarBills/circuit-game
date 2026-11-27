@@ -1,0 +1,181 @@
+extends TestCase
+
+var _dir := ""
+
+
+func before_each() -> void:
+	_dir = "user://test_nav_%d_%d" % [Time.get_ticks_usec(), randi()]
+	DirAccess.make_dir_recursive_absolute(_dir)
+
+
+func after_each() -> void:
+	for f in DirAccess.get_files_at(_dir):
+		DirAccess.remove_absolute(_dir.path_join(f))
+	DirAccess.remove_absolute(_dir)
+
+
+func _game() -> Game:
+	var game := Game.new()
+	add_to_tree(game)
+	game.boot(_dir.path_join("progress.json"))
+	return game
+
+
+func _map(game: Game) -> MapScreen:
+	var map: MapScreen = load("res://src/screens/map_screen.tscn").instantiate()
+	map.game = game
+	add_to_tree(map)
+	return map
+
+
+func test_map_only_l1_enabled_on_fresh_progress() -> void:
+	var map := _map(_game())
+	var buttons := map.level_buttons()
+	assert_eq(buttons.size(), 9)
+	assert_false(buttons[0].disabled)
+	for i in range(1, 9):
+		assert_true(buttons[i].disabled, str(i))
+	assert_eq(map.chapter_cards().size(), 12)
+
+
+func test_map_l2_enabled_after_l1() -> void:
+	var game := _game()
+	game.state.progress.mark_complete("ch1.light-it-up", false, 1)
+	var map := _map(game)
+	assert_false(map.level_buttons()[1].disabled)
+	assert_true(map.level_buttons()[0].text.contains("✓"))
+	assert_true(map.level_buttons()[2].disabled)
+
+
+func test_open_level_shows_level_screen() -> void:
+	var main: Control = load("res://src/app/main.tscn").instantiate()
+	main.set("progress_path", _dir.path_join("progress.json"))
+	add_to_tree(main)
+	await wait_frames(2)
+	(main.get("game") as Game).open_level("ch1.light-it-up")
+	await wait_frames(2)
+	assert_true(main.get("screen") is LevelScreen)
+	var screen: LevelScreen = main.get("screen")
+	assert_true(screen.editor != null and screen.stage != null)
+	assert_eq(screen.editor.circuit.parts.size(), 3)
+
+
+func test_commit_autosaves_after_debounce() -> void:
+	var game := _game()
+	var path := _dir.path_join("progress.json")
+	game.open_level("ch1.light-it-up")
+	game.commit(TestCircuits.with_wire(game.state.level.circuit, "w1", "B1", "pos", "R1", "a"))
+	assert_false(FileAccess.file_exists(path), "saves wait for the debounce")
+	await tree.create_timer(Game.SAVE_DELAY_S + 0.2).timeout
+	var saved: Progress = ProgressStorage.load(path)["progress"]
+	assert_eq(CircuitIO.from_dict(saved.drafts["ch1.light-it-up"]).wires.size(), 1)
+
+
+func test_close_request_saves_immediately() -> void:
+	var game := _game()
+	var path := _dir.path_join("progress.json")
+	game.open_level("ch1.light-it-up")
+	game.commit(TestCircuits.with_wire(game.state.level.circuit, "w1", "B1", "pos", "R1", "a"))
+	game.notification(Node.NOTIFICATION_WM_CLOSE_REQUEST)
+	assert_true(ProgressStorage.load(path)["progress"].drafts.has("ch1.light-it-up"))
+
+
+func test_set_setting_rejects_invalid_values() -> void:
+	var game := _game()
+	game.set_setting("help_level", "light")
+	game.set_setting("help_level", "lots")
+	game.set_setting("night", "yes")
+	game.set_setting("no_such_setting", true)
+	assert_eq(game.state.progress.settings["help_level"], "light")
+	assert_eq(game.state.progress.settings["night"], false)
+	assert_false(game.state.progress.settings.has("no_such_setting"))
+
+
+func test_damaged_save_starts_fresh_with_toast() -> void:
+	var path := _dir.path_join("progress.json")
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string("{not json")
+	f.close()
+	var game := Game.new()
+	add_to_tree(game)
+	var toasts: Array[String] = []
+	game.toast.connect(func(t: String) -> void: toasts.append(t))
+	game.boot(path)
+	await wait_frames(1)
+	assert_true(game.state.progress.completed.is_empty())
+	assert_eq(toasts, [Game.DAMAGED_SAVE_KEPT] as Array[String])
+
+
+## The screen being replaced must not take the events meant for the new one.
+func test_next_level_gives_the_new_screen_its_new_words() -> void:
+	var main: Control = load("res://src/app/main.tscn").instantiate()
+	main.set("progress_path", _dir.path_join("progress.json"))
+	add_to_tree(main)
+	await wait_frames(2)
+	var game: Game = main.get("game")
+	game.open_level("ch1.light-it-up")
+	await wait_frames(3)
+	var before := game.state.progress.seen_terms.duplicate()
+	game.open_level("ch1.pop", true)
+	await wait_frames(3)
+	var screen: LevelScreen = main.get("screen")
+	var fresh: Array = game.state.progress.seen_terms.keys().filter(func(t: String) -> bool: return not before.has(t))
+	assert_true(not fresh.is_empty(), "L2 should introduce new words")
+	for t in fresh:
+		assert_true(t in screen.shown_word_terms(), "%s has no card on the new screen" % t)
+
+
+## The map's Notebook and definitions use the same scrolling cards as levels;
+## they must still get the room to show their words.
+func test_map_notebook_and_definitions_have_room() -> void:
+	var game := _game()
+	game.state.progress.mark_terms_seen(PackedStringArray(["voltage", "current", "resistance"]), 1)
+	var host := Control.new()
+	host.size = Vector2(1280, 720)
+	host.theme = PastelTheme.build()
+	add_to_tree(host)
+	var map: MapScreen = load("res://src/screens/map_screen.tscn").instantiate()
+	map.game = game
+	host.add_child(map)
+	await wait_frames(2)
+	map.notebook.open()
+	map.notebook.visible = true
+	await wait_frames(3)
+	var list := map.notebook._list.get_parent() as Control
+	assert_true(list.size.y >= 200.0, "the word list is %s tall" % list.size.y)
+	map.notebook.visible = false
+	map.glossary_popup.open("voltage")
+	await wait_frames(3)
+	assert_true(map.glossary_popup.size.y >= 120.0, "the definition card is %s tall" % map.glossary_popup.size.y)
+	assert_true(Rect2(Vector2.ZERO, host.size).encloses(map.glossary_popup.get_global_rect()))
+
+
+## Android's Back closes what's open, then steps back a screen; only from the
+## title does it leave the game.
+func test_back_closes_then_steps_back() -> void:
+	assert_eq(ProjectSettings.get_setting("application/config/quit_on_go_back", true), false)
+	var main: Control = load("res://src/app/main.tscn").instantiate()
+	main.set("progress_path", _dir.path_join("progress.json"))
+	add_to_tree(main)
+	await wait_frames(2)
+	var quits := []
+	main.set("quitter", func() -> void: quits.append(true))
+	var game: Game = main.get("game")
+	game.open_level("ch1.light-it-up", true)
+	await wait_frames(3)
+	var level: LevelScreen = main.get("screen")
+	level.dev_show("settings")
+	await wait_frames(1)
+	main.call("go_back")
+	await wait_frames(2)
+	assert_true(main.get("screen") is LevelScreen, "Back first closes the card")
+	assert_false(level.settings_sheet.visible)
+	main.call("go_back")
+	await wait_frames(3)
+	assert_true(main.get("screen") is MapScreen, "then goes to the map")
+	main.call("go_back")
+	await wait_frames(3)
+	assert_true(main.get("screen") is TitleScreen, "then the title")
+	assert_eq(quits, [])
+	main.call("go_back")
+	assert_eq(quits, [true], "and leaves the game from the title")

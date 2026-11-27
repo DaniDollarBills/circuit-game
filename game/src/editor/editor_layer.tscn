@@ -1,0 +1,22 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/editor/editor_layer.gd" id="1"]
+
+[node name="EditorLayer" type="SubViewportContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+script = ExtResource("1")
+layer_id = "editor"
+meters_per_unit = 0.00254
+min_view = 3.0
+max_view = 120.0
+home_view = 24.0
+
+[node name="Viewport" type="SubViewport" parent="."]
+handle_input_locally = false
+size = Vector2i(1280, 720)
+render_target_update_mode = 4

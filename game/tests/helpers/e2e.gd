@@ -169,8 +169,7 @@ func skip_intro(s: LevelScreen) -> void:
 		if phase == "learn":
 			await click_control(s.deck.next_button())
 		elif phase == "try":
-			s.game.finish_try()
-			await frames(1)
+			await click_control(s.try_panel.ready_button())
 		else:
 			break
 	await frames(2)

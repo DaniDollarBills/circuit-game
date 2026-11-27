@@ -37,6 +37,7 @@ var hint_button: HintButton
 var guide: GuideBubble
 var deck: LessonDeck
 var lesson_button: IconButton
+var try_panel: TryPanel
 ## The Meet the part card on screen, and the parts waiting to be met.
 var meet_card: MeetPartCard
 var _meet_queue := PackedStringArray()
@@ -136,6 +137,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func dev_show(what: String) -> void:
 	if what.begins_with("datasheet:"):
 		_open_datasheet(what.substr("datasheet:".length()))
+	elif what == "try":
+		game.reopen_lesson()
+		game.skip_learn()
 	elif what.begins_with("meet:"):
 		_open_meet(what.substr("meet:".length()))
 	elif what.begins_with("deck:"):
@@ -250,11 +254,17 @@ func _refresh() -> void:
 	var learning := s.session.phase == "learn"
 	tray.visible = not s.current_tray().is_empty() and not learning
 	column_scroll.visible = not learning
+	# Trying: the try panel has the column; the build's goals, steps and Test wait.
+	var trying := s.session.phase == "try"
+	try_panel.visible = trying
+	if trying:
+		try_panel.refresh(s)
+	goals.visible = not trying
 	goals.refresh(s.level, s.session, s.outcome.circuit)
-	checklist.visible = _help() == "heavy" and not s.level.steps.is_empty()
+	checklist.visible = _help() == "heavy" and not s.level.steps.is_empty() and not trying
 	if checklist.visible:
 		checklist.refresh(s.level, s.session)
-	test_button.visible = not s.level.tests.is_empty()
+	test_button.visible = not s.level.tests.is_empty() and not trying
 	test_sheet.visible = test_button.visible and not (s.session.test_report.get("cases", []) as Array).is_empty()
 	if test_sheet.visible:
 		test_sheet.refresh(s.session)
@@ -713,6 +723,7 @@ func _on_board_resized() -> void:
 
 
 func _connect() -> void:
+	try_panel.ready_pressed.connect(game.finish_try)
 	deck.next_pressed.connect(game.next_card)
 	deck.back_pressed.connect(game.back_card)
 	deck.skip_pressed.connect(game.skip_learn)
@@ -762,10 +773,11 @@ func _build_hud() -> void:
 	_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_column.add_theme_constant_override("separation", 8)
 	column_scroll.add_child(_column)
+	try_panel = _with_game(TryPanel.new())
 	goals = _with_game(GoalsPanel.new())
 	checklist = _with_game(StepsChecklist.new())
 	test_sheet = _with_game(TestSheet.new())
-	for p in [goals, checklist, test_sheet]:
+	for p in [try_panel, goals, checklist, test_sheet]:
 		_column.add_child(p)
 	tray = _add(PartsTray.new())
 	top_bar = _add(TopBar.new())

@@ -6,6 +6,7 @@ extends Node
 ## group (and do without it in tests).
 
 const POOL := 6
+const MUSIC := "res://assets/audio/ambient_loop.ogg"
 
 ## Every sound played since the start, by name (for tests).
 var played: Array[String] = []
@@ -29,6 +30,8 @@ func _ready() -> void:
 		_players.append(p)
 	_music = AudioStreamPlayer.new()
 	_music.bus = "Music"
+	if ResourceLoader.exists(MUSIC):
+		_music.stream = load(MUSIC)
 	add_child(_music)
 	_apply_music()
 
@@ -51,12 +54,22 @@ func play(sound: String) -> void:
 	played.append(sound)
 
 
+## Plays the loop at the Music volume, or stops it at zero.
 func _apply_music() -> void:
 	var i := AudioServer.get_bus_index("Music")
-	if i < 0:
+	if i < 0 or _music == null:
 		return
-	AudioServer.set_bus_mute(i, music_volume <= 0.001)
+	var on := music_volume > 0.001
+	AudioServer.set_bus_mute(i, not on)
 	AudioServer.set_bus_volume_db(i, linear_to_db(maxf(music_volume, 0.001)))
+	if on and not _music.playing and _music.stream != null and is_inside_tree():
+		_music.play()
+	elif not on and _music.playing:
+		_music.stop()
+
+
+func music_playing() -> bool:
+	return _music != null and _music.playing
 
 
 func _notification(what: int) -> void:

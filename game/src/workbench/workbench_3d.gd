@@ -28,6 +28,7 @@ var _wires_root: Node3D
 var _rigs_root: Node3D
 var _labels_root: Node3D
 var _overlay_root: Node3D
+var _preview: Node3D
 var _dots: MultiMeshInstance3D
 ## Part id → {node, signature}
 var _parts := {}
@@ -418,6 +419,30 @@ func _build_overlays(c: Circuit, ghosts: Dictionary, highlights: Array) -> void:
 			halo.material_override = spark
 			halo.position = PartDims.grid_to_world(at) + Vector3(0, 0.02, 0)
 			_overlay_root.add_child(halo)
+
+
+## The rubber band while a wire is dragged ({from, to, snap}), or the part being
+## placed ({part}); {} clears it.
+func set_preview(preview: Dictionary) -> void:
+	_ensure_scene()
+	if _preview != null:
+		_preview.queue_free()
+		_preview = null
+	if preview.is_empty():
+		return
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(Palette.color("lavender"), 0.6)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	if preview.has("from"):
+		_preview = MeshInstance3D.new()
+		_preview.mesh = WireMesh.tube(WireMesh.points(PackedVector2Array([preview["from"], preview["to"]]), LIFT_MM), 0.8)
+		_preview.material_override = mat
+	elif preview.has("part"):
+		_preview = PartModels.build(preview["part"])
+		for m in _preview.find_children("*", "MeshInstance3D", true, false):
+			(m as MeshInstance3D).material_override = mat
+	add_child(_preview)
 
 
 func _overlay_tube(path: PackedVector2Array, mat: Material, scale := 1.0) -> void:

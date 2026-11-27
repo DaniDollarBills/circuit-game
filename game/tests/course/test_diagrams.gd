@@ -106,3 +106,40 @@ func test_sped_up_pictures_say_so() -> void:
 			await wait_frames(2)
 			var words := d.text_log.map(func(e: Array) -> String: return str(e[2]))
 			assert_eq("sped up" in words, not still, "%s%s: %s" % [id, " (still)" if still else "", words])
+
+
+## Lessons 5 and 6: the truth table starts with every case unknown ("?"), and
+## Try it fills each row with what the LED did as the player sees that case.
+## Row n is switch A = n >> 1 and switch B = n & 1 (0 open, 1 closed).
+func test_truth_table_fills_from_states() -> void:
+	var d := _shown("truth_table", _game(), Vector2(400, 220))
+	await wait_frames(2)
+	assert_eq(d.call("results"), [-1, -1, -1, -1], "nothing seen yet")
+	var words := d.text_log.map(func(e: Array) -> String: return str(e[2]))
+	assert_eq(words.count("?"), 4, "each unknown LED shows ?: %s" % [words])
+	d.call("mark", 3, true)
+	d.call("mark", 0, false)
+	assert_eq(d.call("results"), [0, -1, -1, 1])
+	d.call("mark", 3, true)
+	assert_eq(d.call("results"), [0, -1, -1, 1], "seeing a case again changes nothing")
+	await wait_frames(2)
+	words = d.text_log.map(func(e: Array) -> String: return str(e[2]))
+	assert_eq(words.count("?"), 2, "two cases still to try: %s" % [words])
+	assert_eq(d.call("row_of", false, true), 1)
+	assert_eq(d.call("row_of", true, false), 2)
+
+
+## Every moment of every picture draws cleanly: stepped through ten seconds
+## of its motion at a phone's size and a desktop's. (A bar growing from
+## nothing once drew a shape the renderer couldn't fill.)
+func test_every_moment_draws_cleanly() -> void:
+	var game := _game()
+	for size in [Vector2(240, 132), Vector2(640, 352)]:
+		for id in Diagrams.IDS:
+			var d := _shown(id, game, size)
+			for step in 41:
+				d.t = step * 0.25
+				d.queue_redraw()
+				await wait_frames(1)
+			d.get_parent().queue_free()
+			await wait_frames(1)

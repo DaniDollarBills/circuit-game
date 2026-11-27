@@ -1,11 +1,12 @@
 extends Control
 ## Every Learn-card picture in a grid, for screenshots: tools/capture.sh
 ## res://src/course/diagram_gallery.tscn out.png [WxH] -- [--night] [--still]
-## [--t=<seconds>]
+## [--t=<seconds>] [--ids=<id>,<id>,…]
 
 func _ready() -> void:
 	var settings := {"night": false, "reduced_motion": false}
 	var at := 1.3
+	var ids := Diagrams.IDS
 	for arg in OS.get_cmdline_user_args():
 		if arg == "--night":
 			settings["night"] = true
@@ -13,6 +14,8 @@ func _ready() -> void:
 			settings["reduced_motion"] = true
 		elif arg.begins_with("--t="):
 			at = float(arg.substr(4))
+		elif arg.begins_with("--ids="):
+			ids = PackedStringArray(arg.substr(6).split(","))
 	var game := Game.new()
 	add_child(game)
 	game.boot("user://diagram_gallery_progress.json")
@@ -29,7 +32,7 @@ func _ready() -> void:
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
 	add_child(grid)
-	for id in Diagrams.IDS:
+	for id in ids:
 		var cell := VBoxContainer.new()
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var title := Label.new()

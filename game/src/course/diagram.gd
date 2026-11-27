@@ -97,14 +97,40 @@ static func readable(c: Color, under: Color) -> Color:
 	return out
 
 
+## The moving hand (a fingertip on a touch screen, a pointer with a mouse),
+## its tip on `at`, pressing when `pressed`.
+func hand(at: Vector2, pressed: bool) -> void:
+	HandArt.draw(self, at * _k, InputMode.current(), pressed, _k)
+
+
+## A dashed line from `a` to `b`.
+func dashes(a: Vector2, b: Vector2, color: Color, width := 2.0, dash := 8.0, gap := 6.0) -> void:
+	var length := a.distance_to(b)
+	var d := 0.0
+	while d < length:
+		line(PackedVector2Array([a.lerp(b, d / length), a.lerp(b, minf(d + dash, length) / length)]), color, width)
+		d += dash + gap
+
+
 ## A moving picture that runs faster than life says so, in its corner.
-func speed_note(at := Vector2(368, 14)) -> void:
+func speed_note(at := Vector2(368, 14), note := "sped up") -> void:
 	if not still:
-		label(at, "sped up", 12.0, col("ink_soft"))
+		label(at, note, 12.0, col("ink_soft"))
 
 
+## A box with rounded corners. An empty one (a bar that hasn't grown yet)
+## draws nothing; square corners are drawn as four points, since repeated
+## corner points can't be filled.
 func box(r: Rect2, radius: float, fill: Color, stroke := Color(0, 0, 0, 0), stroke_w := 0.0) -> void:
-	DrawKit.rrect(self, r, radius, fill, stroke, stroke_w, _k)
+	if r.size.x * _k < 1.5 or r.size.y * _k < 1.5:
+		return
+	# Corners that meet in the middle would repeat a point: keep a little edge.
+	var rounded := minf(radius, minf(r.size.x, r.size.y) / 2.0 - 0.5)
+	if rounded < 0.5:
+		DrawKit.poly(self, PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]),
+				fill, stroke, stroke_w, _k)
+		return
+	DrawKit.rrect(self, r, rounded, fill, stroke, stroke_w, _k)
 
 
 func arrow(a: Vector2, b: Vector2, color: Color, width := 4.0) -> void:

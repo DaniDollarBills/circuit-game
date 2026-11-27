@@ -727,3 +727,40 @@ func test_large_text_grows_every_hud_text() -> void:
 		if after.has(path) and float(after[path]) < float(before[path]) * 1.2 - 0.5:
 			small.append("%s: %d → %d" % [str(path).get_file(), before[path], after[path]])
 	assert_eq("\n".join(small), "")
+
+
+func test_start_over_button_resets_the_board() -> void:
+	var s := await _screen("ch1.pop")
+	await _skip_intro(s)
+	var c := s.game.state.history.present.copy()
+	c.parts.append(Part.make("R1", "resistor", 2, -4))
+	s.game.commit(c)
+	await wait_frames(1)
+	s.top_bar.button("restart").pressed.emit()
+	await wait_frames(1)
+	assert_eq(s.game.state.history.present.find_part("R1"), null)
+
+
+## A hint pressed during the intro would be used up unseen.
+func test_hint_waits_for_the_intro() -> void:
+	var s := await _screen("ch1.pop")
+	assert_eq(s.game.state.session.phase, "intro")
+	assert_false(s.hint_button.visible, "no lightbulb while Pip introduces the level")
+	await _skip_intro(s)
+	assert_true(s.hint_button.visible)
+
+
+## Dragging the trimmer's slider previews new values: the bench updates its
+## readings in place instead of rebuilding its wires and equipment each step.
+func test_slider_drag_rebuilds_the_bench_once() -> void:
+	var s := await _screen("ch1.push-and-flow", Vector2(1280, 720), {"view_style": "physical"})
+	await _skip_intro(s)
+	await wait_frames(2)
+	var bench := s.editor.workbench
+	var wires := bench.wire_builds
+	var rigs := bench.rig_builds
+	for i in 10:
+		s.value_popover.previewed.emit("R1", 200.0 + i * 150.0)
+		await wait_frames(1)
+	assert_true(bench.wire_builds - wires <= 1, "%d wire rebuilds" % (bench.wire_builds - wires))
+	assert_true(bench.rig_builds - rigs <= 1, "%d equipment rebuilds" % (bench.rig_builds - rigs))

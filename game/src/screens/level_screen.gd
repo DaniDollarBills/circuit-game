@@ -75,6 +75,8 @@ var _wires_before := {}
 var _lit_before := {}
 var _report_before: Dictionary = {}
 var _large := false
+## The column's room in portrait, set at layout: the board starts below it.
+var _column_room := 0.0
 var _cards: Array[NewWordCard] = []
 var _word_queue := PackedStringArray()
 var _carded := PackedStringArray()
@@ -236,7 +238,7 @@ func _refresh() -> void:
 	test_sheet.visible = test_button.visible and not (s.session.test_report.get("cases", []) as Array).is_empty()
 	if test_sheet.visible:
 		test_sheet.refresh(s.session)
-	hint_button.visible = _help() != "off" and not s.level.hints.is_empty()
+	hint_button.visible = _help() != "off" and not s.level.hints.is_empty() and s.session.phase != "intro"
 	back_to_building.visible = s.zoom_layer != "editor"
 	zoom_caption.visible = s.zoom_layer == "wire.copper"
 	if zoom_caption.visible and zoom_caption.text == "":
@@ -329,6 +331,8 @@ func _sounds_for(s: GameState) -> void:
 		var report := s.session.test_report
 		if not report.is_empty() and not is_same(report, _report_before):
 			_sound("test_pass" if bool(report.get("pass", false)) else "test_fail")
+			# New results: scroll the column to them.
+			column_scroll.ensure_control_visible.call_deferred(test_sheet)
 	_heard = true
 	_parts_before = parts
 	_wires_before = wires
@@ -650,6 +654,7 @@ func _connect() -> void:
 	hint_button.pressed.connect(func() -> void: game.use_hint())
 	back_to_building.pressed.connect(_frame_circuit)
 	top_bar.button("calculator").pressed.connect(func() -> void: _open_card(formula))
+	top_bar.button("restart").pressed.connect(game.start_over)
 	top_bar.button("notebook").pressed.connect(func() -> void: _open_card(notebook))
 	top_bar.button("settings").pressed.connect(func() -> void: _open_card(settings_sheet))
 
@@ -752,6 +757,7 @@ func _layout() -> void:
 		var beside := MARGIN + bar_size.x + 8.0 <= (test_button.position.x if test_button.visible else hint_button.position.x)
 		scale_bar.position = Vector2(MARGIN, row_y + hint_size.y - bar_size.y if beside else row_y - 8.0 - bar_size.y)
 		var column_h := _column_height(w - 2.0 * MARGIN, h * 0.38)
+		_column_room = column_h
 		column_scroll.position = Vector2(MARGIN, top)
 		column_scroll.size = Vector2(w - 2.0 * MARGIN, column_h)
 		safe = Rect2(MARGIN, top + column_h + 8.0, w - 2.0 * MARGIN, tray.position.y - 8.0 - (top + column_h + 8.0))
@@ -786,7 +792,7 @@ func _place_floating() -> void:
 	var h := size.y
 	var top := MARGIN + BAR_H + 8.0
 	# The column grows and shrinks with its content, never past its room.
-	var column_cap := h * 0.38 if _portrait else hint_button.position.y - 8.0 - top
+	var column_cap := _column_room if _portrait else hint_button.position.y - 8.0 - top
 	column_scroll.size.y = _column_height(column_scroll.size.x, column_cap)
 	if _portrait:
 		guide.size = Vector2(w - 2.0 * MARGIN, 0)

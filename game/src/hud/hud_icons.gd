@@ -19,6 +19,17 @@ static func draw(ci: CanvasItem, name: String, r: Rect2, ink: Color) -> void:
 			ci.draw_polyline(pts, ink, w, true)
 			var tip := pts[0] + Vector2(0, s * 0.08)
 			ci.draw_polyline(PackedVector2Array([tip + Vector2(-s * 0.13, -s * 0.13), tip, tip + Vector2(s * 0.13, -s * 0.13)]), ink, w, true)
+		"restart":
+			# A circle that almost closes, its arrow pointing round: start over.
+			var ring := PackedVector2Array()
+			for i in 21:
+				var a := -PI * 0.35 + 1.7 * PI * i / 20.0
+				ring.append(c + Vector2(cos(a), sin(a)) * s * 0.3)
+			ci.draw_polyline(ring, ink, w, true)
+			var end := ring[ring.size() - 1]
+			var along := (end - ring[ring.size() - 2]).normalized()
+			var side := Vector2(-along.y, along.x)
+			ci.draw_polyline(PackedVector2Array([end - along * s * 0.13 + side * s * 0.1, end, end - along * s * 0.13 - side * s * 0.1]), ink, w, true)
 		"calculator":
 			_rrect(ci, Rect2(c - Vector2(s * 0.32, s * 0.42), Vector2(s * 0.64, s * 0.84)), ink, w)
 			ci.draw_rect(Rect2(c + Vector2(-s * 0.2, -s * 0.3), Vector2(s * 0.4, s * 0.16)), ink, false, w)

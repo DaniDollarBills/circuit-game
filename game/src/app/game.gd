@@ -77,6 +77,11 @@ func preview(c: Circuit) -> void:
 	changed.emit()
 
 
+func start_over() -> void:
+	state.start_over()
+	_changed()
+
+
 func undo() -> bool:
 	var done := state.undo()
 	if done:

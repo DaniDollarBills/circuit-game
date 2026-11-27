@@ -199,3 +199,22 @@ func test_changing_the_circuit_clears_the_old_test_report() -> void:
 				s.redo()
 		assert_true(s.session.test_report.is_empty(), "%s keeps a stale report" % change)
 		assert_false(bool(s.ui_flags.get("tested", false)), "%s keeps the tested flag" % change)
+
+
+## Start over: back to the level's own start, in one undoable step that
+## also clears the old test report.
+func test_start_over_is_undoable() -> void:
+	var s := _state()
+	var level := _start(s, "ch1.both")
+	var c := s.history.present.copy()
+	c.parts.append(Part.make("S9", "switch", 4, 4))
+	s.commit(c)
+	s.run_tests()
+	s.start_over()
+	assert_eq(s.history.present.parts.size(), level.circuit.parts.size())
+	for p in level.circuit.parts:
+		assert_true(s.history.present.find_part(p.id) != null, p.id + " is back")
+	assert_eq(s.history.present.find_part("S9"), null)
+	assert_true(s.session.test_report.is_empty())
+	assert_true(s.undo())
+	assert_true(s.history.present.find_part("S9") != null, "undo brings the edits back")

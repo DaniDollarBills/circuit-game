@@ -94,6 +94,14 @@ func redo() -> bool:
 	return true
 
 
+## Back to the level's own start circuit, as one step that undo can take
+## back (the old test report goes with the old circuit).
+func start_over() -> void:
+	if level == null:
+		return
+	commit(level.circuit.copy())
+
+
 func run_tests() -> void:
 	if level == null:
 		return

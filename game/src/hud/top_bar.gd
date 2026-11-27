@@ -11,6 +11,8 @@ var show_title := true:
 		if _title != null:
 			# The pill keeps its place as a spacer, unseen.
 			(_title.get_parent() as Control).modulate.a = 1.0 if value else 0.0
+		# Narrow (no title): the buttons sit closer, so seven fit a phone.
+		add_theme_constant_override("separation", 8 if value else 4)
 
 var _title: Label
 var _buttons := {}
@@ -35,6 +37,7 @@ func _ready() -> void:
 	pill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pill.add_child(_title)
 	add_child(pill)
+	_add("restart", IconButton.make("restart", "Start over"))
 	_add("undo", IconButton.make("undo", "Undo (Ctrl+Z)"))
 	_add("redo", IconButton.make("redo", "Redo (Ctrl+Shift+Z)"))
 	_add("calculator", IconButton.make("calculator", "Calculator"))

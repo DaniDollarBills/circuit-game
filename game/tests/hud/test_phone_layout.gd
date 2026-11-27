@@ -160,3 +160,14 @@ func test_phone_framing_keeps_pins_tappable() -> void:
 			if px < EditorLayer.PICK_PX:
 				tight.append("%s at %s: pins %.1f px apart" % [id, size, px])
 	assert_eq("\n".join(tight), "", ", ".join(report))
+
+
+## On a portrait phone the column keeps the room it had: test results scroll
+## inside it instead of spilling over the board.
+func test_portrait_column_never_covers_the_board() -> void:
+	var s := await _level("ch1.both", Vector2(390, 844))
+	s.game.run_tests()
+	await wait_frames(4)
+	var board := s.editor.safe_rect
+	assert_true(s.column_area().end.y <= board.position.y + 0.5, "column ends at %.0f, board starts at %.0f" % [s.column_area().end.y, board.position.y])
+	assert_true(s.test_sheet.is_visible_in_tree())

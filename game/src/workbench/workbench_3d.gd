@@ -39,6 +39,13 @@ var _dots: MultiMeshInstance3D
 var _parts := {}
 ## [{path: PackedVector2Array, amps: float}]
 var _flows: Array[Dictionary] = []
+## How often the wires and the equipment were rebuilt (a slider drag changes
+## only values, so neither should be).
+var wire_builds := 0
+var rig_builds := 0
+var _wires_sig := ""
+var _rigs_sig := ""
+var _rigs := {}
 var _show_current := true
 var _t := 0.0
 
@@ -350,8 +357,8 @@ func _sync_parts(c: Circuit, sim: SimResult, settings: Dictionary) -> void:
 
 
 func _build_wires(c: Circuit, sim: SimResult, settings: Dictionary) -> void:
-	_clear(_wires_root)
 	_flows.clear()
+	var shapes := []
 	var index := 0
 	for w in c.wires:
 		var path := CircuitGeometry.wire_path(c, w)
@@ -360,18 +367,46 @@ func _build_wires(c: Circuit, sim: SimResult, settings: Dictionary) -> void:
 		var color := WireMesh.color_for(c, w, index)
 		if color != Color(WireMesh.RED) and color != Color(WireMesh.BLACK):
 			index += 1
-		var mi := MeshInstance3D.new()
-		mi.name = w.id
-		mi.mesh = WireMesh.tube(WireMesh.points(path, LIFT_MM), PartDims.WIRE_INSULATION_D / 2.0)
-		mi.material_override = Materials.pvc(color)
-		_wires_root.add_child(mi)
+		shapes.append([w.id, path, color])
 		_flows.append({"path": path, "amps": WireArt.display_amps(float(sim.wire_amps.get(w.id, 0.0)), settings)})
+	# The meshes only change with the wires' shapes and colors.
+	var sig := var_to_str(shapes)
+	if sig == _wires_sig:
+		return
+	_wires_sig = sig
+	wire_builds += 1
+	_clear(_wires_root)
+	for shape in shapes:
+		var mi := MeshInstance3D.new()
+		mi.name = shape[0]
+		mi.mesh = WireMesh.tube(WireMesh.points(shape[1], LIFT_MM), PartDims.WIRE_INSULATION_D / 2.0)
+		mi.material_override = Materials.pvc(shape[2])
+		_wires_root.add_child(mi)
 
 
 ## Battery holders and multimeters on the desk, joined to their posts by leads.
 func _build_rigs(c: Circuit, sim: SimResult) -> void:
-	_clear(_rigs_root)
 	var spots := MeterRig.place(c)
+	# Rebuilt only when equipment moves or changes; otherwise its readings
+	# and the holder's heat update in place.
+	var layout := [_board_rect]
+	for p in c.parts:
+		if spots.has(p.id):
+			layout.append([p.id, p.kind, p.x, p.y, p.rot, spots[p.id]])
+	var sig := var_to_str(layout)
+	if sig == _rigs_sig and _rigs.size() == spots.size():
+		for p in c.parts:
+			if not _rigs.has(p.id):
+				continue
+			if p.kind == "battery":
+				PartModels.apply_holder(_rigs[p.id], p.id in sim.shorts)
+			else:
+				PartModels.apply_meter(_rigs[p.id], VisualState.for_part(p, sim, {})["reading"], bool(p.props.get("burnt", false)))
+		return
+	_rigs_sig = sig
+	rig_builds += 1
+	_rigs.clear()
+	_clear(_rigs_root)
 	for p in c.parts:
 		if not spots.has(p.id) or not _parts.has(p.id):
 			continue
@@ -390,6 +425,7 @@ func _build_rigs(c: Circuit, sim: SimResult) -> void:
 			ends = {pins[0]: "jack_ma" if p.kind == "ammeter" else "jack_v", pins[1]: "jack_com"}
 		rig.position = spots[p.id]
 		_rigs_root.add_child(rig)
+		_rigs[p.id] = rig
 		var left := p.kind == "battery"
 		var clear := (MeterRig.HEIGHT_HOLDER if left else MeterRig.HEIGHT_METER) + 0.8
 		for pin in ends:

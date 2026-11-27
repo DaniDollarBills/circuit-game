@@ -79,6 +79,9 @@ static func _part_from(pd: Variant) -> Part:
 	var props: Variant = pd.get("props", {})
 	if not (props is Dictionary):
 		return null
+	for v in (props as Dictionary).values():
+		if typeof(v) == TYPE_FLOAT and not is_finite(v):
+			return null
 	var p := Part.make(id, kind, int(pd["x"]), int(pd["y"]), rot, props, bool(pd.get("locked", false)))
 	p.tray = int(pd.get("tray", -1)) if _is_number(pd.get("tray", -1)) else -1
 	return p

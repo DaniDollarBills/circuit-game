@@ -33,3 +33,9 @@ func test_input_not_modified() -> void:
 	DenseSolver.solve(a, b, 2)
 	assert_eq(a, PackedFloat64Array([0, 1, 1, 0]))
 	assert_eq(b, PackedFloat64Array([3, 5]))
+
+
+## NaN would slip past "pivot < 1e-15"; a non-finite pivot or answer is a failed solve.
+func test_non_finite_is_a_failed_solve() -> void:
+	assert_eq(DenseSolver.solve(PackedFloat64Array([NAN, 0.0, 0.0, 1.0]), PackedFloat64Array([1.0, 1.0]), 2).size(), 0)
+	assert_eq(DenseSolver.solve(PackedFloat64Array([1.0, 0.0, 0.0, 1.0]), PackedFloat64Array([INF, 1.0]), 2).size(), 0)

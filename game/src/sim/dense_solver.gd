@@ -4,7 +4,8 @@ extends RefCounted
 
 
 ## `a` is row-major n×n. Returns an empty array when the matrix is singular
-## (any pivot below 1e-15) — and also for n = 0, so callers handle that first.
+## (any pivot below 1e-15, or not a number), when the answer isn't finite, and
+## also for n = 0, so callers handle that first.
 static func solve(a: PackedFloat64Array, b: PackedFloat64Array, n: int) -> PackedFloat64Array:
 	var m := a.duplicate()
 	var r := b.duplicate()
@@ -16,7 +17,7 @@ static func solve(a: PackedFloat64Array, b: PackedFloat64Array, n: int) -> Packe
 			if v > best:
 				best = v
 				pivot = row
-		if best < 1e-15:
+		if not (best >= 1e-15):
 			return PackedFloat64Array()
 		if pivot != col:
 			for k in n:
@@ -41,4 +42,6 @@ static func solve(a: PackedFloat64Array, b: PackedFloat64Array, n: int) -> Packe
 		for k in range(row + 1, n):
 			s -= m[row * n + k] * x[k]
 		x[row] = s / m[row * n + row]
+		if not is_finite(x[row]):
+			return PackedFloat64Array()
 	return x

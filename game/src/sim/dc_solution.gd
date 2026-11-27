@@ -5,6 +5,8 @@ extends RefCounted
 
 var converged := false
 var iterations := 0
+## True when plain Newton failed and the source-stepping fallback ran.
+var stepped := false
 var net_volts := PackedFloat64Array()
 ## Part id → amps. Battery: out of `pos`. Resistor, ammeter: a→b. LED: anode→cathode.
 ## Voltmeter: pos→neg. Devices in floating components carry 0.

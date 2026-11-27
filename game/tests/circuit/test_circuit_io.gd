@@ -50,3 +50,14 @@ func test_rejects_bad_pin_and_duplicate_id() -> void:
 	var e := CircuitIO.to_dict(TestCircuits.compact_loop())
 	e["parts"][1]["id"] = "B1"
 	assert_eq(CircuitIO.from_dict(e), null)
+
+
+## A damaged save that still parses (an infinite voltage, say) is rejected, so
+## the level starts from its own circuit instead of producing NaN.
+func test_rejects_non_finite_props() -> void:
+	var d := CircuitIO.to_dict(TestCircuits.compact_loop())
+	d["parts"][0]["props"]["volts"] = INF
+	assert_true(CircuitIO.from_dict(d) == null)
+	var text := CircuitIO.to_json(TestCircuits.compact_loop()).replace("\"volts\":5.0", "\"volts\":1e999")
+	assert_true(text.contains("1e999"), "the volts were edited")
+	assert_true(CircuitIO.from_json(text) == null)

@@ -83,3 +83,19 @@ func test_datasheet_rows_link_glossary_terms() -> void:
 	assert_eq(_row(rows, "Input resistance"), "10 MΩ")
 	for r in rows:
 		assert_true(r.has("term"), "row %s has a term field" % r["label"])
+
+
+## The adjustable resistor on screen is a cermet trimmer (no color bands), so
+## its datasheet must describe one: ±10%, ½ W, like real 3386-style trimmers.
+func test_datasheet_adjustable_resistor_is_a_cermet_trimmer() -> void:
+	var rows := Catalog.datasheet(Part.make("R1", "resistor", 0, 0, 0, {"ohms": 1000.0, "adjustable": true, "watts": 0.5}))
+	assert_eq(_row(rows, "Resistance"), "1 kΩ")
+	assert_eq(_row(rows, "Tolerance"), "±10%")
+	assert_eq(_row(rows, "Power rating"), "0.5 W (½ W)")
+	assert_eq(_row(rows, "Type"), "Cermet trimmer")
+
+
+func test_l3_trimmer_is_rated_like_the_real_part() -> void:
+	var r1 := Levels.by_id("ch1.push-and-flow").circuit.find_part("R1")
+	assert_true(bool(r1.props["adjustable"]))
+	assert_eq(float(r1.props["watts"]), 0.5)

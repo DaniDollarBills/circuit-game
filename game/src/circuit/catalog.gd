@@ -94,11 +94,16 @@ static func datasheet(p: Part) -> Array[Dictionary]:
 			rows.append(_row("Short-circuit current", "5 A, gets hot!", "short circuit"))
 		"resistor":
 			var watts := float(p.props.get("watts", 0.25))
+			var trimmer := bool(p.props.get("adjustable", false))
 			rows.append(_row("Resistance", format_ohms(float(p.props.get("ohms", 220.0))), "resistance"))
-			rows.append(_row("Tolerance", "±5%", "tolerance"))
+			# Trimmers like the common 3386 are ±10%; fixed film resistors ±5%.
+			rows.append(_row("Tolerance", "±10%" if trimmer else "±5%", "tolerance"))
 			rows.append(_row("Power rating", _format_watts(watts), "power"))
-			rows.append(_row("Type", "Metal film" if watts >= 1.0 else "Carbon film",
-					"" if watts >= 1.0 else "carbon film"))
+			if trimmer:
+				rows.append(_row("Type", "Cermet trimmer", "trimmer"))
+			else:
+				rows.append(_row("Type", "Metal film" if watts >= 1.0 else "Carbon film",
+						"" if watts >= 1.0 else "carbon film"))
 		"led":
 			var d: Dictionary = LED_DATA.get(str(p.props.get("color", "red")), LED_DATA["red"])
 			rows.append(_row("Color", "%s, %d nm" % [d["name"], d["nm"]], "wavelength"))

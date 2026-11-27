@@ -10,7 +10,9 @@ const FIELDS := {
 	"ohms_law": [["v", "Voltage, V (volts)"], ["i", "Current, I (amps)"], ["r", "Resistance, R (ohms)"]],
 	"power": [["v", "Voltage, V (volts)"], ["r", "Resistance, R (ohms)"]],
 }
-const REAL_REASON := "In your circuit it's %s: a little less, because the battery's 1 Ω internal resistance uses up part of its voltage."
+## Filled with the simulated value and the voltage the resistor really gets.
+const REAL_LESS := "In your circuit it's %s: a little less, because the battery's 1 Ω internal resistance uses up part of its voltage, leaving %s across the resistor."
+const REAL_MORE := "In your circuit it's %s: a little more, because the resistor really has %s across it, more than the %s you typed."
 
 var game: Game
 var tab := "led_resistor"
@@ -36,7 +38,7 @@ func _ready() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(title)
 	var close_b := IconButton.make("close", "Close")
-	close_b.custom_minimum_size = Vector2(36, 36)
+	close_b.custom_minimum_size = Vector2(IconButton.MIN_TOUCH, IconButton.MIN_TOUCH)
 	close_b.pressed.connect(func() -> void: visible = false)
 	top.add_child(close_b)
 	var tabs := HFlowContainer.new()
@@ -56,7 +58,7 @@ func _ready() -> void:
 	_note = Label.new()
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_note.add_theme_font_size_override("font_size", 14)
-	_note.add_theme_color_override("font_color", Palette.color("ink_soft"))
+	_note.theme_type_variation = "SoftLabel"
 	col.add_child(_note)
 	var go := Button.new()
 	go.text = "Calculate"
@@ -92,9 +94,9 @@ func calculate() -> void:
 		"power":
 			out = Formulas.power_from_r(_num("v"), _num("r"))
 	var steps: PackedStringArray = out["steps"]
-	var real := _real_value(out)
+	var real := _real_note(out)
 	if real != "":
-		steps.append(REAL_REASON % real)
+		steps.append(real)
 	for c in _steps.get_children():
 		_steps.remove_child(c)
 		c.queue_free()
@@ -185,8 +187,9 @@ func _num(name: String) -> float:
 
 
 ## The simulated value for the same resistor, when it differs from the ideal
-## answer by between 1% and 10% (the battery's internal resistance); else "".
-func _real_value(out: Dictionary) -> String:
+## answer by between 1% and 10%, with why: the voltage the resistor really
+## gets. Otherwise "".
+func _real_note(out: Dictionary) -> String:
 	var ideal := float(out.get("value", NAN))
 	if is_nan(ideal) or ideal == 0.0:
 		return ""
@@ -200,8 +203,14 @@ func _real_value(out: Dictionary) -> String:
 	for p in o.circuit.parts:
 		if p.kind != "resistor" or absf(float(p.props.get("ohms", 0.0)) - r) > r * 0.005 or bool(p.props.get("burnt", false)):
 			continue
-		var real := absf(float(o.result.part_watts.get(p.id, 0.0) if tab == "power" else o.result.part_amps.get(p.id, 0.0)))
+		var amps := absf(float(o.result.part_amps.get(p.id, 0.0)))
+		var real := absf(float(o.result.part_watts.get(p.id, 0.0))) if tab == "power" else amps
 		var diff := absf(real - ideal) / absf(ideal)
-		if diff > 0.01 and diff < 0.1:
-			return "%.2f W" % real if tab == "power" else "%.3f A (%.1f mA)" % [real, real * 1000.0]
+		if diff <= 0.01 or diff >= 0.1:
+			continue
+		var shown := "%.2f W" % real if tab == "power" else "%.3f A (%.1f mA)" % [real, real * 1000.0]
+		var across := "%.2f V" % (amps * r)
+		if real < ideal:
+			return REAL_LESS % [shown, across]
+		return REAL_MORE % [shown, across, "%s V" % String.num(_num("v"), 2)]
 	return ""

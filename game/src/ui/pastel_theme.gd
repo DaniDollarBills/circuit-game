@@ -11,9 +11,9 @@ const FONT_EXTRABOLD := "res://assets/fonts/nunito-latin-800-normal.woff2"
 static func build(night := false, large_text := false) -> Theme:
 	var scale := 1.25 if large_text else 1.0
 	var t := Theme.new()
-	var regular: Font = load(FONT_REGULAR)
-	var bold: Font = load(FONT_BOLD)
-	var extrabold: Font = load(FONT_EXTRABOLD)
+	var regular := Fonts.with_symbols(FONT_REGULAR)
+	var bold := Fonts.with_symbols(FONT_BOLD, true)
+	var extrabold := Fonts.with_symbols(FONT_EXTRABOLD, true)
 	var ink := Palette.color("ink", night)
 	var ink_soft := Palette.color("ink_soft", night)
 	t.default_font = regular
@@ -32,6 +32,23 @@ static func build(night := false, large_text := false) -> Theme:
 	t.set_font("font", "HeadingLabel", extrabold)
 	t.set_font_size("font_size", "HeadingLabel", roundi(28 * scale))
 	t.set_color("font_color", "HeadingLabel", ink)
+	# Secondary text, flat buttons on panels and the small pill behind text
+	# that sits on the 3D scene: theme types, so a night switch recolors them.
+	t.set_type_variation("SoftLabel", "Label")
+	t.set_color("font_color", "SoftLabel", ink_soft)
+	t.set_type_variation("FlatButton", "Button")
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
+		t.set_color(c, "FlatButton", ink)
+	t.set_color("font_disabled_color", "FlatButton", ink_soft)
+	t.set_type_variation("PillPanel", "PanelContainer")
+	var pill := StyleBoxFlat.new()
+	pill.bg_color = Palette.color("paper", night)
+	pill.set_corner_radius_all(14)
+	pill.content_margin_left = 12
+	pill.content_margin_right = 12
+	pill.content_margin_top = 4
+	pill.content_margin_bottom = 4
+	t.set_stylebox("panel", "PillPanel", pill)
 
 	t.set_color("default_color", "RichTextLabel", ink)
 	t.set_font("normal_font", "RichTextLabel", regular)
@@ -75,8 +92,9 @@ static func _inputs(t: Theme, night: bool, ink: Color, ink_soft: Color) -> void:
 	for sb in [normal, focus]:
 		sb.content_margin_left = 10
 		sb.content_margin_right = 10
-		sb.content_margin_top = 6
-		sb.content_margin_bottom = 6
+		# Tall enough to tap: 44 px or more with the text (spec §11).
+		sb.content_margin_top = 10
+		sb.content_margin_bottom = 10
 	t.set_stylebox("normal", "LineEdit", normal)
 	t.set_stylebox("focus", "LineEdit", focus)
 	t.set_stylebox("read_only", "LineEdit", normal)

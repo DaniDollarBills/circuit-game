@@ -104,3 +104,22 @@ func test_damaged_save_starts_fresh_with_toast() -> void:
 	await wait_frames(1)
 	assert_true(game.state.progress.completed.is_empty())
 	assert_eq(toasts, [Game.DAMAGED_SAVE_KEPT] as Array[String])
+
+
+## The screen being replaced must not take the events meant for the new one.
+func test_next_level_gives_the_new_screen_its_new_words() -> void:
+	var main: Control = load("res://src/app/main.tscn").instantiate()
+	main.set("progress_path", _dir.path_join("progress.json"))
+	add_to_tree(main)
+	await wait_frames(2)
+	var game: Game = main.get("game")
+	game.open_level("ch1.light-it-up")
+	await wait_frames(3)
+	var before := game.state.progress.seen_terms.duplicate()
+	game.open_level("ch1.pop", true)
+	await wait_frames(3)
+	var screen: LevelScreen = main.get("screen")
+	var fresh: Array = game.state.progress.seen_terms.keys().filter(func(t: String) -> bool: return not before.has(t))
+	assert_true(not fresh.is_empty(), "L2 should introduce new words")
+	for t in fresh:
+		assert_true(t in screen.shown_word_terms(), "%s has no card on the new screen" % t)

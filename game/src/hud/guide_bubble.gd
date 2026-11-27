@@ -36,7 +36,7 @@ func _ready() -> void:
 	_actions.add_theme_constant_override("v_separation", 8)
 	col.add_child(_actions)
 	_close = IconButton.make("close", "Close")
-	_close.custom_minimum_size = Vector2(40, 40)
+	_close.custom_minimum_size = Vector2(IconButton.MIN_TOUCH, IconButton.MIN_TOUCH)
 	_close.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_close.pressed.connect(hide_bubble)
 	row.add_child(_close)

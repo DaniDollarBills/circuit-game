@@ -32,6 +32,15 @@ func show_text(text: String, sparkle := false) -> void:
 	_items.append({"node": panel, "label": label, "left": LIFE_S})
 
 
+## Removes the toasts whose text starts with `prefix` (burn toasts after an
+## undo, say).
+func drop(prefix: String) -> void:
+	for it in _items.duplicate():
+		if (it["label"] as RichTextLabel).get_parsed_text().begins_with(prefix):
+			_items.erase(it)
+			(it["node"] as Control).queue_free()
+
+
 ## The texts of the toasts on screen, newest last.
 func texts() -> PackedStringArray:
 	var out := PackedStringArray()

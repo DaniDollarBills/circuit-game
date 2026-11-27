@@ -5,7 +5,7 @@ extends RefCounted
 static func build() -> LevelDef:
 	var b := LevelBuilder.new("ch1.push-and-flow", "ch1", "Push and flow")
 	b.summary("Use Ohm's law to set exactly 10 mA.")
-	b.part("B1", "battery", -6, 0).part("R1", "resistor", -2, -4, 0, {"ohms": 1000.0, "adjustable": true})
+	b.part("B1", "battery", -6, 0).part("R1", "resistor", -2, -4, 0, {"ohms": 1000.0, "adjustable": true, "watts": 0.5})
 	b.part("M1", "ammeter", 6, 0, 90).part("V1", "voltmeter", -2, -7)
 	b.wire("w1", "B1", "pos", "R1", "a").wire("w2", "R1", "b", "M1", "a").wire("w3", "M1", "b", "B1", "neg")
 	b.wire("w4", "V1", "pos", "R1", "a").wire("w5", "V1", "neg", "R1", "b")

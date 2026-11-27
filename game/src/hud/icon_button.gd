@@ -4,6 +4,9 @@ extends Button
 ## a font having symbol glyphs. Icons: back, undo, redo, calculator, book,
 ## gear, bulb, close, test.
 
+## Spec §11: nothing a finger presses is smaller than this.
+const MIN_TOUCH := 44.0
+
 var icon_name := ""
 
 

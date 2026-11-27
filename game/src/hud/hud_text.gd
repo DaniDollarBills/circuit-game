@@ -30,10 +30,23 @@ static func put(l: RichTextLabel, text: String, game: Game, bold := false) -> vo
 	if l.get_meta("hud_text", "") == key:
 		return
 	l.set_meta("hud_text", key)
+	l.set_meta("hud_src", text)
+	l.set_meta("hud_bold", bold)
+	if not l.is_in_group("hud_text"):
+		l.add_to_group("hud_text")
 	var r := GlossaryText.render(text, p.seen_terms, true, night)
 	l.text = "[b]%s[/b]" % r["bbcode"] if bold else r["bbcode"]
 	if not (r["new_terms"] as PackedStringArray).is_empty():
 		game.mark_terms_seen(r["new_terms"])
+
+
+## Renders every HUD label again: link colors are baked into the text, so a
+## night switch needs this (unchanged labels are skipped).
+static func refresh_all(tree: SceneTree, game: Game) -> void:
+	for n in tree.get_nodes_in_group("hud_text"):
+		var l := n as RichTextLabel
+		if l != null and l.has_meta("hud_src"):
+			put(l, str(l.get_meta("hud_src")), game, bool(l.get_meta("hud_bold", false)))
 
 
 ## A label with `text` already in it.

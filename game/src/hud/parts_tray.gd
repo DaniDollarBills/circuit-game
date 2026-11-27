@@ -71,9 +71,9 @@ func _rebuild() -> void:
 		cell.add_child(b)
 		var info := IconButton.make("info", "Datasheet")
 		info.flat = true
-		info.custom_minimum_size = Vector2(30, 30)
-		info.size = Vector2(30, 30)
-		info.position = Vector2(104 - 31, 1)
+		info.custom_minimum_size = Vector2(IconButton.MIN_TOUCH, IconButton.MIN_TOUCH)
+		info.size = info.custom_minimum_size
+		info.position = Vector2(104 - IconButton.MIN_TOUCH, 0)
 		info.pressed.connect(func() -> void: info_requested.emit(i))
 		b.add_child(info)
 		_box.add_child(cell)

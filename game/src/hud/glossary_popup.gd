@@ -25,7 +25,7 @@ func _ready() -> void:
 	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	top.add_child(_title)
 	var close_b := IconButton.make("close", "Close")
-	close_b.custom_minimum_size = Vector2(36, 36)
+	close_b.custom_minimum_size = Vector2(IconButton.MIN_TOUCH, IconButton.MIN_TOUCH)
 	close_b.pressed.connect(func() -> void: visible = false)
 	top.add_child(close_b)
 	_simple = HudText.label(game, 17)
@@ -33,7 +33,7 @@ func _ready() -> void:
 	var more := Label.new()
 	more.text = "More precisely"
 	more.add_theme_font_size_override("font_size", 14)
-	more.add_theme_color_override("font_color", Palette.color("ink_soft"))
+	more.theme_type_variation = "SoftLabel"
 	col.add_child(more)
 	_precise = HudText.label(game, 15)
 	col.add_child(_precise)

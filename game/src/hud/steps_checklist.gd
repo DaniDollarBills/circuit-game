@@ -17,7 +17,7 @@ func _ready() -> void:
 	var title := Label.new()
 	title.text = "Steps"
 	title.add_theme_font_size_override("font_size", 15)
-	title.add_theme_color_override("font_color", Palette.color("ink_soft"))
+	title.theme_type_variation = "SoftLabel"
 	col.add_child(title)
 	_rows = VBoxContainer.new()
 	_rows.add_theme_constant_override("separation", 4)
@@ -30,7 +30,8 @@ func refresh(level: LevelDef, session: LevelSession) -> void:
 		if not _ticked(session, i):
 			current = i
 			break
-	var sig := "%s|%s|%s" % [session.step_results, compact, current]
+	var night := bool(game.state.progress.settings.get("night", false))
+	var sig := "%s|%s|%s|%s" % [session.step_results, compact, current, night]
 	if sig == _signature:
 		return
 	_signature = sig
@@ -47,7 +48,14 @@ func refresh(level: LevelDef, session: LevelSession) -> void:
 		sb.content_margin_right = 6
 		sb.content_margin_top = 3
 		sb.content_margin_bottom = 3
-		sb.bg_color = Palette.color("lilac") if i == current else Color(0, 0, 0, 0)
+		if i == current:
+			# Pale enough that text and links keep 7:1 (spec §11): a lavender
+			# tint by day, the darker board color at night, with a lavender edge.
+			sb.bg_color = Palette.color("cream", true) if night else Palette.color("paper").lerp(Palette.color("lavender"), 0.15)
+			sb.set_border_width_all(2)
+			sb.border_color = Palette.color("lavender")
+		else:
+			sb.bg_color = Color(0, 0, 0, 0)
 		row.add_theme_stylebox_override("panel", sb)
 		var line := HBoxContainer.new()
 		row.add_child(line)

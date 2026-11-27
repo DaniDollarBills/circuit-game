@@ -24,9 +24,12 @@ func _game(settings := {}) -> Game:
 
 
 ## A LevelScreen for `level_id` inside a host of `size`, intro still showing.
-func _screen(level_id: String, size := Vector2(1280, 720), settings := {}, game: Game = null) -> LevelScreen:
+## `themed` applies the game's theme first, as Main does.
+func _screen(level_id: String, size := Vector2(1280, 720), settings := {}, game: Game = null, themed := false) -> LevelScreen:
 	var host := Control.new()
 	host.size = size
+	if themed:
+		host.theme = PastelTheme.build(bool(settings.get("night", false)))
 	add_to_tree(host)
 	if game == null:
 		game = _game(settings)
@@ -327,3 +330,309 @@ func test_badge_toast_on_first_light() -> void:
 	s.game.commit(s.game.state.level.solution)
 	await wait_frames(2)
 	assert_true("Badge earned: First Light" in s.toasts.texts(), str(s.toasts.texts()))
+
+
+func test_uses_goal_says_how_many() -> void:
+	var c := Circuit.new()
+	assert_eq(GoalsPanel.label_for({"kind": "uses", "part_kind": "switch", "min": 1}, c), "Use a switch")
+	assert_eq(GoalsPanel.label_for({"kind": "uses", "part_kind": "switch", "min": 2}, c), "Use 2 switches")
+	assert_eq(GoalsPanel.label_for({"kind": "uses", "part_kind": "resistor", "min": 3}, c), "Use 3 resistors")
+	assert_eq(GoalsPanel.label_for({"kind": "uses", "part_kind": "switch", "max": 2}, c), "Use at most 2 switches")
+
+
+## The real circuit's answer can be above or below the ideal one; the note
+## must say which, with the voltage the resistor really gets.
+func test_calculator_note_says_more_or_less_by_the_real_numbers() -> void:
+	var s := await _screen("ch1.too-hot")
+	await _skip_intro(s)
+	var c := s.game.state.level.circuit.copy()
+	c.parts.append(Part.make("R1", "resistor", -2, 0, 90, {"ohms": 47.0, "watts": 1.0}))
+	c.wires.append(Wire.make("w1", "B1", "pos", "R1", "a"))
+	c.wires.append(Wire.make("w2", "R1", "b", "B1", "neg"))
+	s.game.commit(c)
+	s.top_bar.button("calculator").pressed.emit()
+	await wait_frames(1)
+	assert_eq(s.formula.tab, "power")
+	s.formula.field("r").text = "47"
+	s.formula.field("v").text = "5.0"
+	s.formula.calculate()
+	var less := s.formula.steps_text()
+	assert_true(less.contains("0.51 W: a little less") and less.contains("4.90 V across"), less)
+	s.formula.field("v").text = "4.8"
+	s.formula.calculate()
+	var more := s.formula.steps_text()
+	assert_true(more.contains("0.51 W: a little more") and more.contains("4.90 V across"), more)
+	assert_false(more.contains("less"), more)
+
+
+func test_trimmer_datasheet_has_no_color_code() -> void:
+	var s := await _screen("ch1.push-and-flow")
+	await _skip_intro(s)
+	s.datasheet.open(s.game.state.outcome.circuit.find_part("R1"), true)
+	await wait_frames(1)
+	assert_false(s.datasheet._bands.visible, "a trimmer has no color bands")
+	var plain := s.datasheet.row_texts()
+	assert_true(Array(plain).any(func(t: String) -> bool: return t.contains("Cermet trimmer")), str(plain))
+	s.datasheet.open(Part.make("R9", "resistor", 0, 0), false)
+	assert_true(s.datasheet._bands.visible, "a fixed resistor still shows its bands")
+
+
+func _press_at(s: Control, at: Vector2) -> void:
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	click.position = at
+	click.global_position = at
+	s.get_viewport().push_input(click)
+	var up := click.duplicate()
+	up.pressed = false
+	s.get_viewport().push_input(up)
+
+
+## The part menu must always have a way out, even for a locked part whose
+## Rotate and Delete are disabled.
+func test_part_menu_closes_on_escape_outside_press_and_cancel() -> void:
+	var s := await _screen("ch1.light-it-up")
+	await _skip_intro(s)
+	s.menu.open({"part": "B1"}, Vector2(200, 200))
+	assert_true(s.menu.visible)
+	var esc := InputEventKey.new()
+	esc.keycode = KEY_ESCAPE
+	esc.pressed = true
+	s.get_viewport().push_input(esc)
+	await wait_frames(1)
+	assert_false(s.menu.visible, "Esc closes it")
+	s.menu.open({"part": "B1"}, Vector2(200, 200))
+	_press_at(s, Vector2(900, 600))
+	await wait_frames(1)
+	assert_false(s.menu.visible, "a press outside closes it")
+	s.menu.open({"part": "B1"}, Vector2(200, 200))
+	var picked := []
+	s.menu.chosen.connect(func(a: String, _t: Dictionary) -> void: picked.append(a))
+	s.menu.button("Cancel").pressed.emit()
+	assert_false(s.menu.visible, "Cancel closes it")
+	assert_eq(picked, [], "Cancel chooses nothing")
+	# The runner's window is 64 × 64; make it big enough for the press to land.
+	var root := s.get_tree().root
+	var old := root.size
+	var old_scale := root.content_scale_size
+	root.size = Vector2i(1280, 720)
+	root.content_scale_size = Vector2i.ZERO
+	s.menu.open({"part": "B1"}, Vector2(200, 200))
+	await wait_frames(1)
+	var inside := s.menu.button("Datasheet").get_global_rect().get_center()
+	_press_at(s, inside)
+	await wait_frames(1)
+	root.size = old
+	root.content_scale_size = old_scale
+	assert_true(s.datasheet.visible, "a press on a row still works")
+
+
+## Open popovers describe the circuit as it is now, not as it was when they
+## opened.
+func test_explain_popover_follows_the_circuit() -> void:
+	var s := await _screen("ch1.push-and-flow")
+	await _skip_intro(s)
+	var o := s.game.state.outcome
+	s.explain.open(o.circuit.find_part("R1"), o.result, Vector2(300, 300))
+	assert_true("\n".join(s.explain.line_texts()).contains("1 kΩ"), "\n".join(s.explain.line_texts()))
+	var c := s.game.state.history.present.copy()
+	c.find_part("R1").props["ohms"] = 500.0
+	s.game.commit(c)
+	await wait_frames(2)
+	var after := "\n".join(s.explain.line_texts())
+	assert_true(after.contains("500 Ω") and not after.contains("1 kΩ"), after)
+	c = s.game.state.history.present.copy()
+	c.parts = c.parts.filter(func(p: Part) -> bool: return p.id != "R1")
+	c.wires = c.wires.filter(func(w: Wire) -> bool: return w.a_part != "R1" and w.b_part != "R1")
+	s.game.commit(c)
+	await wait_frames(2)
+	assert_false(s.explain.visible, "the part is gone, so its explanation closes")
+
+
+func test_part_menu_closes_when_its_part_is_undone_away() -> void:
+	var s := await _screen("ch1.pop")
+	await _skip_intro(s)
+	var c := s.game.state.history.present.copy()
+	c.parts.append(Part.make("R1", "resistor", 2, -4))
+	s.game.commit(c)
+	await wait_frames(2)
+	s.menu.open({"part": "R1"}, Vector2(200, 200))
+	assert_true(s.menu.visible)
+	s.game.undo()
+	await wait_frames(2)
+	assert_false(s.menu.visible, "R1 is gone")
+
+
+## Review Focus 5: undo after damage leaves nothing about the burn behind.
+func test_undo_after_a_burn_clears_pips_explanation_and_the_toast() -> void:
+	var s := await _screen("ch1.pop")
+	await _skip_intro(s)
+	s.game.commit(_direct_led(s.game.state.level))
+	await wait_frames(2)
+	assert_true(s.guide.visible and s.guide.mood == "oops")
+	assert_true("Pop! LED burned out." in s.toasts.texts())
+	s.game.undo()
+	await wait_frames(2)
+	assert_false(s.guide.visible and s.guide.mood == "oops", s.guide.plain_text())
+	assert_false("Pop! LED burned out." in s.toasts.texts(), str(s.toasts.texts()))
+	s.game.redo()
+	await wait_frames(2)
+	assert_true(s.guide.visible and s.guide.mood == "oops", "redo brings the burn, and its help, back")
+
+
+## Every visible control a finger can press that is under 44 × 44 px (spec
+## §11), described for the failure message.
+func _small_targets(root: Node, where: String) -> PackedStringArray:
+	var out := PackedStringArray()
+	for n in root.find_children("*", "Control", true, false):
+		var c := n as Control
+		if not c.is_visible_in_tree():
+			continue
+		if not (c is BaseButton or c is LineEdit or c is Slider or c is SpinBox):
+			continue
+		if c.size.x < 44.0 or c.size.y < 44.0:
+			var label := str(c.get("text")) if c.get("text") != null and str(c.get("text")) != "" else str(c.tooltip_text)
+			out.append("%s: %s \"%s\" %s" % [where, c.get_class(), label, c.size])
+	return out
+
+
+func test_touch_targets_are_at_least_44_px() -> void:
+	var small := PackedStringArray()
+	for id in ["ch1.pop", "ch1.push-and-flow", "ch1.both"]:
+		var s := await _screen(id, Vector2(1280, 720), {}, null, true)
+		await _skip_intro(s)
+		s.guide.show_line("Hello", "happy", "help")
+		await wait_frames(2)
+		small.append_array(_small_targets(s, id + " board"))
+		s.guide.hide_bubble()
+		var openers := {
+			"datasheet": func() -> void: s.dev_show("datasheet:B1"),
+			"calculator": func() -> void: s.dev_show("calculator"),
+			"notebook": func() -> void: s.dev_show("notebook"),
+			"settings": func() -> void: s.dev_show("settings"),
+			"glossary": func() -> void: s.glossary_popup.open("voltage"),
+			"menu": func() -> void: s.menu.open({"part": "B1"}, Vector2(300, 300)),
+			"explain": func() -> void: s.explain.open(s.game.state.outcome.circuit.find_part("B1"), s.game.state.outcome.result, Vector2(300, 300)),
+			"value": func() -> void: s.value_popover.open("B1", 1000.0, Vector2(300, 300)),
+		}
+		for name in openers:
+			(openers[name] as Callable).call()
+			await wait_frames(2)
+			small.append_array(_small_targets(s, "%s %s" % [id, name]))
+			for card in [s.datasheet, s.formula, s.notebook, s.settings_sheet, s.glossary_popup, s.explain, s.value_popover]:
+				card.visible = false
+			s.menu.close()
+	assert_eq("\n".join(small), "")
+
+
+func test_map_and_title_touch_targets_are_at_least_44_px() -> void:
+	var game := _game({})
+	var small := PackedStringArray()
+	for path in ["res://src/screens/map_screen.tscn", "res://src/screens/title_screen.tscn"]:
+		var host := Control.new()
+		host.size = Vector2(1280, 720)
+		host.theme = PastelTheme.build()
+		add_to_tree(host)
+		var screen: Control = load(path).instantiate()
+		screen.set("game", game)
+		host.add_child(screen)
+		await wait_frames(3)
+		small.append_array(_small_targets(screen, path.get_file()))
+	assert_eq("\n".join(small), "")
+
+
+## The first opaque fill behind `c`: its own box (a button or text box), or
+## the nearest panel. Null when only the 3D scene is behind it.
+func _background(c: Control) -> Variant:
+	var n: Node = c
+	while n is Control:
+		var k := n as Control
+		var sb: StyleBox = null
+		if k is Button and not (k as Button).flat:
+			sb = k.get_theme_stylebox("disabled" if (k as Button).disabled else "normal")
+		elif k is LineEdit:
+			sb = k.get_theme_stylebox("normal")
+		elif k is PanelContainer or k is Panel:
+			sb = k.get_theme_stylebox("panel")
+		elif k is Label:
+			sb = k.get_theme_stylebox("normal")
+		if sb is StyleBoxFlat and (sb as StyleBoxFlat).bg_color.a >= 0.9:
+			return (sb as StyleBoxFlat).bg_color
+		if k is ColorRect and (k as ColorRect).color.a >= 0.9:
+			return (k as ColorRect).color
+		n = k.get_parent()
+	return null
+
+
+## Text a reader can't make out (spec §11): main text under 7:1, secondary
+## (ink_soft) text under 4.5:1, or text with nothing opaque behind it.
+func _faint_text(root: Node, where: String) -> PackedStringArray:
+	var out := PackedStringArray()
+	var soft := [Palette.color("ink_soft"), Palette.color("ink_soft", true)]
+	var tags := RegEx.create_from_string("\\[color=(#[0-9a-fA-F]{6,8})\\]")
+	for n in root.find_children("*", "Control", true, false):
+		var c := n as Control
+		if not c.is_visible_in_tree():
+			continue
+		var text := ""
+		var colors: Array[Color] = []
+		if c is Label:
+			text = (c as Label).text
+			colors.append(c.get_theme_color("font_color"))
+		elif c is RichTextLabel:
+			text = (c as RichTextLabel).get_parsed_text()
+			colors.append(c.get_theme_color("default_color"))
+			for m in tags.search_all((c as RichTextLabel).text):
+				colors.append(Color(m.get_string(1)))
+		elif c is Button:
+			text = (c as Button).text
+			colors.append(c.get_theme_color("font_disabled_color" if (c as Button).disabled else "font_color"))
+		elif c is LineEdit:
+			text = (c as LineEdit).text
+			colors.append(c.get_theme_color("font_color"))
+		if text.strip_edges() == "":
+			continue
+		var what := "%s: %s \"%s\"" % [where, c.get_class(), text.strip_edges().left(28)]
+		var bg: Variant = _background(c)
+		if bg == null:
+			out.append(what + " has nothing behind it")
+			continue
+		for col in colors:
+			var need := 4.5 if soft.any(func(s: Color) -> bool: return s.is_equal_approx(col)) else 7.0
+			var ratio := Palette.contrast_ratio(col, bg)
+			if ratio < need:
+				out.append("%s %.2f:1 (needs %.1f)" % [what, ratio, need])
+	return out
+
+
+func test_hud_text_is_readable_by_day_and_night() -> void:
+	var faint := PackedStringArray()
+	# Day, night, and night switched on mid-level (the theme is rebuilt then).
+	for mode in ["day", "night", "day to night"]:
+		for id in ["ch1.pop", "ch1.both"]:
+			var night: bool = mode != "day"
+			var s := await _screen(id, Vector2(1280, 720), {"night": mode == "night"}, null, true)
+			if mode == "day to night":
+				s.game.set_setting("night", true)
+				(s.get_parent() as Control).theme = PastelTheme.build(true)
+			await _skip_intro(s)
+			s.guide.show_line("Hello [[voltage]]", "happy", "help")
+			await wait_frames(2)
+			var tag := "%s %s" % [mode, id]
+			faint.append_array(_faint_text(s, tag + " board"))
+			s.guide.hide_bubble()
+			for name in ["datasheet:B1", "calculator", "notebook", "badges", "settings"]:
+				if name == "badges":
+					s.dev_show("notebook")
+					s.notebook.show_tab("badges")
+				else:
+					s.dev_show(name)
+				await wait_frames(2)
+				faint.append_array(_faint_text(s, "%s %s" % [tag, name]))
+				for card in [s.datasheet, s.formula, s.notebook, s.settings_sheet]:
+					card.visible = false
+	var unique := {}
+	for f in faint:
+		unique[f] = true
+	assert_eq("\n".join(unique.keys()), "")

@@ -32,7 +32,7 @@ func _ready() -> void:
 	_title = HudText.label(game)
 	top.add_child(_title)
 	var close_b := IconButton.make("close", "Close")
-	close_b.custom_minimum_size = Vector2(36, 36)
+	close_b.custom_minimum_size = Vector2(IconButton.MIN_TOUCH, IconButton.MIN_TOUCH)
 	close_b.pressed.connect(close)
 	top.add_child(close_b)
 	var pics := HBoxContainer.new()
@@ -69,8 +69,9 @@ func open(p: Part, on_board: bool) -> void:
 		var label := str(r["label"])
 		var text := "[[%s|%s]]: %s" % [r["term"], label, r["value"]] if str(r["term"]) != "" else "%s: %s" % [label, r["value"]]
 		_rows.add_child(HudText.make(game, text, 15))
-	_bands.visible = p.kind == "resistor"
-	if p.kind == "resistor":
+	# Only fixed resistors carry color bands; a trimmer has its value printed.
+	_bands.visible = p.kind == "resistor" and not bool(p.props.get("adjustable", false))
+	if _bands.visible:
 		HudText.put(_bands, "Color code: %s" % ", ".join(band_names(float(p.props.get("ohms", 220.0)))), game)
 	var deeper := GoDeeper.for_part(p)
 	_deeper.visible = deeper != ""

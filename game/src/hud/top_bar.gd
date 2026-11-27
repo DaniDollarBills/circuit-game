@@ -26,7 +26,14 @@ func _ready() -> void:
 	_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_title.clip_text = true
 	_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	add_child(_title)
+	# On a pill: the 3D scene behind the bar can be any shade.
+	var pill := PanelContainer.new()
+	pill.name = "TitlePill"
+	pill.theme_type_variation = "PillPanel"
+	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pill.add_child(_title)
+	add_child(pill)
 	_add("undo", IconButton.make("undo", "Undo (Ctrl+Z)"))
 	_add("redo", IconButton.make("redo", "Redo (Ctrl+Shift+Z)"))
 	_add("calculator", IconButton.make("calculator", "Calculator"))

@@ -22,7 +22,7 @@ func _ready() -> void:
 	_title = HudText.label(game)
 	top.add_child(_title)
 	var close_b := IconButton.make("close", "Close")
-	close_b.custom_minimum_size = Vector2(36, 36)
+	close_b.custom_minimum_size = Vector2(IconButton.MIN_TOUCH, IconButton.MIN_TOUCH)
 	close_b.pressed.connect(func() -> void: visible = false)
 	top.add_child(close_b)
 	_lines = VBoxContainer.new()
@@ -33,6 +33,15 @@ func _ready() -> void:
 
 
 func open(p: Part, sim: SimResult, at: Vector2) -> void:
+	refresh(p, sim)
+	visible = true
+	reset_size()
+	var host := get_parent_area_size()
+	position = Vector2(clampf(at.x - size.x / 2.0, 8.0, maxf(host.x - size.x - 8.0, 8.0)), clampf(at.y + 24.0, 8.0, maxf(host.y - size.y - 8.0, 8.0)))
+
+
+## Fills in the numbers again, in place, for the circuit as it is now.
+func refresh(p: Part, sim: SimResult) -> void:
 	part_id = p.id
 	HudText.put(_title, "Why: %s %s" % [Catalog.title(p.kind), p.id], game, true)
 	for c in _lines.get_children():
@@ -44,10 +53,7 @@ func open(p: Part, sim: SimResult, at: Vector2) -> void:
 	_deeper.visible = deeper != ""
 	if deeper != "":
 		HudText.put(_deeper, deeper, game)
-	visible = true
 	reset_size()
-	var host := get_parent_area_size()
-	position = Vector2(clampf(at.x - size.x / 2.0, 8.0, maxf(host.x - size.x - 8.0, 8.0)), clampf(at.y + 24.0, 8.0, maxf(host.y - size.y - 8.0, 8.0)))
 
 
 func line_texts() -> PackedStringArray:

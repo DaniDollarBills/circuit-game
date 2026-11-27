@@ -39,7 +39,7 @@ func _ready() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(title)
 	var close_b := IconButton.make("close", "Close")
-	close_b.custom_minimum_size = Vector2(36, 36)
+	close_b.custom_minimum_size = Vector2(IconButton.MIN_TOUCH, IconButton.MIN_TOUCH)
 	close_b.pressed.connect(func() -> void: visible = false)
 	top.add_child(close_b)
 	for c in CHOICES:

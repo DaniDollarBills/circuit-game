@@ -177,3 +177,25 @@ func test_tray_used_counts_placed_parts() -> void:
 	assert_eq(s.tray_used(), [0, 0, 0, 0, 0, 0] as Array[int])
 	s.commit(level.solution)
 	assert_eq(s.tray_used(), [0, 0, 1, 0, 0, 0] as Array[int])
+
+
+## A test report describes the circuit it ran on. Any change to the circuit
+## (an edit, undo or redo) clears it, and "Press Test." needs pressing again.
+func test_changing_the_circuit_clears_the_old_test_report() -> void:
+	var s := _state()
+	_start(s, "ch1.both")
+	for change in ["commit", "undo", "redo"]:
+		s.set_ui_flag("tested")
+		s.run_tests()
+		assert_false(s.session.test_report.is_empty(), change)
+		match change:
+			"commit":
+				var c := s.history.present.copy()
+				c.parts[0].x += 1
+				s.commit(c)
+			"undo":
+				s.undo()
+			"redo":
+				s.redo()
+		assert_true(s.session.test_report.is_empty(), "%s keeps a stale report" % change)
+		assert_false(bool(s.ui_flags.get("tested", false)), "%s keeps the tested flag" % change)

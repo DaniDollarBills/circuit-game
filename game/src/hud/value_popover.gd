@@ -24,7 +24,7 @@ func _ready() -> void:
 	_title = HudText.label(game, 15)
 	top.add_child(_title)
 	var close_b := IconButton.make("close", "Close")
-	close_b.custom_minimum_size = Vector2(36, 36)
+	close_b.custom_minimum_size = Vector2(IconButton.MIN_TOUCH, IconButton.MIN_TOUCH)
 	close_b.pressed.connect(close)
 	top.add_child(close_b)
 	var row := HBoxContainer.new()
@@ -33,7 +33,7 @@ func _ready() -> void:
 	slider.max_value = 2000
 	slider.step = 10
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider.custom_minimum_size = Vector2(200, 32)
+	slider.custom_minimum_size = Vector2(200, IconButton.MIN_TOUCH)
 	slider.drag_started.connect(func() -> void: _dragging = true)
 	slider.drag_ended.connect(func(_changed: bool) -> void:
 		_dragging = false

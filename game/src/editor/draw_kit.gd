@@ -145,8 +145,7 @@ static func _place(points: PackedVector2Array, origin: Vector2, rot: int) -> Pac
 static func _font(bold: bool) -> Font:
 	var path := FONT_BOLD if bold else FONT_REGULAR
 	if not _fonts.has(path):
-		var f: FontFile = load(path)
-		_fonts[path] = f
+		_fonts[path] = Fonts.with_symbols(path, true)
 	return _fonts[path]
 
 

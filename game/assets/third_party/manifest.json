@@ -103,8 +103,8 @@
     "id": "natural_earth_ii",
     "source": "naturalearth",
     "kind": "image",
-    "license": "Public domain",
-    "credit": "Natural Earth II shaded relief, naturalearthdata.com (public domain), as tiled and recolored for the Cesium project (@cesium/engine 9.0.0, Apache-2.0)",
+    "license": "Public domain; tiles Apache-2.0",
+    "credit": "Natural Earth II shaded relief, naturalearthdata.com (public domain), as tiled for the Cesium project (@cesium/engine 9.0.0, Apache-2.0)",
     "generator": "tools/make_earth.mjs",
     "files": [
       {

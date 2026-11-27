@@ -23,6 +23,7 @@ func _ready() -> void:
 	add_child(col)
 	_title = Button.new()
 	_title.flat = true
+	_title.theme_type_variation = "FlatButton"
 	_title.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_title.pressed.connect(func() -> void:
 		_open = not _open
@@ -56,7 +57,7 @@ func refresh(level: LevelDef, session: LevelSession, circuit: Circuit) -> void:
 			var mark := Label.new()
 			mark.text = "✓" if ok else "○"
 			mark.custom_minimum_size = Vector2(22, 0)
-			mark.add_theme_color_override("font_color", Palette.color("ink") if ok else Palette.color("ink_soft"))
+			mark.theme_type_variation = "" if ok else "SoftLabel"
 			row.add_child(mark)
 			row.add_child(HudText.make(game, label_for(level.goals[i], circuit), 15))
 			_rows.add_child(row)
@@ -102,8 +103,9 @@ static func label_for(goal: Dictionary, c: Circuit) -> String:
 		"uses":
 			var title := noun(Catalog.title(str(goal["part_kind"])))
 			if goal.has("max"):
-				return "Use at most %d %s" % [int(goal["max"]), title]
-			return "Use a %s" % title
+				return "Use at most %d %s" % [int(goal["max"]), _count_noun(int(goal["max"]), title)]
+			var n := int(goal.get("min", 1))
+			return "Use a %s" % title if n <= 1 else "Use %d %s" % [n, _count_noun(n, title)]
 		"zoom_reached":
 			return "Zoom in until you see %s" % ("copper atoms" if str(goal["layer"]) == "wire.copper" else "inside the wire")
 		"connected":
@@ -140,6 +142,16 @@ static func noun(title: String) -> String:
 
 static func _pin_name(c: Circuit, spec: String) -> String:
 	return part_name(c, spec.get_slice(":", 0))
+
+
+## "switch" → "switches" for any count but one.
+static func _count_noun(n: int, word: String) -> String:
+	if n == 1:
+		return word
+	for end in ["s", "sh", "ch", "x", "z"]:
+		if word.ends_with(end):
+			return word + "es"
+	return word + "s"
 
 
 static func _n(v: Variant) -> String:

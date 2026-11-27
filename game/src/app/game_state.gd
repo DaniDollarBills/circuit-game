@@ -56,6 +56,7 @@ func commit(c: Circuit) -> void:
 	var out := Simulator.simulate(c)
 	outcome = out
 	history.commit(out.circuit)
+	_circuit_changed()
 	_save_draft()
 	for d in out.damage:
 		events.append({"type": "burnt", "part": d["part"], "reason": d["reason"]})
@@ -176,8 +177,16 @@ func take_events() -> Array[Dictionary]:
 func _resimulate() -> void:
 	_end_preview()
 	outcome = Simulator.simulate(history.present)
+	_circuit_changed()
 	_save_draft()
 	_update()
+
+
+## The last test report was about the old circuit, so it goes, and the
+## "Press Test." step needs a new press.
+func _circuit_changed() -> void:
+	session.test_report = {}
+	ui_flags.erase("tested")
 
 
 func _end_preview() -> void:

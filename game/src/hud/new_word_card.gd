@@ -56,7 +56,8 @@ func _ready() -> void:
 		l.text = line[0]
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.add_theme_font_size_override("font_size", line[1])
-		l.add_theme_color_override("font_color", Palette.color(line[2], bool(game.state.progress.settings.get("night", false))))
+		# Theme colors, so switching Night on recolors a card already showing.
+		l.theme_type_variation = "SoftLabel" if line[2] == "ink_soft" else ""
 		col.add_child(l)
 	_slide = 0.0 if _animate else 1.0
 

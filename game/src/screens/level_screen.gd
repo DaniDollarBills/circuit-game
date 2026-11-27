@@ -64,6 +64,7 @@ var _ghosts := {}
 var _highlights: Array = []
 var _board_key := ""
 var _view_style := ""
+var _night := false
 var _cards: Array[NewWordCard] = []
 var _word_queue := PackedStringArray()
 var _carded := PackedStringArray()
@@ -183,9 +184,19 @@ func _refresh() -> void:
 		return
 	var st := s.progress.settings
 	_handle_events(s.take_events())
+	if bool(st.get("night", false)) != _night:
+		_night = not _night
+		HudText.refresh_all(get_tree(), game)
 	_update_guide()
 	_update_hints()
 	var shown := s.shown()
+	if explain.visible:
+		var ep := shown.circuit.find_part(explain.part_id)
+		if ep == null:
+			explain.visible = false
+		else:
+			explain.refresh(ep, shown.result)
+	menu.sync()
 	var key := "%d|%s|%s|%s" % [shown.get_instance_id(), st, _ghosts, _highlights]
 	if key != _board_key:
 		_board_key = key
@@ -208,6 +219,8 @@ func _refresh() -> void:
 	hint_button.visible = _help() != "off" and not s.level.hints.is_empty()
 	back_to_building.visible = s.zoom_layer != "editor"
 	zoom_caption.visible = s.zoom_layer == "wire.copper"
+	if not _any_burnt():
+		toasts.drop("Pop! ")
 	_check_mistakes()
 	_check_formula_offer()
 	if settings_sheet.visible:
@@ -252,11 +265,18 @@ func _check_mistakes() -> void:
 		return
 	var m := _first_failing()
 	if not _is_mistake(m):
+		# Fixed or undone: Pip stops talking about a mistake that's gone.
+		if not _any_burnt() and guide.visible and guide.kind == "help" and guide.mood == "oops":
+			guide.hide_bubble()
 		_last_mistake = ""
 		return
 	if m != _last_mistake:
 		_last_mistake = m
 		guide.show_line(m, "oops", "help")
+
+
+func _any_burnt() -> bool:
+	return game.state.outcome.circuit.parts.any(func(p: Part) -> bool: return bool(p.props.get("burnt", false)))
 
 
 func _first_failing() -> String:

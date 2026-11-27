@@ -47,7 +47,9 @@ func _show(screen_id: String, _arg: String) -> void:
 	if not SCREENS.has(screen_id):
 		return
 	if screen != null:
-		screen.visible = false
+		# Out of the tree at once, so its deferred refresh can't take the
+		# events (new words, badges) meant for the next screen.
+		remove_child(screen)
 		screen.queue_free()
 	var next: Control = load(SCREENS[screen_id]).instantiate()
 	next.set("game", game)
@@ -91,6 +93,7 @@ func _apply_look() -> void:
 	_look = look
 	theme = PastelTheme.build(look[0], look[1])
 	($Background as ColorRect).color = Palette.color("cream", look[0])
+	HudText.refresh_all(get_tree(), game)
 
 
 func _build_toast() -> void:

@@ -1,12 +1,12 @@
 class_name ContextMenu
 extends PanelContainer
 ## The menu for a part or wire (right-click or long-press): Rotate, Delete,
-## Datasheet, Explain, and Replace for a burnt part. Locked parts can't be
-## rotated or deleted.
+## Datasheet, Explain, and Replace for a burnt part, then Cancel. Locked parts
+## can't be rotated or deleted. Esc or a press anywhere else closes it.
 
 signal chosen(action: String, target: Dictionary)
 
-const ACTIONS := ["Rotate", "Delete", "Datasheet", "Explain", "Replace"]
+const ACTIONS := ["Rotate", "Delete", "Datasheet", "Explain", "Replace", "Cancel"]
 
 var game: Game
 var target: Dictionary = {}
@@ -25,7 +25,8 @@ func _ready() -> void:
 		b.pressed.connect(func() -> void:
 			var t := target
 			close()
-			chosen.emit(a, t))
+			if a != "Cancel":
+				chosen.emit(a, t))
 		col.add_child(b)
 		_buttons[a] = b
 	visible = false
@@ -53,12 +54,39 @@ func open(t: Dictionary, at: Vector2) -> void:
 		if w == null:
 			return
 		for a in ACTIONS:
-			_buttons[a].visible = a == "Delete"
+			_buttons[a].visible = a == "Delete" or a == "Cancel"
 		_buttons["Delete"].disabled = w.locked
 	visible = true
 	reset_size()
 	var host := get_parent_area_size()
 	position = Vector2(clampf(at.x, 8.0, maxf(host.x - size.x - 8.0, 8.0)), clampf(at.y, 8.0, maxf(host.y - size.y - 8.0, 8.0)))
+
+
+## Checks the rows against the circuit as it is now, in place; closes when
+## the part or wire is gone (an undo, say).
+func sync() -> void:
+	if not visible:
+		return
+	var t := target
+	var at := position
+	close()
+	open(t, at)
+
+
+func _input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event.is_action_pressed("ui_cancel"):
+		close()
+		get_viewport().set_input_as_handled()
+		return
+	var at: Variant = null
+	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+		at = (event as InputEventMouseButton).position
+	elif event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
+		at = (event as InputEventScreenTouch).position
+	if at != null and not get_global_rect().has_point(at):
+		close()
 
 
 func close() -> void:

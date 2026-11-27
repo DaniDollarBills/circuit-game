@@ -119,6 +119,19 @@ func long_press(at: Vector2) -> void:
 	await frames(2)
 
 
+## One notch of the mouse wheel at `at`: up zooms in.
+func scroll(at: Vector2, up := true) -> void:
+	for pressed in [true, false]:
+		var e := InputEventMouseButton.new()
+		e.position = at
+		e.global_position = at
+		e.button_index = MOUSE_BUTTON_WHEEL_UP if up else MOUSE_BUTTON_WHEEL_DOWN
+		e.pressed = pressed
+		e.factor = 1.0
+		_push(e)
+	await frames(1)
+
+
 func touch(index: int, at: Vector2, pressed: bool) -> void:
 	var t := InputEventScreenTouch.new()
 	t.index = index

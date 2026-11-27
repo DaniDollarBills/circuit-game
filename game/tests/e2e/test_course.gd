@@ -33,3 +33,19 @@ func test_learn_deck_by_tapping() -> void:
 	assert_eq(taps, s.game.state.level.deck_size(), "one tap per card")
 	assert_false(s.deck.visible)
 	assert_true(s.game.state.progress.lesson_marks("ch1.light-it-up").has("learn"))
+
+
+func test_zoom_and_pan_set_flags() -> void:
+	await e2e.start(_dir.path_join("progress.json"))
+	e2e.game().state.progress.settings["help_level"] = "off"
+	e2e.game().state.progress.parts_seen = {"battery": 1, "resistor": 1, "led": 1}
+	e2e.game().open_level("ch1.light-it-up", true)
+	await e2e.frames(4)
+	var s := e2e.screen() as LevelScreen
+	var spot := s.editor.global_position + s.editor.safe_rect.get_center() + Vector2(0, s.editor.safe_rect.size.y * 0.35)
+	await e2e.scroll(spot)
+	await e2e.frames(2)
+	assert_true(s.game.state.ui_flags.has("did:zoomed"))
+	await e2e.drag(spot, spot + Vector2(60, 0))
+	await e2e.frames(2)
+	assert_true(s.game.state.ui_flags.has("did:panned"))

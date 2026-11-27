@@ -67,6 +67,9 @@ func commit(c: Circuit) -> void:
 		return
 	_end_preview()
 	var out := Simulator.simulate(c)
+	# What the player did, for Lesson 0's steps (did:placed, did:wired…).
+	for action in CircuitDiff.actions(history.present, out.circuit):
+		ui_flags["did:" + action] = true
 	outcome = out
 	history.commit(out.circuit)
 	_circuit_changed()
@@ -96,6 +99,7 @@ func shown() -> SimOutcome:
 func undo() -> bool:
 	if history == null or not history.undo():
 		return false
+	ui_flags["did:undone"] = true
 	_resimulate()
 	return true
 

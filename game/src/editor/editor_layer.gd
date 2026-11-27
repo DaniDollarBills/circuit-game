@@ -15,6 +15,8 @@ signal toast_requested(text: String)
 signal ghost_tapped(kind: String, data: Dictionary)
 ## A value label (a voltage or a current) was tapped; the HUD explains its part.
 signal explain_requested(part_id: String)
+## The player zoomed or panned the board ("zoomed" or "panned").
+signal view_moved(how: String)
 
 ## How close, in pixels, a tap must be to a pin's metal in the real view,
 ## and how close when the tap is on a part's body.
@@ -407,6 +409,7 @@ func _apply_effect(e: Dictionary, g: Dictionary) -> void:
 
 
 func _zoom(factor: float, screen: Vector2) -> void:
+	view_moved.emit("zoomed")
 	var stage := get_parent() as ZoomStage
 	if stage != null:
 		stage.zoom_at_screen(factor, screen + position)
@@ -422,6 +425,7 @@ func _zoom(factor: float, screen: Vector2) -> void:
 ## Moves the board so the point that was under the finger (at `screen` −
 ## `delta_px`) is under it again; exact in perspective too.
 func _pan(delta_px: Vector2, screen: Vector2) -> void:
+	view_moved.emit("panned")
 	var shift := screen_to_grid(screen - delta_px) - screen_to_grid(screen)
 	if not (is_finite(shift.x) and is_finite(shift.y)):
 		return

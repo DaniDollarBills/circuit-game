@@ -199,3 +199,20 @@ func test_current_tray_follows_phase() -> void:
 	s.finish_try()
 	assert_eq(s.current_tray().size(), 1)
 	assert_eq(s.current_tray()[0]["props"]["ohms"], 150.0)
+
+
+func test_commit_sets_did_flags() -> void:
+	var s := _state("off")
+	s.start_level(Levels.by_id("ch1.light-it-up"))
+	s.commit(CircuitEdits.add_wire(s.history.present, "B1", "pos", "R1", "a"))
+	assert_true(s.ui_flags.has("did:wired"))
+	assert_false(s.ui_flags.has("did:placed"))
+
+
+func test_undo_sets_did_undone() -> void:
+	var s := _state("off")
+	s.start_level(Levels.by_id("ch1.light-it-up"))
+	s.commit(CircuitEdits.add_wire(s.history.present, "B1", "pos", "R1", "a"))
+	assert_false(s.ui_flags.has("did:undone"))
+	s.undo()
+	assert_true(s.ui_flags.has("did:undone"))

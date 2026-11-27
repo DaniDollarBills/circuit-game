@@ -716,6 +716,11 @@ func _on_board_resized() -> void:
 
 func _connect() -> void:
 	try_panel.ready_pressed.connect(game.finish_try)
+	# What the player did, for Lesson 0's steps.
+	editor.view_moved.connect(func(how: String) -> void: game.set_ui_flag("did:" + how))
+	hint_button.pressed.connect(func() -> void: game.set_ui_flag("did:hint"))
+	top_bar.button("calculator").pressed.connect(func() -> void: game.set_ui_flag("did:calculator"))
+	top_bar.button("notebook").pressed.connect(func() -> void: game.set_ui_flag("did:notebook"))
 	recap.next_lesson.connect(func() -> void:
 		var next_id := _next_level_id()
 		if next_id != "":
@@ -729,7 +734,9 @@ func _connect() -> void:
 	editor.commit_requested.connect(game.commit)
 	editor.datasheet_requested.connect(_open_datasheet)
 	editor.toast_requested.connect(func(text: String) -> void: toasts.show_text(text))
-	editor.menu_requested.connect(func(target: Dictionary, at: Vector2) -> void: menu.open(target, at))
+	editor.menu_requested.connect(func(target: Dictionary, at: Vector2) -> void:
+		menu.open(target, at)
+		game.set_ui_flag("did:menu"))
 	editor.value_requested.connect(_open_value)
 	editor.explain_requested.connect(_open_explain)
 	editor.selected.connect(func(id: String) -> void:

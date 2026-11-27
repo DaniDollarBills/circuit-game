@@ -97,6 +97,10 @@ func _open_from_args() -> bool:
 	return false
 
 
+func _input(event: InputEvent) -> void:
+	InputMode.note(event)
+
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		go_back()

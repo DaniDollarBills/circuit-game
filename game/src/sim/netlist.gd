@@ -5,9 +5,7 @@ extends RefCounted
 ## devices). Each component with a battery gets a reference net at 0 V; nets in
 ## components without a battery are floating.
 
-const VOLTMETER_OHMS := 1.0e7
-const AMMETER_OHMS := 0.1
-const CONNECTOR_G := 1000.0
+const CONNECTOR_G := Devices.CONNECTOR_G
 
 var net_of: Dictionary = {}
 var net_count := 0

@@ -5,21 +5,22 @@ Text and screenshots for the game's itch.io page, ready to paste. Making the pag
 **Title:** Circuit
 
 **Short description** (shown under the title, 120 characters at most):
-Build real circuits from the first LED up. A realistic workbench, a true simulation, and every new word explained.
+Learn electronics like a school course: real circuits on a realistic workbench, truly simulated, every idea explained.
 
 **Classification:** Game · Educational · Simulation. **Tags:** education, electronics, simulation, puzzle, relaxing, science. **Platforms:** Windows, macOS, Linux, Android, HTML5.
 
 ## Description
 
-Circuit starts with a battery, a resistor and an LED on a workbench, and one day ends with computers you designed yourself. This is Chapter 1, "Spark".
+Circuit starts with a battery, a resistor and an LED on a workbench, and one day ends with computers you designed yourself. This is Chapter 1, "Spark": a course of ten lessons for complete beginners.
 
 - **Real parts, really simulated.** Every circuit is solved the way engineers solve them. LEDs glow up to their recommended current, wear out past it and burn out past their absolute maximum; a ¼-watt resistor really does overheat at half a watt.
 - **Built true to size.** A 3D bench under studio lighting: perfboard, battery holder, multimeters, every part at its real size. Switch to the schematic view any time.
-- **Help that teaches.** Pip guides each level with a checklist, a step-by-step calculator, datasheets and three tiers of hints. Every new word is defined the first time you see it, and your Notebook keeps them all.
+- **A real course.** Each lesson says what you'll learn, then explains one idea at a time with a moving picture. You meet every new part in 3D (spin it, look inside it), try things on a ready-made circuit (burn an LED on purpose, fill in a truth table, make a short and watch the battery heat up), then build it yourself, with a "Why?" on every step. A recap, a quick question or two and a fact from history close each lesson.
+- **Help that teaches.** Pip guides you with a checklist, a step-by-step calculator, datasheets and three tiers of hints. Every new word is defined the first time you see it, and your Notebook is a textbook: every lesson, part and word, to read again.
 - **Zoom into everything.** The title flies from the whole Earth, past an undersea cable coming ashore, down to a single silicon atom. In the last level you zoom into a wire until you see its copper atoms and the electrons drifting through them.
 - **Gentle by design.** Pastel colors, soft sounds and a calm lo-fi soundtrack. No accounts, no ads, no purchases, and the game never goes online.
 
-Nine levels: your first lit LED, sizing a resistor from a datasheet, Ohm's law with real meters, switches, "both" and "either" logic, a short circuit, a heater with the right power rating, and the inside of a wire.
+Ten lessons: a tour of your workbench, your first lit LED, sizing a resistor from a datasheet, Ohm's law with real meters, switches and bits, "both" and "either" logic (AND and OR), a short circuit, a heater with the right power rating, and the inside of a wire.
 
 ## Install
 

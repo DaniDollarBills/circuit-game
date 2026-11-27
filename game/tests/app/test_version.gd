@@ -4,7 +4,7 @@ extends TestCase
 
 
 func test_version_reads_the_project_setting() -> void:
-	assert_eq(Version.text(), "0.2.0")
+	assert_eq(Version.text(), "0.3.0")
 
 
 func test_updates_button_opens_the_releases_page() -> void:
@@ -21,7 +21,7 @@ func test_updates_button_opens_the_releases_page() -> void:
 	sheet.open()
 	sheet.updates_button().pressed.emit()
 	assert_eq(opened, [Version.RELEASES_URL])
-	assert_true(sheet.about_text().contains("0.2.0"), sheet.about_text())
+	assert_true(sheet.about_text().contains("0.3.0"), sheet.about_text())
 
 
 ## No class that can open a connection appears anywhere in the game's code.

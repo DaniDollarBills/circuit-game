@@ -27,6 +27,8 @@ func test_android_preset_asks_for_nothing() -> void:
 	var options := section + ".options"
 	assert_eq(cfg.get_value(options, "package/unique_name"), "io.github.circuitgame.circuit")
 	assert_eq(cfg.get_value(options, "version/name"), Version.text())
+	# Each Android release needs a higher code than the last (v0.2.0 was 2).
+	assert_eq(cfg.get_value(options, "version/code"), 3)
 	assert_eq(cfg.get_value(options, "gradle_build/use_gradle_build"), false)
 	assert_eq(cfg.get_value(options, "architectures/arm64-v8a"), true)
 	assert_eq(cfg.get_value(options, "architectures/armeabi-v7a"), true)

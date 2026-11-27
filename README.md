@@ -2,8 +2,11 @@
 
 A real-life-looking building game that takes you from a grain of sand to artificial intelligence. You work with electricity, transistors, logic gates, your own chips, and a PC or phone you design yourself. Then come the internet, pretend hacking, and AI. Every step is really simulated, and everything is explained as you go.
 
+Chapter 1, "Spark", is a course of ten lessons, from a tour of your workbench to the inside of a wire. Each lesson says what you'll learn, explains one idea at a time with a picture, lets you meet each new part in 3D and try things on a ready-made circuit, then has you build it yourself, and ends with a recap and a quick question or two. The Notebook keeps every lesson, part and word to read again.
+
 - Game design: [docs/superpowers/specs/2026-11-26-circuit-game-design.md](docs/superpowers/specs/2026-11-26-circuit-game-design.md)
-- Milestone 1 plan: [docs/superpowers/plans/2026-11-26-m1-first-light.md](docs/superpowers/plans/2026-11-26-m1-first-light.md)
+- The course design (Chapter 1 as a course, and Chapter 2's plan): [docs/superpowers/specs/2026-11-27-course-design.md](docs/superpowers/specs/2026-11-27-course-design.md)
+- Milestone plans: [1, First Light](docs/superpowers/plans/2026-11-26-m1-first-light.md) · [3, Class Is In](docs/superpowers/plans/2026-11-27-m3-class-is-in.md)
 
 ## Development
 

@@ -1,7 +1,7 @@
 extends Diagram
 ## Look inside: labeled cutaways of the Chapter 1 parts. Each is drawn from
 ## how the real part is built: an LED's chip in its reflector cup, a
-## resistor's spiral-cut carbon film, a trimmer's track and wiper, an AA
+## resistor's spiral-cut carbon film (a 1 W one's metal film), a trimmer's track and wiper, an AA
 ## cell's layers, a switch's springy strip, and the two meters' insides.
 
 const LABEL := 14.0
@@ -13,6 +13,8 @@ func _paint(time: float) -> void:
 			_led(time)
 		"resistor_inside":
 			_resistor()
+		"resistor_1w_inside":
+			_resistor(true)
 		"trimmer_inside":
 			_trimmer(time)
 		"aa_cell_inside":
@@ -74,25 +76,30 @@ func _led(time: float) -> void:
 	_callout(Vector2(214, 212), Vector2(cx - 14, 208), "long leg: + (anode)")
 
 
-func _resistor() -> void:
+## A resistor cut open: a ceramic rod coated with a film cut in a spiral,
+## under paint and stripes. A ¼ W one is carbon film, painted beige (stripes
+## for 150 Ω); a 1 W one is metal film, painted blue as on the bench (47 Ω).
+func _resistor(one_watt := false) -> void:
 	var body := Rect2(96, 82, 208, 56)
 	var metal := Color("#B9BCC6")
 	line(PackedVector2Array([Vector2(36, 110), Vector2(96, 110)]), metal, 3.0)
 	line(PackedVector2Array([Vector2(304, 110), Vector2(364, 110)]), metal, 3.0)
 	# The painted lower half with its stripes.
-	box(body, 24.0, Color("#E9D8B4"), col("ink"), 1.4)
-	for s in [[136.0, "#7A4A2A"], [164.0, "#3FA34D"], [192.0, "#7A4A2A"], [262.0, "#C9A227"]]:
+	box(body, 24.0, Color("#6E9FCB") if one_watt else Color("#E9D8B4"), col("ink"), 1.4)
+	var stripes := [[136.0, "#F0CF3A"], [164.0, "#7E57C2"], [192.0, "#1E1E22"], [262.0, "#C9A227"]] if one_watt \
+			else [[136.0, "#7A4A2A"], [164.0, "#3FA34D"], [192.0, "#7A4A2A"], [262.0, "#C9A227"]]
+	for s in stripes:
 		DrawKit.rrect(self, Rect2(float(s[0]) - 6.0, 110, 12, 27), 2.0, Color(s[1]), Color(0, 0, 0, 0), 0.0, _k)
-	# The upper half cut away: ceramic rod, spiral-cut carbon film, end caps.
+	# The upper half cut away: ceramic rod, spiral-cut film, end caps.
 	DrawKit.rrect(self, Rect2(104, 86, 192, 24), 6.0, Color("#F4F1EA"), Color(col("ink"), 0.5), 1.0, _k)
 	var x := 116.0
 	while x < 286.0:
 		DrawKit.poly(self, PackedVector2Array([Vector2(x, 86), Vector2(x + 9, 86), Vector2(x + 3, 110), Vector2(x - 6, 110)]),
-				Color("#3A3330"), Color(0, 0, 0, 0), 0.0, _k)
+				Color("#7E848F") if one_watt else Color("#3A3330"), Color(0, 0, 0, 0), 0.0, _k)
 		x += 14.0
 	for cap_x in [96.0, 284.0]:
 		DrawKit.rrect(self, Rect2(cap_x, 84, 20, 52), 5.0, metal, col("ink"), 1.0, _k)
-	_callout(Vector2(36, 40), Vector2(150, 98), "carbon film, cut in a spiral")
+	_callout(Vector2(36, 40), Vector2(150, 98), ("metal" if one_watt else "carbon") + " film, cut in a spiral")
 	_callout(Vector2(250, 40), Vector2(240, 104), "ceramic rod")
 	_callout(Vector2(36, 190), Vector2(106, 130), "metal end cap")
 	_callout(Vector2(210, 190), Vector2(164, 130), "paint and colored stripes")

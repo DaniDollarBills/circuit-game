@@ -60,6 +60,22 @@ func test_set_state_builds_parts_wires_and_labels() -> void:
 	assert_eq(bench.label_texts().size(), 0)
 
 
+## Lessons 5 and 6 name their switches A and B. The bench shows each
+## switch's name, even with values hidden, so the player can tell them apart.
+func test_switch_names_show_on_the_bench() -> void:
+	var bench := Workbench3D.new()
+	add_to_tree(bench)
+	var c := TestCircuits.compact_loop()
+	c.parts.append(Part.make("SW1", "switch", 4, -4, 0, {"label": "A"}))
+	c.parts.append(Part.make("SW2", "switch", 4, -9, 0, {"label": "B"}))
+	c.parts.append(Part.make("SW3", "switch", 4, -14))
+	var out := Simulator.simulate(c)
+	var quiet := Progress.DEFAULT_SETTINGS.duplicate()
+	quiet["show_values"] = false
+	bench.set_state(out.circuit, out.result, quiet, {}, [])
+	assert_eq(bench.label_texts(), PackedStringArray(["Switch A", "Switch B"]))
+
+
 ## Nothing hangs over the mat's edge: it is the smallest standard cutting-mat
 ## size (A4 to A1) that holds the board and all the equipment beside it.
 func test_mat_holds_board_and_equipment() -> void:

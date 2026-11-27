@@ -49,7 +49,9 @@ func test_ohms_law_solves_missing() -> void:
 func test_power_from_r_47() -> void:
 	var p := Formulas.power_from_r(5.0, 47.0)
 	assert_near(p["value"], 0.5319, 1e-4)
-	assert_eq(p["steps"][p["steps"].size() - 1], "P = (5.0 V)² ÷ 47 Ω = 0.53 W")
+	# Lesson 8 teaches P = V × I, so the working goes through the current.
+	assert_eq(p["steps"], PackedStringArray(["P = V × I, and I = V ÷ R", "I = 5.0 V ÷ 47 Ω = 0.106 A",
+			"P = 5.0 V × 0.106 A = 0.53 W"]))
 
 
 ## The calculator's fields are editable, so impossible inputs get an explanation

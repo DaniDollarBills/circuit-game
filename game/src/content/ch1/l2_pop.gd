@@ -17,13 +17,15 @@ static func build() -> LevelDef:
 	b.learn_goals(["Why an LED needs a resistor", "How to read an LED's datasheet", "How to work out the right resistor"])
 	b.idea("An [[led|LED]] is a light-making [[diode]]: current gets through only one way. It goes in at the longer leg, the + side.",
 			"led_one_way", "curious",
-			"LED stands for light-emitting diode. Its datasheet allows only 5 V the wrong way round, so put it in the right way.")
+			"LED stands for light-emitting diode. Put in backwards, it stays dark: no current flows to light it.")
 	b.idea("The battery's 5 V push is shared round the loop. A glowing red LED uses about 2 V of it, leaving 3 V for the rest.",
 			"voltage_budget")
 	b.idea("With no [[resistor]], only the battery's own 1 Ω holds the current back. That lets through far more than the LED can take.",
 			"", "oops", "Then the current is many times the 30 mA the LED can take, and it burns out in a blink.")
 	b.real("Engineers read a part's [[datasheet]]. This LED's says 2.0 V at 20 mA, and 30 mA is its [[absolute maximum]].",
 			"current_vs_resistance")
+	b.idea("Volts ÷ amps gives ohms, the resistance. A [[milliamp]] (mA) is a thousandth of an amp: 20 mA = 0.020 A.", "", "curious",
+			"That's [[ohms law|Ohm's law]], and Lesson 3 shows why it works. For now, divide the volts by the amps.")
 	b.worked("Work out the resistor: its voltage divided by the current you want.", [
 		"The resistor gets what the LED leaves: 5 V − 2.0 V = 3.0 V.",
 		"The current you want: 20 mA = 0.020 A.",
@@ -32,13 +34,13 @@ static func build() -> LevelDef:
 	])
 	b.idea("Resistors come in [[standard values]], like 100, 150, 220 and 330 Ω. Pick the nearest one that keeps the current at 20 mA or less.",
 			"", "happy", "They're the E12 values: 12 steps from 10 to 100 (10, 12, 15, 18, 22, 27, 33, 39, 47, 56, 68, 82), then ×10, ×100 and on.")
-	b.history("In 1962 Nick Holonyak made the first practical LED you could see. It only glowed red.",
-			"N. Holonyak Jr. and S. F. Bevacqua, Applied Physics Letters 1, 82 (1962)")
+	b.history("In 2014 three scientists won the Nobel Prize for efficient blue LEDs. Blue was the missing color for bright, energy-saving white LED lamps.",
+			"The Nobel Prize in Physics 2014: I. Akasaki, H. Amano and S. Nakamura, for the invention of efficient blue light-emitting diodes, which has enabled bright and energy-saving white light sources")
 	b.try_it("Here's the LED with no resistor. See what happens, then fix it.")
 	b.try_part("B1", "battery", -6, 0).try_part("L1", "led", 6, 0, 90)
 	b.try_tray("resistor", {"ohms": 330.0})
 	b.poke("Wire the LED straight to the battery: pop!", {"kind": "burnt", "part": "L1"})
-	b.poke("Undo, then put the 330 Ω in the loop.", {"kind": "led_lit", "part": "L1"})
+	b.poke("Undo, then put the 330 Ω in the loop: less current, so it's safe but dimmer.", {"kind": "led_lit", "part": "L1"})
 	b.readout("L1", "mA")
 	b.try_path_edit(func(c: Circuit) -> Circuit: return CircuitEdits.add_wire(c, "B1", "pos", "L1", "anode"))
 	b.try_path_edit(func(c: Circuit) -> Circuit: return CircuitEdits.add_wire(c, "L1", "cathode", "B1", "neg"))
@@ -67,7 +69,7 @@ static func build() -> LevelDef:
 	b.solution_wire("B1", "pos", "R1", "a").solution_wire("R1", "b", "L1", "anode").solution_wire("L1", "cathode", "B1", "neg")
 	b.outro("Safe and glowing! That's the formula engineers use for LEDs like this one.", "wow")
 	b.recap("An LED needs a resistor to limit its current.")
-	b.recap("R = (5 V − 2.0 V) ÷ 20 mA = 150 Ω.")
+	b.recap("R = (5 V − 2.0 V) ÷ 0.020 A = 150 Ω.")
 	b.recap("Your LED ran at {L1.mA}.")
 	b.question("Why does an LED need a resistor?", [
 		{"text": "To limit its current.", "correct": true, "why": "Without one, too much current flows and the LED burns out."},

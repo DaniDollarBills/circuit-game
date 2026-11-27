@@ -17,9 +17,10 @@ static func build() -> LevelDef:
 	b.goal({"kind": "zoom_reached", "layer": "wire.copper"})
 	b.learn_goals(["What's inside a copper wire", "Which way electrons really move"])
 	b.idea("Copper is a crystal: its atoms sit locked in neat rows. Each one lends an [[electron]] to a sea of free ones that can move.",
-			"copper_lattice", "curious")
+			"copper_lattice", "curious",
+			"An atom that lends out an electron is left with a + charge. Those are the + signs drawn on the atoms.")
 	b.idea("The battery's push makes all the free electrons [[drift]] along together, like the links of a bike chain.", "", "happy")
-	b.idea("Electrons are negative, so they drift from − to +. That's the opposite way to the current arrows we draw.",
+	b.idea("Opposite charges attract, so negative electrons are pulled toward +. They drift from − to +, the opposite way to our current arrows.",
 			"electron_vs_current", "curious")
 	b.idea("Here they drift only about 0.2 mm a minute. The push itself races down the wire at nearly the speed of light.", "", "wow",
 			"Each electron also zips about at random, far faster than it drifts. The drift is the slow, steady creep they share.",
@@ -28,7 +29,7 @@ static func build() -> LevelDef:
 			"J. J. Thomson, Philosophical Magazine 44, 293 (1897)")
 	b.history("In 1747 Benjamin Franklin named the two kinds of charge + and −. He guessed which way it flows, and we still draw it his way.",
 			"B. Franklin, letter to P. Collinson, 25 May 1747")
-	b.try_it("Here's a working loop. Switch the picture to the electrons' way, then back.")
+	b.try_it("Here's a working loop. [[=Switch]] the picture to the electrons' way, then back.")
 	b.try_part("B1", "battery", -6, 0).try_part("R1", "resistor", -2, -4).try_part("L1", "led", 6, 0, 90)
 	b.try_wire("w1", "B1", "pos", "R1", "a", true).try_wire("w2", "R1", "b", "L1", "anode", true)
 	b.try_wire("w3", "L1", "cathode", "B1", "neg", true)
@@ -53,5 +54,6 @@ static func build() -> LevelDef:
 		{"text": "From + to −, with the arrows.", "correct": false, "why": "That's the way we draw current, chosen before electrons were known."},
 		{"text": "They don't move.", "correct": false, "why": "They do, slowly: about 0.2 mm a minute here."},
 	])
-	b.fact("In this wire, electrons drift only about 0.2 millimeters per minute.", DRIFT_SOURCE)
+	b.fact("A cube of copper 1 cm on each side holds about 85 billion trillion free electrons.",
+			"C. Kittel, Introduction to Solid State Physics, 8th ed., ch. 6, table 1: n = 8.47 × 10²² cm⁻³ for copper")
 	return b.done()

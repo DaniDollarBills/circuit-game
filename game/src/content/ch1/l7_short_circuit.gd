@@ -16,15 +16,15 @@ static func build() -> LevelDef:
 	b.learn_goals(["What a short circuit is", "Why it makes a battery hot"])
 	b.idea("A [[short circuit]] is a path from + to − with almost no resistance.", "short_path", "oops")
 	b.idea("Current floods the easy path. The LED's path is skipped, so it goes dark.", "", "curious",
-			"Both ends of the LED's path are joined by the short, so there's no push across it at all.")
+			"Both ends of the LED's path are joined by the short, so there's no push [[across]] it at all.")
 	b.worked("How much current flows through a short?", [
 		"Only the battery's own 1 Ω is in the way.",
 		"I = V ÷ R = 5 V ÷ 1 Ω = 5 A",
-		"P = I × I × R = 5 A × 5 A × 1 Ω",
-		"P = 25 W, all of it heat inside the battery",
+		"Heat each second is volts × amps, in [[watt|watts]] (W).",
+		"5 V × 5 A = 25 W, all of it inside the battery",
 	])
-	b.real("[[fuse|Fuses]] and circuit breakers cut the power when too much current flows, before wires get hot.", "",
-			"IEC 60269 (fuses) and IEC 60898-1 (circuit breakers)")
+	b.real("A phone battery has its own tiny protection circuit. If something shorts it, that circuit cuts off the current before the battery overheats.", "",
+			"IEC 62133-2:2017 (safety of portable lithium cells and batteries, including an external short-circuit test)")
 	b.idea("Never join a real battery's + and − with a wire. It can get hot enough to burn you.", "", "oops")
 	b.try_it("Here's a working loop. Make a short, watch the battery, then undo it.")
 	b.try_part("B1", "battery", -6, 0).try_part("R1", "resistor", -2, -4).try_part("L1", "led", 6, 0, 90)
@@ -41,11 +41,11 @@ static func build() -> LevelDef:
 			if not w.locked:
 				undone = CircuitEdits.delete_wire(undone, w.id)
 		return undone)
-	b.step("Tap the wires to find the one going from + straight to −.", {"kind": "ui_flag", "flag": "selected:w_bad"})
-	b.why("A short is a wire that joins the two ends of the battery with nothing in between.")
+	b.step("Tap the wires to find the one that joins + to − with no part in between.", {"kind": "ui_flag", "flag": "selected:w_bad"})
+	b.why("Anything joined to + by plain wire is +, and the same goes for −. This wire joins the two, skipping the resistor and the LED.")
 	b.step("Hold it and choose Delete.", {"kind": "no_short"})
 	b.why("Without the short, the current has to go through the LED again.")
-	b.hint("One wire connects the + side straight to the − side.")
+	b.hint("One wire joins the + side to the − side, skipping the parts.")
 	b.hint("It's this wire. Hold it and choose Delete.", [{"wire": "w_bad"}])
 	b.hint("Delete the highlighted wire.", [{"wire": "w_bad"}], true)
 	b.solution_remove_wire("w_bad")
@@ -58,5 +58,6 @@ static func build() -> LevelDef:
 		{"text": "The LED heats it.", "correct": false, "why": "The LED is skipped: almost no current goes through it."},
 		{"text": "Wires store heat.", "correct": false, "why": "Wires barely resist, so they make little heat. The battery's own 1 Ω makes it."},
 	])
-	b.fact("Fuses and circuit breakers cut the power when too much current flows.", "IEC 60269 (fuses) and IEC 60898-1 (circuit breakers)")
+	b.fact("[[fuse|Fuses]] and circuit breakers cut off the current when too much flows, before wires get hot.",
+			"IEC 60269 (fuses) and IEC 60898-1 (circuit breakers)")
 	return b.done()

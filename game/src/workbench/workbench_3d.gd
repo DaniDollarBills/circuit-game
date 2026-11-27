@@ -461,19 +461,29 @@ static func _route(a: Vector3, b: Vector3, board: Rect2, clear: float) -> Packed
 
 func _build_labels(c: Circuit, sim: SimResult, settings: Dictionary) -> void:
 	_clear(_labels_root)
+	# A switch's name (Lessons 5 and 6 have A and B) names the part, so it
+	# shows even with values hidden.
+	for p in c.parts:
+		var name := str(p.props.get("label", ""))
+		if p.kind == "switch" and name != "":
+			_add_label("Switch " + name, PartDims.grid_to_world(CircuitGeometry.part_rect(p).get_center()) + Vector3(0, 0.3, 0.75))
 	if not bool(settings.get("show_values", true)):
 		return
 	for l in VisualState.engineer_labels(c, sim):
-		var label := Label3D.new()
-		label.text = l["text"]
-		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		label.font_size = 40
-		label.pixel_size = 0.0035
-		label.modulate = Palette.color("ink")
-		label.outline_modulate = Palette.color("paper")
-		label.outline_size = 10
-		label.position = PartDims.grid_to_world(l["at"]) + Vector3(0, 0.3, 0.35)
-		_labels_root.add_child(label)
+		_add_label(l["text"], PartDims.grid_to_world(l["at"]) + Vector3(0, 0.3, 0.35))
+
+
+func _add_label(text: String, at: Vector3) -> void:
+	var label := Label3D.new()
+	label.text = text
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.font_size = 40
+	label.pixel_size = 0.0035
+	label.modulate = Palette.color("ink")
+	label.outline_modulate = Palette.color("paper")
+	label.outline_size = 10
+	label.position = at
+	_labels_root.add_child(label)
 
 
 ## Ghost parts and wires for the "show me" hint, and highlights for hints.

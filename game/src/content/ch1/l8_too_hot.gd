@@ -15,18 +15,22 @@ static func build() -> LevelDef:
 	b.idea("[[power|Power]] is how fast energy is turned into something else. Volts × amps gives it, in [[watt|watts]] (W).",
 			"power_heat", "curious")
 	b.idea("Resistors turn electrical energy into heat. That's how toasters work!", "", "happy")
+	b.idea("Every resistor so far has been a ¼ W one: it can safely turn a quarter of a watt into heat. That's its power rating.",
+			"", "curious",
+			"A rating is for steady use: a little over won't burn a real part at once, but it wears out sooner. The bench is strict and burns it straight away.")
 	b.meet("resistor_1w")
-	b.worked("How hot does a 47 Ω resistor across the battery get?", [
+	b.worked("How much heat each second does a 47 Ω resistor make [[across]] the battery?", [
 		"I = 5 V ÷ 48 Ω (its 47 Ω and the battery's 1 Ω)",
 		"I = 0.104 A",
-		"P = I × I × R = 0.104 A × 0.104 A × 47 Ω",
-		"P = 0.51 W",
-	])
-	b.real("A toaster's glowing wires are resistors too, made to turn hundreds of watts into heat without burning out.")
-	b.try_it("Here's the battery and two ¼ W resistors. Try each one across it.")
+		"Its own push: V = I × R = 0.104 A × 47 Ω = 4.9 V",
+		"P = V × I = 4.9 V × 0.104 A = 0.51 W",
+	], "", "The calculator leaves out the battery's 1 Ω, so it gets 0.53 W. That's close enough to pick a resistor.")
+	b.real("A toaster's glowing wires are resistors too, made to turn about a thousand watts into heat without burning out.", "",
+			"U.S. Department of Energy, Energy Saver: Estimating Appliance and Home Electronic Energy Use (toasters 800–1,400 W)")
+	b.try_it("Here's the battery and two ¼ W resistors. One [[across]] the battery isn't a short: its resistance holds the current back.")
 	b.try_part("B1", "battery", -6, 0)
 	b.try_tray("resistor", {"ohms": 220.0, "watts": 0.25}).try_tray("resistor", {"ohms": 47.0, "watts": 0.25})
-	b.poke("Put the 220 Ω across the battery: 0.11 W, fine.", {"kind": "resistor_watts", "min": 0.09, "max": 0.13})
+	b.poke("Put the 220 Ω [[across]] the battery: 0.11 W, fine.", {"kind": "resistor_watts", "min": 0.09, "max": 0.13})
 	b.poke("Swap in the 47 Ω: 0.51 W scorches it.", {"kind": "not", "goal": {"kind": "no_damage"}})
 	b.readout("R1", "W")
 	b.readout("R2", "W")
@@ -43,11 +47,11 @@ static func build() -> LevelDef:
 	b.step("Read both resistors' datasheets in the tray.", {"kind": "ui_flag", "flag": "datasheet:tray"})
 	b.why("Each datasheet gives its power rating: the most heat it can take.")
 	b.step("Work out the heat with the calculator.", {"kind": "ui_flag", "flag": "formula:power"})
-	b.why("Both are 47 Ω, so both make the same 0.51 W. Only one can take it.")
+	b.why("Both are 47 Ω, so both make the same heat, about half a watt. Only one can take it.")
 	b.step("Place the resistor that can handle it.", {"kind": "uses", "part_kind": "resistor", "min": 1})
-	b.why("0.51 W is twice a ¼ W rating, but only half of 1 W.")
-	b.step("Connect it across the battery.", {"kind": "resistor_watts", "min": 0.4, "max": 0.6})
-	b.why("Across the battery, the full 5 V pushes current through it.")
+	b.why("Half a watt is twice a ¼ W rating, but only half of 1 W.")
+	b.step("Connect it [[across]] the battery.", {"kind": "resistor_watts", "min": 0.4, "max": 0.6})
+	b.why("A resistor [[across]] the battery isn't a short: its 47 Ω holds the current to about 0.1 A.")
 	b.hint("[[power|Power]] = voltage × current. Both resistors are 47 Ω, but they're not the same.")
 	b.hint("One is rated ¼ W and the other 1 W. Which one can handle half a watt?")
 	b.hint("Here's the circuit. Tap the ghosts to place them.", [], true)
@@ -55,10 +59,10 @@ static func build() -> LevelDef:
 	b.solution_wire("B1", "pos", "R1", "a").solution_wire("R1", "b", "B1", "neg")
 	b.outro("Toasty! That's 0.51 watts of heat, and the 1 W resistor handles it easily.", "wow")
 	b.recap("Power is volts × amps, in watts.")
-	b.recap("A part burns above its power rating.")
-	b.recap("Your resistor made {resistor.W} of heat.")
+	b.recap("A part overheats past its power rating, and can burn out.")
+	b.recap("Your resistor turned {resistor.W} into heat.")
 	b.question("A ¼ W resistor asked for 0.5 W will…", [
-		{"text": "Burn.", "correct": true, "why": "0.5 W is twice its ¼ W rating, so it overheats."},
+		{"text": "Overheat and burn out.", "correct": true, "why": "0.5 W is twice its ¼ W rating, so it gets far too hot."},
 		{"text": "Stay cool.", "correct": false, "why": "It has to turn 0.5 W into heat, twice what it's made for."},
 		{"text": "Glow like an LED.", "correct": false, "why": "A small resistor overheats and burns long before it could get hot enough to glow."},
 	])

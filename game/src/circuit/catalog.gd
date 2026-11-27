@@ -103,7 +103,7 @@ static func datasheet(p: Part) -> Array[Dictionary]:
 				rows.append(_row("Type", "Cermet trimmer", "trimmer"))
 			else:
 				rows.append(_row("Type", "Metal film" if watts >= 1.0 else "Carbon film",
-						"" if watts >= 1.0 else "carbon film"))
+						"metal film" if watts >= 1.0 else "carbon film"))
 		"led":
 			var d: Dictionary = LED_DATA.get(str(p.props.get("color", "red")), LED_DATA["red"])
 			rows.append(_row("Color", "%s, %d nm" % [d["name"], d["nm"]], "wavelength"))

@@ -5,7 +5,7 @@ extends RefCounted
 ## EXPLICIT_ONLY are linked only through [[ ]] markup, because they are also
 ## everyday words ("a bit dim").
 
-const EXPLICIT_ONLY: PackedStringArray = ["bit", "lead"]
+const EXPLICIT_ONLY: PackedStringArray = ["bit", "lead", "across"]
 
 ## term, title, simple, precise, aliases
 const _ROWS := [
@@ -105,6 +105,9 @@ const _ROWS := [
 	["carbon film", "Carbon film",
 		"A resistor made from a thin layer of carbon on a tiny ceramic rod.",
 		"A spiral groove cut into the carbon layer sets the resistance.", []],
+	["metal film", "Metal film",
+		"A resistor made from a thin layer of metal on a tiny ceramic rod.",
+		"A spiral groove cut into the metal layer sets the resistance. It holds its value more steadily than carbon film as it warms up.", []],
 	["trimmer", "Trimmer",
 		"A small adjustable resistor. You turn its screw to set it, then leave it alone.",
 		"A trimming potentiometer: turning the screw slides a contact (the wiper) along a resistive track, which changes the resistance between the wiper and one end. Its power rating is for the whole track.", []],
@@ -130,11 +133,14 @@ const _ROWS := [
 		"A tiny circuit that makes a yes-or-no decision from its inputs. An AND gate needs every input on; an OR gate needs any one.",
 		"A circuit whose output is a 1 or a 0 set by its inputs: AND gives 1 only when every input is 1, and OR gives 1 when at least one is.", ["AND gate", "OR gate"]],
 	["series", "Series",
-		"Parts connected one after another, so current must pass through all of them.",
+		"Parts joined one after the other on a single path, so the current must pass through all of them.",
 		"Parts in series carry the same current, and their voltages add up.", []],
 	["parallel", "Parallel",
-		"Parts connected side by side, so current can take either path.",
+		"Parts on separate paths between the same two points, so the current can take either path.",
 		"Parts in parallel share the same voltage, and their currents add up.", []],
+	["across", "Across",
+		"Joined to both ends of something. A part across a battery gets the push between its + and − ends.",
+		"Parts across each other share the same two connection points, so they have the same voltage between their ends. A voltage meter goes across what it measures.", []],
 	["short circuit", "Short circuit",
 		"An accidental shortcut that lets current skip the parts. It can overheat wires and batteries.",
 		"A very low-resistance path between points at different voltages, which lets a large current flow.", []],
@@ -188,7 +194,7 @@ const _ROWS := [
 		"A component's lead. Through-hole parts like resistors and LEDs have legs that go through holes in a circuit board.", []],
 	["gauge", "Gauge",
 		"A number for how thick a wire is. The bigger the number, the thinner the wire.",
-		"American Wire Gauge (AWG): each step of 6 gauge halves the diameter, so 22 gauge is 0.644 mm across.", []],
+		"American Wire Gauge (AWG): each step of 6 gauge halves the diameter, so 22 gauge is 0.644 mm thick.", []],
 	["drift", "Drift",
 		"The slow, overall creep of electrons along a wire. Each one zigzags about fast, but together they edge along slowly.",
 		"Drift velocity: a few milliamps in a thin copper wire move the electrons along at well under a millimeter a second, while the push itself travels near light speed.", []],

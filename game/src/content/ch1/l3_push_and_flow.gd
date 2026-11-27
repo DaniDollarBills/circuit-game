@@ -31,8 +31,9 @@ static func build() -> LevelDef:
 			"water_analogy")
 	b.idea("[[voltage|Voltage]] is measured in [[volt|volts]] (V), [[current]] in [[amp|amps]] (A) and [[resistance]] in [[ohm|ohms]] (Ω). One [[milliamp]] is a thousandth of an amp: 1 mA = 0.001 A.",
 			"unit_ladder")
-	b.idea("[[ohms law|Ohm's law]] links all three: V = I × R. Cover the one you want, and the triangle shows how to work it out.",
-			"ohm_triangle", "happy")
+	b.idea("[[ohms law|Ohm's law]] links them: V = I × R. V is voltage, I is current and R is resistance.",
+			"ohm_triangle", "happy",
+			"I stands for intensité, French for the strength of a current. The amp is named after the French scientist André-Marie Ampère.")
 	b.worked("How much current flows through 500 Ω?", ["I = V ÷ R", "I = 5 V ÷ 500 Ω", "I = 0.010 A", "0.010 A = 10 mA"], "",
 			"The battery's own 1 Ω and the meter's 0.1 Ω make it 9.98 mA. That's close enough to call it 10.")
 	b.meet("ammeter").meet("voltmeter")
@@ -42,11 +43,12 @@ static func build() -> LevelDef:
 	b.control("To set a trimmer, tap it, then slide its value.", "control_dial")
 	b.history("Georg [[=Ohm]] was a German schoolteacher. In 1827 he showed that the current grows in step with the voltage.",
 			"G. S. Ohm, Die galvanische Kette, mathematisch bearbeitet, 1827")
-	b.try_it("Here's a loop with a dial. Turn it and watch the meter.")
+	b.try_it("Here's a loop with a dial and two meters. Turn the dial and watch both meters: which reading changes?")
 	_meter_loop(b, 1500.0, true)
 	b.poke("Set the dial to 1 kΩ.", {"kind": "meter_reads", "part": "M1", "target": 0.005, "tolerance": 0.0002})
 	b.poke("Now 2 kΩ: what happens to the current?", {"kind": "meter_reads", "part": "M1", "target": 0.0025, "tolerance": 0.0002})
 	b.readout("M1", "reading")
+	b.readout("V1", "reading")
 	b.readout("R1", "ohms")
 	b.try_path_edit(func(c: Circuit) -> Circuit: return CircuitEdits.set_props(c, "R1", {"ohms": 1000.0}))
 	b.try_path_edit(func(c: Circuit) -> Circuit: return CircuitEdits.set_props(c, "R1", {"ohms": 2000.0}))
@@ -55,7 +57,7 @@ static func build() -> LevelDef:
 	b.step("Use Ohm's law: R = 5 V ÷ 0.010 A.", {"kind": "ui_flag", "flag": "formula:ohms_law"})
 	b.why("Ohm's law turned round gives the resistance for the current you want.")
 	b.step("Turn the dial until the meter reads 10 mA.", {"kind": "meter_reads", "part": "M1", "target": 0.010, "tolerance": 0.0005})
-	b.why("The current meter shows the current flowing round the loop.")
+	b.why("The current meter shows the current round the loop. The voltage meter shows the push [[across]] the dial, about 5 V.")
 	b.hint("More resistance means less current. Is the meter too high or too low?")
 	b.hint("Try about 500 ohms.", [{"part": "R1"}])
 	b.hint("Set the resistor to 500 ohms.", [], true)
@@ -71,8 +73,9 @@ static func build() -> LevelDef:
 	])
 	b.question("Where does a current meter go?", [
 		{"text": "In the loop.", "correct": true, "why": "All the current must flow through it to be measured."},
-		{"text": "Across a part.", "correct": false, "why": "That's where a voltage meter goes, a probe on each side."},
+		{"text": "[[across|Across]] a part.", "correct": false, "why": "That's where a voltage meter goes, a probe on each side."},
 		{"text": "Anywhere nearby.", "correct": false, "why": "It has to be part of the loop, so the current passes through it."},
 	])
-	b.fact("Georg [[=Ohm]] published his law in 1827.", "G. S. Ohm, Die galvanische Kette, mathematisch bearbeitet, 1827")
+	b.fact("Engineers' shortcut: milliamps × kilohms = volts. Your loop's 10 mA through 0.5 kΩ is 5 V.",
+			"Ohm's law, V = I × R: 0.010 A × 500 Ω = 5 V")
 	return b.done()

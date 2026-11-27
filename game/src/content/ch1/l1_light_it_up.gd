@@ -13,7 +13,8 @@ static func build() -> LevelDef:
 	b.goal({"kind": "led_lit", "part": "L1"}).goal({"kind": "no_short"})
 	b.learn_goals(["Why electricity needs a loop", "What the battery, wire, resistor and LED do"])
 	b.idea("[[electricity|Electricity]] is [[charge|charges]] on the move. Metal wires are already full of charges that can move.",
-			"charges_in_wire", "curious")
+			"charges_in_wire", "curious",
+			"This picture is sped up: real charges in a wire creep far slower than a snail. Lesson 9 measures how slowly.")
 	b.idea("A [[battery]] pushes on the charges all the way round the [[circuit]]. We say the [[current]] flows out of its + end and back into its − end.",
 			"battery_push")
 	b.idea("In a wire, the charges that move are [[electron|electrons]]. They [[drift]] the other way, from − to +, but we still draw current from + to −.",

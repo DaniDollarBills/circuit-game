@@ -125,6 +125,22 @@ func test_history_shows_source() -> void:
 	assert_true("Source: A. Volta" in deck.body_text())
 
 
+## On a card with Go deeper the source waits under the deeper text, so a long
+## citation doesn't crowd the card until the player asks for more.
+func test_source_waits_under_go_deeper() -> void:
+	var deck := _deck(_game())
+	var b := LevelBuilder.new("t.source", "ch1", "Source")
+	b.part("B1", "battery", -6, 0).goal({"kind": "no_damage"})
+	b.learn_goals(["Drift"])
+	b.idea("Electrons drift slowly.", "", "wow", "Each one also zips about at random.",
+			"C. Kittel, Introduction to Solid State Physics")
+	deck.show_card(b.done(), 1)
+	assert_false("Source: C. Kittel" in deck.body_text(), "the source waits")
+	deck.deeper_button().pressed.emit()
+	assert_true("Each one also zips about at random." in deck.body_text())
+	assert_true("Source: C. Kittel" in deck.body_text(), "under the deeper text")
+
+
 func test_card_shows_its_diagram() -> void:
 	var deck := _deck(_game())
 	deck.show_card(_lesson(), 1)

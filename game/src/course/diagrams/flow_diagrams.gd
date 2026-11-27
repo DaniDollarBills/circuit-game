@@ -84,15 +84,20 @@ func _triangle(time: float) -> void:
 	var f := (mid - apex.y) / (bl.y - apex.y)
 	line(PackedVector2Array([Vector2(lerpf(apex.x, bl.x, f), mid), Vector2(lerpf(apex.x, br.x, f), mid)]), Palette.color("ink"), 2.0)
 	line(PackedVector2Array([Vector2(apex.x, mid), Vector2(apex.x, bl.y)]), Palette.color("ink"), 2.0)
-	var spots := [Vector2(112, 86), Vector2(76, 154), Vector2(148, 154)]
+	# Each letter with its quantity's name under it (the units are on the
+	# Learn card), so V the voltage isn't mixed up with V the volt.
+	var spots := [Vector2(112, 82), Vector2(76, 146), Vector2(150, 146)]
 	var letters := ["V", "I", "R"]
+	var names := ["voltage", "current", "resistance"]
+	var name_at := [Vector2(112, 108), Vector2(76, 172), Vector2(152, 172)]
 	var cover := -1 if still else int(fmod(time / 2.5, 3.0))
 	for i in 3:
 		if i == cover:
-			dot(spots[i], 21.0, col("lavender"), Palette.color("ink"), 1.4)
-			label(spots[i], "?", 22.0, Palette.color("ink"), true, col("lavender"))
+			dot(spots[i], 19.0, col("lavender"), Palette.color("ink"), 1.4)
+			label(spots[i], "?", 20.0, Palette.color("ink"), true, col("lavender"))
 		else:
-			label(spots[i], letters[i], 30.0, Palette.color("ink"), true, col("lilac"))
+			label(spots[i], letters[i], 26.0, Palette.color("ink"), true, col("lilac"))
+		label(name_at[i], names[i], 13.0, Palette.color("ink"), false, col("lilac"))
 	var formulas := ["V = I × R", "I = V ÷ R", "R = V ÷ I"]
 	for i in 3:
 		var at := Vector2(302, 70 + i * 44)
@@ -102,7 +107,6 @@ func _triangle(time: float) -> void:
 		else:
 			label(at, formulas[i], 20.0, col("ink") if cover < 0 else col("ink_soft"), cover < 0)
 	label(Vector2(302, 30), "cover the one you want", 14.0, col("ink_soft"))
-	label(Vector2(112, 206), "V: volts   I: amps   R: ohms", 13.0, col("ink_soft"))
 
 
 ## Units come in thousands: 1 A is 1000 mA, and 1 kΩ is 1000 Ω.

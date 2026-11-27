@@ -331,8 +331,9 @@ func _render() -> void:
 	_deeper.visible = deeper != "" and _deeper_open
 	if _deeper.visible:
 		HudText.put(_deeper, deeper, game)
+	# On a card with Go deeper, the source waits under the deeper text.
 	var source := str(c.get("source", ""))
-	_source.visible = source != ""
+	_source.visible = source != "" and (deeper == "" or _deeper_open)
 	if _source.visible:
 		HudText.put(_source, "Source: " + source, game, false, false)
 	_back.disabled = _index <= 0

@@ -103,7 +103,9 @@ func _curve(time: float) -> void:
 		curve.append(at.call(r, 3000.0 / r))
 		r += 10.0
 	line(curve, Color("#7E68C0"), 3.0)
-	label(Vector2(214, 66), "I = (5 V − 2 V) ÷ R", 14.0, col("ink"), true, col("paper").blend(Color(col("coral"), 0.16)))
+	# In words: the letters I and R come in Lesson 3. Clear of the curve's
+	# steep start (x ≈ 95 at this height).
+	label(Vector2(238, 66), "current = (5 V − 2 V) ÷ resistance", 13.0, col("ink"), true, col("paper").blend(Color(col("coral"), 0.16)))
 	var ohms_now := 150.0 if still else 75.0 + 525.0 * (0.5 - 0.5 * cos(time * TAU / 8.0))
 	var ma_now := 3000.0 / ohms_now
 	var p: Vector2 = at.call(ohms_now, ma_now)

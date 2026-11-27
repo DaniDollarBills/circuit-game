@@ -322,7 +322,7 @@ func test_every_fact_has_source() -> void:
 
 
 func test_glossary_definition_lengths() -> void:
-	assert_eq(Glossary.ENTRIES.size(), 67)
+	assert_eq(Glossary.ENTRIES.size(), 69)
 	for term in Glossary.ENTRIES:
 		var e: Dictionary = Glossary.ENTRIES[term]
 		assert_false(str(e["title"]).is_empty(), term)
@@ -336,7 +336,7 @@ func test_jargon_list_in_glossary() -> void:
 	var words := ["electricity", "charge", "electron", "atom", "nucleus", "proton", "neutron", "element", "coulomb",
 			"joule", "silicon", "silica", "crystal lattice", "internet", "undersea cable", "circuit", "conductor",
 			"insulator", "current", "conventional current", "voltage", "resistance", "amp", "milliamp", "mA", "volt",
-			"ohm", "Ohm's law", "LED", "diode", "semiconductor", "resistor", "carbon film", "tolerance", "battery",
+			"ohm", "Ohm's law", "LED", "diode", "semiconductor", "resistor", "carbon film", "metal film", "tolerance", "battery",
 			"internal resistance", "switch", "series", "parallel", "short circuit", "fuse", "current meter",
 			"voltage meter", "burden", "input resistance", "power", "watt", "datasheet", "forward voltage",
 			"absolute maximum", "standard values", "wavelength", "polarity", "anode", "cathode"]

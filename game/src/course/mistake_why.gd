@@ -8,7 +8,7 @@ const WHY := {
 	"Short circuit!": "A path from + to − with almost no resistance leaves only the battery's own 1 Ω to limit the current: about 5 A.",
 	"The LED is backwards": "An LED is a diode: current only goes in at its + leg (the anode) and out at its − leg (the cathode).",
 	"Careful:": "Above 20 mA an LED runs hotter than it was made for, so it wears out much sooner. Its datasheet says 20 mA.",
-	"Something burned out": "Each part can only turn so much power into heat. Past its rating it overheats and is damaged for good.",
+	"Something burned out": "Each part can only turn so much power into heat. Past its rating it overheats and can be damaged for good.",
 }
 
 

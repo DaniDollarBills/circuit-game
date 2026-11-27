@@ -76,6 +76,8 @@ func test_datasheet_one_watt_resistor() -> void:
 	var rows := Catalog.datasheet(Part.make("R1", "resistor", 0, 0, 0, {"ohms": 47.0, "watts": 1.0}))
 	assert_eq(_row(rows, "Power rating"), "1 W")
 	assert_eq(_row(rows, "Type"), "Metal film")
+	var type: Dictionary = rows.filter(func(r: Dictionary) -> bool: return r["label"] == "Type")[0]
+	assert_eq(type["term"], "metal film", "the type links to its definition")
 
 
 func test_datasheet_rows_link_glossary_terms() -> void:

@@ -108,6 +108,36 @@ func test_sped_up_pictures_say_so() -> void:
 			assert_eq("sped up" in words, not still, "%s%s: %s" % [id, " (still)" if still else "", words])
 
 
+## Read-through: the 1 W resistor's datasheet says metal film, but its Look
+## inside showed the ¼ W one's carbon film. It has its own cutaway.
+func test_one_watt_resistor_inside_is_metal_film() -> void:
+	var d := _shown(str(PartIntros.get_intro("resistor_1w")["inside"]), _game(), Vector2(400, 220))
+	await wait_frames(2)
+	var words := d.text_log.map(func(e: Array) -> String: return str(e[2]))
+	assert_true("metal film, cut in a spiral" in words, str(words))
+	assert_false("carbon film, cut in a spiral" in words, str(words))
+
+
+## Read-through: the triangle's "V: volts   I: amps   R: ohms" mixed the
+## letters up with units. Each letter has its quantity's name under it.
+func test_ohm_triangle_names_each_letter() -> void:
+	var d := _shown("ohm_triangle", _game({"reduced_motion": true}), Vector2(400, 220))
+	await wait_frames(2)
+	var words := d.text_log.map(func(e: Array) -> String: return str(e[2]))
+	for w in ["voltage", "current", "resistance"]:
+		assert_true(w in words, "%s: %s" % [w, words])
+	assert_false("V: volts   I: amps   R: ohms" in words)
+
+
+## Read-through: Lesson 2's graph said "I = (5 V − 2 V) ÷ R" a lesson before
+## the letters are taught.
+func test_led_graph_says_its_formula_in_words() -> void:
+	var d := _shown("current_vs_resistance", _game(), Vector2(400, 220))
+	await wait_frames(2)
+	var words := d.text_log.map(func(e: Array) -> String: return str(e[2]))
+	assert_true("current = (5 V − 2 V) ÷ resistance" in words, str(words))
+
+
 ## Lessons 5 and 6: the truth table starts with every case unknown ("?"), and
 ## Try it fills each row with what the LED did as the player sees that case.
 ## Row n is switch A = n >> 1 and switch B = n & 1 (0 open, 1 closed).

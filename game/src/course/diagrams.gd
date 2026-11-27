@@ -21,6 +21,7 @@ const SCRIPTS := {
 	"current_direction": _LOOP,
 	"led_inside": _INSIDE,
 	"resistor_inside": _INSIDE,
+	"resistor_1w_inside": _INSIDE,
 	"trimmer_inside": _INSIDE,
 	"aa_cell_inside": _INSIDE,
 	"switch_inside": _INSIDE,
@@ -46,7 +47,7 @@ const SCRIPTS := {
 	"control_test": _CONTROL,
 }
 const IDS: PackedStringArray = ["charges_in_wire", "battery_push", "loop_flow", "loop_gap", "current_direction",
-		"led_inside", "resistor_inside", "trimmer_inside", "aa_cell_inside", "switch_inside", "meter_inside",
+		"led_inside", "resistor_inside", "resistor_1w_inside", "trimmer_inside", "aa_cell_inside", "switch_inside", "meter_inside",
 		"led_one_way", "voltage_budget", "current_vs_resistance",
 		"water_analogy", "ohm_triangle", "unit_ladder", "meter_placement",
 		"switch_states", "bits", "series_paths", "parallel_paths", "truth_table",

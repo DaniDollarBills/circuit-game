@@ -44,12 +44,14 @@ static func ohms_law(v: float, i: float, r: float) -> Dictionary:
 
 
 static func power_from_r(v: float, r: float) -> Dictionary:
-	var steps := PackedStringArray(["P = V² ÷ R"])
+	var steps := PackedStringArray(["P = V × I, and I = V ÷ R"])
 	if not (r > 0.0):
 		steps.append("The resistance must be more than 0 Ω.")
 		return {"value": NAN, "unit": "W", "steps": steps}
-	var watts := v * v / r
-	steps.append("P = (%s)² ÷ %s = %s" % [_volts(v), _ohms(r), _watts(watts)])
+	var amps := v / r
+	var watts := v * amps
+	steps.append("I = %s ÷ %s = %s" % [_volts(v), _ohms(r), _amps(amps)])
+	steps.append("P = %s × %s = %s" % [_volts(v), _amps(amps), _watts(watts)])
 	return {"value": watts, "unit": "W", "steps": steps}
 
 

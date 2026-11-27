@@ -18,6 +18,7 @@ static func build() -> LevelDef:
 	b.meet("switch")
 	b.idea("A [[switch]] works like a drawbridge. Closed, it joins the loop and current flows; open, it leaves a gap and everything stops.",
 			"switch_states")
+	b.idea("So for a switch, closed means on. That's the opposite of a door or a tap, where closed stops things.", "", "curious")
 	b.idea("On or off can stand for 1 or 0. One on-or-off answer is called a [[bit]].", "bits", "wow",
 			"Computers store everything, words and pictures too, as long rows of bits.")
 	b.control("To flip a switch, tap it.", "control_switch")

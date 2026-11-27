@@ -95,10 +95,15 @@ func redo() -> bool:
 
 
 ## Back to the level's own start circuit, as one step that undo can take
-## back (the old test report goes with the old circuit).
+## back (the old test report goes with the old circuit). A passed level is
+## being built again, so solving it again is a new pass; the completion
+## already saved stays.
 func start_over() -> void:
 	if level == null:
 		return
+	if session.phase == "passed":
+		session.phase = "build"
+		_announced_pass = false
 	commit(level.circuit.copy())
 
 

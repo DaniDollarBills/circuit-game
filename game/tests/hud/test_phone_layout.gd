@@ -125,7 +125,7 @@ func test_narrow_top_bar_hides_the_title_pill() -> void:
 	var s := await _level("ch1.pop", Vector2(390, 844))
 	var pill := s.top_bar.find_child("TitlePill", true, false) as Control
 	assert_true(pill != null)
-	assert_eq(pill.modulate.a, 0.0, "an empty pill would show as a blank white bar")
+	assert_false(pill.is_visible_in_tree(), "an empty pill would show as a blank white bar")
 
 
 ## The closest two pins of the board, in screen pixels.
@@ -171,3 +171,17 @@ func test_portrait_column_never_covers_the_board() -> void:
 	var board := s.editor.safe_rect
 	assert_true(s.column_area().end.y <= board.position.y + 0.5, "column ends at %.0f, board starts at %.0f" % [s.column_area().end.y, board.position.y])
 	assert_true(s.test_sheet.is_visible_in_tree())
+
+
+## Spec §11 and §17: on common phones (360 to 390 px wide) every top-bar
+## button is on screen and at least 44 px.
+func test_top_bar_fits_phones() -> void:
+	var problems := PackedStringArray()
+	for size in [Vector2(360, 780), Vector2(375, 812), Vector2(390, 844)]:
+		var s := await _level("ch1.pop", size)
+		for id in ["map", "restart", "undo", "redo", "calculator", "notebook", "settings"]:
+			var b := s.top_bar.button(id)
+			problems.append(_outside(b, Rect2(Vector2.ZERO, size), "%s %s" % [size, id]))
+			if b.size.x < 44.0 or b.size.y < 44.0:
+				problems.append("%s %s is %s" % [size, id, b.size])
+	assert_eq("\n".join(Array(problems).filter(func(p: String) -> bool: return p != "")), "")

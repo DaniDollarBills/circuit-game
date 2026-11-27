@@ -23,6 +23,7 @@ func test_sound_off_plays_nothing() -> void:
 	audio.apply_settings({"sound": false, "music_volume": 0.5})
 	audio.play("click")
 	assert_eq(audio.played, [] as Array[String])
+	assert_false(audio.music_playing(), "Sound off silences the music too")
 	audio.apply_settings({"sound": true, "music_volume": 0.5})
 	audio.play("click")
 	assert_eq(audio.played, ["click"] as Array[String])
@@ -54,3 +55,53 @@ func test_settings_sheet_has_sound_and_music() -> void:
 	assert_eq(game.state.progress.settings["sound"], false)
 	sheet.music_slider().value = 0.2
 	assert_near(float(game.state.progress.settings["music_volume"]), 0.2, 0.001)
+
+
+## The first play of a sound must not stall a frame to synthesize it: they're
+## made on a worker thread as the game starts.
+func test_effects_are_made_before_they_play() -> void:
+	var audio := Audio.new()
+	add_to_tree(audio)
+	for i in 300:
+		if audio.ready_sounds() == Sfx.NAMES.size():
+			break
+		await wait_frames(1)
+	assert_eq(audio.ready_sounds(), Sfx.NAMES.size())
+
+
+## Passing Level 1 starts four sounds at once (and opening it, two word
+## chimes): together, at the effects bus's level, they stay under full scale,
+## and a limiter guards the master.
+func test_effects_together_never_clip() -> void:
+	var audio := Audio.new()
+	add_to_tree(audio)
+	var gain := db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Sfx")))
+	for group in [["success", "badge", "connect", "light"], ["word", "word"]]:
+		var mix := PackedFloat32Array()
+		for name in group:
+			var data := Sfx.make(name).data
+			var n := data.size() / 2
+			if mix.size() < n:
+				mix.resize(n)
+			for i in n:
+				mix[i] += data.decode_s16(i * 2) / 32768.0
+		var peak := 0.0
+		for v in mix:
+			peak = maxf(peak, absf(v))
+		assert_true(peak * gain <= 0.95, "%s peaks at %.2f" % [group, peak * gain])
+	var limited := false
+	for i in AudioServer.get_bus_effect_count(0):
+		limited = limited or AudioServer.get_bus_effect(0, i) is AudioEffectHardLimiter
+	assert_true(limited, "a limiter on Master")
+
+
+## Every effect ends in a smooth fade, not a cut while it still rings.
+func test_effect_tails_fade_smoothly() -> void:
+	for name in Sfx.NAMES:
+		var data := Sfx.make(name).data
+		var n := data.size() / 2
+		var last := roundi(0.005 * Sfx.RATE)
+		var peak := 0.0
+		for i in range(n - last, n):
+			peak = maxf(peak, absf(data.decode_s16(i * 2) / 32768.0))
+		assert_true(peak <= 0.02, "%s's last 5 ms reach %.3f" % [name, peak])

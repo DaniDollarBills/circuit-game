@@ -21,9 +21,18 @@ Download the zip for your computer from the latest release on this repository's 
 - **Windows:** unzip and run `Circuit.exe`. If Windows shows "Windows protected your PC", choose **More info → Run anyway** (the game isn't code-signed yet).
 - **Mac:** unzip and open **Circuit**. The app isn't notarized yet, so the first time, macOS stops it. On macOS 15 (Sequoia) or later, open **System Settings → Privacy & Security**, find the message about Circuit and click **Open Anyway**. On older versions, right-click **Circuit** and choose **Open**.
 - **Linux:** unzip, run `chmod +x Circuit.x86_64`, then `./Circuit.x86_64`.
-- **Android:** download `Circuit-android.apk` on your phone and open it. Android asks to allow installs from your browser or Files app the first time: allow it for this app. It's signed for sideloading, not from the Play Store yet; until the project has a permanent signing key, uninstall the old version before installing a new one. The game asks for no permissions.
+- **Android:** download `Circuit-android.apk` on your phone and open it. Android asks to allow installs from your browser or Files app the first time: allow it for this app. It isn't on the Play Store yet. Each release is signed with the project's permanent key, so a new version installs over the old one and keeps your progress. The game asks for no permissions.
 - **Browser:** this repository's GitHub Pages site, once it's switched on: in the repository's **Settings → Pages**, set **Source** to **GitHub Actions**, and set the repository variable `PAGES_ENABLED` to `true`. The `Circuit-web.zip` download is for putting the game on a web server; browsers won't run it straight from a downloaded file.
 
-Every download has a `Licenses` folder: the credits, and the license texts for the fonts, the Earth imagery and the Godot engine.
+Every desktop download has a `Licenses` folder: the credits, and the license texts for the fonts, the Earth imagery and the Godot engine. The game shows the same in Settings → Licenses, which is where the Android app keeps them.
+
+### Release signing (Android)
+
+A release can only be tagged once the repository has the permanent Android signing key (CI refuses otherwise): every version must be signed with the same key, or phones won't install it over the old one, and uninstalling deletes the player's progress. To make the key, once, and keep it safe (a lost key means installed copies can never be updated):
+
+1. `keytool -genkeypair -keystore circuit-release.keystore -alias circuit -keyalg RSA -keysize 2048 -validity 10000` and use the same password for the key as for the store.
+2. `base64 -w0 circuit-release.keystore` and add the output as the repository secret `ANDROID_KEYSTORE_BASE64`; add the password as `ANDROID_KEYSTORE_PASSWORD` and `circuit` as `ANDROID_KEY_ALIAS`.
+
+Builds of other commits (CI artifacts) are signed with a throwaway debug key, for testing only.
 
 To build the downloads yourself: `tools/export.sh all` (it fetches Godot 4.7.2 and its export templates, checking their SHA-512 sums).

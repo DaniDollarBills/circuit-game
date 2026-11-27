@@ -365,6 +365,16 @@ func _build_ui() -> void:
 	game.term_requested.connect(func(term: String) -> void: glossary_popup.open(term))
 
 
+## Closes the definition or the settings (Android's Back); false when
+## neither was open.
+func close_top() -> bool:
+	for card: Control in [glossary_popup, _settings]:
+		if card.visible:
+			card.visible = false
+			return true
+	return false
+
+
 ## The quality setting can change in this screen's own settings card.
 func _follow_quality() -> void:
 	var q := str(_settings_value("quality", "auto"))

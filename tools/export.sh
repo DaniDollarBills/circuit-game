@@ -42,8 +42,9 @@ licenses_into() {
 # they're set; otherwise a debug key made once, for sideloading.
 android_signing() {
   if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+    mkdir -p "$ROOT/build"
     local ks="$ROOT/build/android-release.keystore"
-    echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ks"
+    (umask 077 && echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ks")
     export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$ks"
     export GODOT_ANDROID_KEYSTORE_RELEASE_USER="${ANDROID_KEY_ALIAS:?set ANDROID_KEY_ALIAS}"
     export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="${ANDROID_KEYSTORE_PASSWORD:?set ANDROID_KEYSTORE_PASSWORD}"
@@ -52,7 +53,7 @@ android_signing() {
     if [ ! -f "$ks" ]; then
       mkdir -p "$(dirname "$ks")"
       keytool -genkeypair -keystore "$ks" -alias circuit -storepass android -keypass android \
-        -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Circuit (debug signed),O=Circuit,C=US" >/dev/null 2>&1
+        -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Circuit (debug signed),O=Circuit,C=US" >/dev/null
     fi
     export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$ks"
     export GODOT_ANDROID_KEYSTORE_RELEASE_USER=circuit
@@ -69,6 +70,8 @@ export_android() {
   mkdir -p "$ROOT/build/android" "$ROOT/build/dist"
   "$GODOT" --headless --path "$ROOT/game" --import >/dev/null 2>&1 || true
   "$GODOT" --headless --path "$ROOT/game" --export-release "Android" "$ROOT/build/android/Circuit.apk"
+  # The release key never stays on disk after signing.
+  rm -f "$ROOT/build/android-release.keystore"
   cp "$ROOT/build/android/Circuit.apk" "$ROOT/build/dist/Circuit-android.apk"
   echo "exported android -> build/dist/Circuit-android.apk"
 }

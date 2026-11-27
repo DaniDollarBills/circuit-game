@@ -115,16 +115,18 @@ static func _noise(s: PackedFloat32Array, start: float, tau: float, amp: float, 
 		s[i] += amp * env * y
 
 
-## Scales to PEAK and fades the last 5 ms, so nothing clicks at the end.
+## Scales to PEAK and eases the end out over 40 ms (a raised cosine), so a
+## sound still ringing fades instead of stopping short.
 static func _normalize(s: PackedFloat32Array) -> void:
 	var peak := 0.0
 	for v in s:
 		peak = maxf(peak, absf(v))
 	var k := PEAK / peak if peak > 0.0 else 1.0
-	var fade := mini(roundi(0.005 * RATE), s.size())
+	var fade := maxi(mini(roundi(0.04 * RATE), s.size() / 2), 1)
 	for i in s.size():
 		var tail := float(s.size() - 1 - i)
-		s[i] *= k * minf(tail / fade, 1.0)
+		var g := 1.0 if tail >= fade else 0.5 - 0.5 * cos(PI * tail / fade)
+		s[i] *= k * g
 
 
 static func _to_wav(s: PackedFloat32Array) -> AudioStreamWAV:

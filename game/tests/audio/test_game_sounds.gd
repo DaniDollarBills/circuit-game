@@ -108,3 +108,4 @@ func test_sound_toggle_mid_level() -> void:
 	await e2e.click_control(s.top_bar.button("settings"))
 	await e2e.frames(2)
 	assert_eq(_since(mark), [] as Array[String], "Sound off: silent")
+	assert_false(_audio().music_playing(), "and no music")

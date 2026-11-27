@@ -764,3 +764,23 @@ func test_slider_drag_rebuilds_the_bench_once() -> void:
 		await wait_frames(1)
 	assert_true(bench.wire_builds - wires <= 1, "%d wire rebuilds" % (bench.wire_builds - wires))
 	assert_true(bench.rig_builds - rigs <= 1, "%d equipment rebuilds" % (bench.rig_builds - rigs))
+
+
+## Starting a solved level over is building it again: Pip's outro, which
+## described the solved board, goes; solving it again is a new pass.
+func test_start_over_after_passing_builds_again() -> void:
+	var s := await _screen("ch1.light-it-up")
+	await _skip_intro(s)
+	s.game.commit(s.game.state.level.solution.copy())
+	await wait_frames(2)
+	assert_eq(s.game.state.session.phase, "passed")
+	assert_eq(s.guide.kind, "outro")
+	s.top_bar.button("restart").pressed.emit()
+	await wait_frames(2)
+	assert_eq(s.game.state.session.phase, "build")
+	assert_false(s.guide.visible and s.guide.kind == "outro", "the outro no longer describes the board: " + s.guide.plain_text())
+	s.game.commit(s.game.state.level.solution.copy())
+	await wait_frames(2)
+	assert_eq(s.game.state.session.phase, "passed")
+	assert_eq(s.guide.kind, "outro", "solving it again celebrates again")
+	assert_true(s.game.state.progress.completed.has("ch1.light-it-up"), "the completion stays recorded")

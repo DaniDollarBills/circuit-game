@@ -8,13 +8,10 @@ var game: Game
 var show_title := true:
 	set(value):
 		show_title = value
-		if _title != null:
-			# The pill keeps its place as a spacer, unseen.
-			(_title.get_parent() as Control).modulate.a = 1.0 if value else 0.0
-		# Narrow (no title): the buttons sit closer, so seven fit a phone.
-		add_theme_constant_override("separation", 8 if value else 4)
+		_apply_width()
 
 var _title: Label
+var _spacer: Control
 var _buttons := {}
 
 
@@ -37,15 +34,34 @@ func _ready() -> void:
 	pill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pill.add_child(_title)
 	add_child(pill)
+	# Narrow screens: no title, an empty spacer keeps the buttons right.
+	_spacer = Control.new()
+	_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_child(_spacer)
 	_add("restart", IconButton.make("restart", "Start over"))
 	_add("undo", IconButton.make("undo", "Undo (Ctrl+Z)"))
 	_add("redo", IconButton.make("redo", "Redo (Ctrl+Shift+Z)"))
 	_add("calculator", IconButton.make("calculator", "Calculator"))
 	_add("notebook", IconButton.make("book", "Notebook"))
 	_add("settings", IconButton.make("gear", "Settings"))
+	_apply_width()
 	button("map").pressed.connect(func() -> void: game.open_map())
 	button("undo").pressed.connect(func() -> void: game.undo())
 	button("redo").pressed.connect(func() -> void: game.redo())
+
+
+## Wide: the title on its pill, 48 px buttons 8 px apart. Narrow (a phone):
+## no title, 44 px buttons 4 px apart, so all seven fit 360 px (336 of 336).
+func _apply_width() -> void:
+	if _title == null:
+		return
+	(_title.get_parent() as Control).visible = show_title
+	_spacer.visible = not show_title
+	add_theme_constant_override("separation", 8 if show_title else 4)
+	var side := 48.0 if show_title else IconButton.MIN_TOUCH
+	for b in _buttons.values():
+		(b as Control).custom_minimum_size = Vector2(side, side)
 
 
 func button(id: String) -> Button:

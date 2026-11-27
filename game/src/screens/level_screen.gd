@@ -202,6 +202,10 @@ func _refresh() -> void:
 		copper.quality = q
 	_handle_events(s.take_events())
 	_sounds_for(s)
+	if _page >= 0 and s.session.phase != "passed":
+		# Started over: the outro described a board that's gone.
+		_page = -1
+		guide.hide_bubble()
 	if bool(st.get("night", false)) != _night:
 		_night = not _night
 		HudText.refresh_all(get_tree(), game)
@@ -581,6 +585,19 @@ func _pump_words() -> void:
 		_cards_root.add_child(card)
 		_cards.append(card)
 		_sound("word")
+
+
+## Closes the topmost open card or popup (Android's Back); false when none
+## was open.
+func close_top() -> bool:
+	if menu.visible:
+		menu.close()
+		return true
+	for card in [value_popover, explain, glossary_popup, datasheet, formula, notebook, settings_sheet]:
+		if card.visible:
+			card.visible = false
+			return true
+	return false
 
 
 ## Two cards when the board is tall enough for two, else one.

@@ -148,3 +148,34 @@ func test_map_notebook_and_definitions_have_room() -> void:
 	await wait_frames(3)
 	assert_true(map.glossary_popup.size.y >= 120.0, "the definition card is %s tall" % map.glossary_popup.size.y)
 	assert_true(Rect2(Vector2.ZERO, host.size).encloses(map.glossary_popup.get_global_rect()))
+
+
+## Android's Back closes what's open, then steps back a screen; only from the
+## title does it leave the game.
+func test_back_closes_then_steps_back() -> void:
+	assert_eq(ProjectSettings.get_setting("application/config/quit_on_go_back", true), false)
+	var main: Control = load("res://src/app/main.tscn").instantiate()
+	main.set("progress_path", _dir.path_join("progress.json"))
+	add_to_tree(main)
+	await wait_frames(2)
+	var quits := []
+	main.set("quitter", func() -> void: quits.append(true))
+	var game: Game = main.get("game")
+	game.open_level("ch1.light-it-up", true)
+	await wait_frames(3)
+	var level: LevelScreen = main.get("screen")
+	level.dev_show("settings")
+	await wait_frames(1)
+	main.call("go_back")
+	await wait_frames(2)
+	assert_true(main.get("screen") is LevelScreen, "Back first closes the card")
+	assert_false(level.settings_sheet.visible)
+	main.call("go_back")
+	await wait_frames(3)
+	assert_true(main.get("screen") is MapScreen, "then goes to the map")
+	main.call("go_back")
+	await wait_frames(3)
+	assert_true(main.get("screen") is TitleScreen, "then the title")
+	assert_eq(quits, [])
+	main.call("go_back")
+	assert_eq(quits, [true], "and leaves the game from the title")

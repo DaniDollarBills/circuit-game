@@ -62,18 +62,10 @@ func back_button() -> Button:
 	return _back
 
 
-## Godot's own license, the libraries built into it, and their license texts.
+## Godot's own license, then the libraries built into it with their copyright
+## notices and license texts (the same text the desktop downloads carry).
 static func godot_text() -> String:
-	var t := Engine.get_license_text() + "\n\nBuilt into Godot Engine:\n"
-	for c in Engine.get_copyright_info():
-		var kinds := PackedStringArray()
-		for part in c["parts"]:
-			kinds.append(str(part["license"]))
-		t += "• %s (%s)\n" % [c["name"], ", ".join(kinds)]
-	var info := Engine.get_license_info()
-	for license_name in info:
-		t += "\n%s\n\n%s\n" % [license_name, info[license_name]]
-	return t
+	return GodotNotices.license() + "\n\n" + GodotNotices.third_party()
 
 
 func _add_section(t: String, text: String) -> void:

@@ -205,6 +205,16 @@ func _chapter_card(number: int, ch: Dictionary) -> Control:
 	return panel
 
 
+## Closes the definition or the Notebook (Android's Back); false when neither
+## was open.
+func close_top() -> bool:
+	for card: Control in [glossary_popup, notebook]:
+		if card.visible:
+			card.visible = false
+			return true
+	return false
+
+
 ## Words met on the map get New word cards, as in a level; badges, toasts.
 func _take_events() -> void:
 	if game.state.events.is_empty():

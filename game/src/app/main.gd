@@ -14,6 +14,8 @@ var progress_path := "user://progress.json"
 var game: Game
 var screen: Control
 var audio: Audio
+## Leaves the game; tests swap it.
+var quitter: Callable = func() -> void: get_tree().quit()
 
 var _toast: PanelContainer
 var _toast_label: Label
@@ -90,6 +92,24 @@ func _open_from_args() -> bool:
 					(screen as LevelScreen).dev_show.call_deferred(a.substr("--show=".length()))
 			return screen != null
 	return false
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		go_back()
+
+
+## Android's Back: closes the card that's open, else steps back a screen
+## (level → map → title); from the title it leaves the game.
+func go_back() -> void:
+	if screen != null and screen.has_method("close_top") and bool(screen.call("close_top")):
+		return
+	if screen is LevelScreen:
+		game.open_map()
+	elif screen is MapScreen:
+		game.open_title()
+	else:
+		quitter.call()
 
 
 func _on_node_added(n: Node) -> void:

@@ -35,3 +35,16 @@ func test_license_files_ship_in_every_preset() -> void:
 		for path in LicensesPage.FILES.values():
 			var rel := str(path).trim_prefix("res://")
 			assert_true(Array(filters).any(func(f: String) -> bool: return rel.match(f.strip_edges())), "%s ships %s" % [cfg.get_value(section, "name"), rel])
+
+
+## MIT, BSD and zlib-style licenses ask for the copyright notices themselves:
+## the in-game page (the Android app's only copy) carries every one.
+func test_godot_section_carries_every_copyright_notice() -> void:
+	var text := LicensesPage.godot_text()
+	var missing := PackedStringArray()
+	for c in Engine.get_copyright_info():
+		for part in c["parts"]:
+			for line in part["copyright"]:
+				if not text.contains(str(line)):
+					missing.append("%s: %s" % [c["name"], line])
+	assert_eq(missing.size(), 0, "missing %d, e.g. %s" % [missing.size(), missing.slice(0, 2)])

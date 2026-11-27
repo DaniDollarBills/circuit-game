@@ -45,6 +45,18 @@ static func tallest(c: Circuit) -> float:
 	return top
 
 
+## Each battery holder's and meter's box, in world units.
+static func boxes(c: Circuit) -> Array[AABB]:
+	var out: Array[AABB] = []
+	var spots := place(c)
+	for id in spots:
+		var battery := c.find_part(id).kind == "battery"
+		var foot: Vector2 = FOOTPRINT_HOLDER if battery else FOOTPRINT_METER
+		var at: Vector3 = spots[id]
+		out.append(AABB(at - Vector3(foot.x / 2.0, 0, foot.y / 2.0), Vector3(foot.x, HEIGHT_HOLDER if battery else HEIGHT_METER, foot.y)))
+	return out
+
+
 ## The board plus every piece of equipment beside it, in world x/z.
 static func content_rect(c: Circuit) -> Rect2:
 	var r := board_rect(c)

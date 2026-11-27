@@ -175,6 +175,8 @@ func _draw_preview(night: bool) -> void:
 	elif preview.has("part"):
 		var p: Part = preview["part"]
 		DrawKit.draw_ops(self, faded(PartArt.ops(p, {}, false, false), 0.55), Vector2(p.x, p.y), p.rot, ppu)
+	elif preview.has("pin"):
+		DrawKit.circle(self, preview["pin"], 0.42, Color(0, 0, 0, 0), Color(PartArt.ACCENT), 0.1, ppu)
 
 
 ## The same ops with every color made more transparent.

@@ -55,3 +55,22 @@ func test_engineer_labels_skip_floating() -> void:
 	c.parts.append(Part.make("R9", "resistor", 0, 8))
 	var out := Simulator.simulate(c)
 	assert_eq(VisualState.engineer_labels(out.circuit, out.result).size(), 3 + 2)
+
+
+## Checkpoint C (flagged Task 14 ruling 6): a net held to the battery only by
+## an LED that's off has a voltage set by leakage, not by the circuit, so it
+## gets no label.
+func test_no_voltage_label_on_a_net_held_only_by_leakage() -> void:
+	var c := Circuit.new()
+	c.parts.append(Part.make("B1", "battery", -6, 0))
+	c.parts.append(Part.make("R1", "resistor", -2, -4))
+	c.parts.append(Part.make("L1", "led", 6, 0, 90))
+	c.wires.append(Wire.make("w1", "B1", "pos", "R1", "a"))
+	c.wires.append(Wire.make("w2", "R1", "b", "L1", "anode"))
+	var out := Simulator.simulate(c)
+	var labeled := {}
+	for l in VisualState.engineer_labels(out.circuit, out.result):
+		labeled["%s" % l["part"]] = true
+		assert_false(l["at"] == Vector2(CircuitGeometry.pin_position(out.circuit.find_part("L1"), "cathode")) + Vector2(0.4, -0.4),
+				"the LED's loose cathode is held only by leakage: %s" % l["text"])
+	assert_true(labeled.has("B1") and labeled.has("R1"), "nets tied to the battery through parts that conduct keep their labels")

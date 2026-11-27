@@ -21,6 +21,11 @@ var _quality := ""
 var _board: MeshInstance3D
 var _pads: MultiMeshInstance3D
 var _board_rect := Rect2()
+## Boxes of the battery holders and meters beside the board, in world units.
+var _equipment: Array[AABB] = []
+## The selected part or wire id, drawn with an outline.
+var selection := ""
+var _selection_node: MeshInstance3D
 var _mat: MeshInstance3D
 var _mat_rect := Rect2()
 var _parts_root: Node3D
@@ -58,6 +63,7 @@ func set_state(c: Circuit, sim: SimResult, settings: Dictionary, ghosts: Diction
 	_sync_parts(c, sim, settings)
 	_build_wires(c, sim, settings)
 	_build_rigs(c, sim)
+	_equipment = MeterRig.boxes(c)
 	_fit_mat(MeterRig.content_rect(c))
 	_build_labels(c, sim, settings)
 	_build_overlays(c, ghosts, highlights)
@@ -85,19 +91,71 @@ static func raised_allowance(height_cm: float) -> float:
 	return height_cm * cos(p) / near_depth_per_view
 
 
-## Frames `view` grid units of board height around `center`.
-func apply_view(center: Vector2, view: float) -> void:
-	_ensure_scene()
+## The camera rig for a view: where the camera sits to frame `view` grid
+## units of board height around `center`. It looks along (0, −cos p, −sin p).
+static func rig_position(center: Vector2, view: float) -> Vector3:
 	var p := deg_to_rad(PITCH)
 	var f := deg_to_rad(FOV / 2.0)
 	var h := view * PartDims.GRID / (tan(p + f) - tan(p - f))
-	var c := PartDims.grid_to_world(center)
-	camera.position = c + Vector3(0, h, h * (tan(p + f) + tan(p - f)) / 2.0)
-	var target := Vector3(c.x, 0, camera.position.z - h * tan(p))
+	return PartDims.grid_to_world(center) + Vector3(0, h, h * (tan(p + f) + tan(p - f)) / 2.0)
+
+
+## Where screen point `px` of a `screen`-sized view lands on the board's top,
+## in grid units, for the rig at (center, view). Matches the real camera.
+static func board_point(px: Vector2, screen: Vector2, center: Vector2, view: float) -> Vector2:
+	var p := deg_to_rad(PITCH)
+	var tf := tan(deg_to_rad(FOV / 2.0))
+	var forward := Vector3(0, -cos(p), -sin(p))
+	var up := Vector3(0, sin(p), -cos(p))
+	var ndc := Vector2(2.0 * px.x / maxf(screen.x, 1.0) - 1.0, 1.0 - 2.0 * px.y / maxf(screen.y, 1.0))
+	var ray := forward + Vector3.RIGHT * ndc.x * tf * screen.x / maxf(screen.y, 1.0) + up * ndc.y * tf
+	var origin := rig_position(center, view)
+	if ray.y > -1e-6:
+		return Vector2(INF, INF)
+	return PartDims.world_to_grid(origin + ray * (-origin.y / ray.y))
+
+
+## The screen point of grid point `g` (on the board's top) for the rig at
+## (center, view).
+static func screen_point(g: Vector2, screen: Vector2, center: Vector2, view: float) -> Vector2:
+	var p := deg_to_rad(PITCH)
+	var tf := tan(deg_to_rad(FOV / 2.0))
+	var forward := Vector3(0, -cos(p), -sin(p))
+	var up := Vector3(0, sin(p), -cos(p))
+	var v := PartDims.grid_to_world(g) - rig_position(center, view)
+	var depth := v.dot(forward)
+	if depth <= 1e-6:
+		return Vector2(INF, INF)
+	var aspect := screen.x / maxf(screen.y, 1.0)
+	var x := v.dot(Vector3.RIGHT) / depth / (tf * aspect)
+	var y := v.dot(up) / depth / tf
+	return Vector2((x + 1.0) * screen.x / 2.0, (1.0 - y) * screen.y / 2.0)
+
+
+## Frames `view` grid units of board height around `center`. Over tall
+## equipment the camera backs off along its line of sight until it clears it.
+func apply_view(center: Vector2, view: float) -> void:
+	_ensure_scene()
+	var p := deg_to_rad(PITCH)
+	var h := (rig_position(center, view) - PartDims.grid_to_world(center)).y
+	camera.position = rig_position(center, view)
+	var target := Vector3(camera.position.x, 0, camera.position.z - h * tan(p))
+	var clear := _clearance_under(camera.position)
+	if camera.position.y < clear:
+		camera.position += Vector3(0, cos(p), sin(p)) * ((clear - camera.position.y) / cos(p))
 	camera.look_at(target, Vector3.UP)
 	_env.camera_attributes = StudioEnvironment.camera_attributes(_quality, camera.position.distance_to(target))
 	camera.near = maxf(h * 0.02, 0.05)
 	camera.far = maxf(h * 40.0, 400.0)
+
+
+## How high the camera must stay at `at`: 1 cm above any equipment under it.
+func _clearance_under(at: Vector3) -> float:
+	for box in _equipment:
+		var r := box as AABB
+		if Rect2(r.position.x, r.position.z, r.size.x, r.size.z).grow(1.0).has_point(Vector2(at.x, at.z)):
+			return r.end.y + 1.0
+	return -INF
 
 
 ## Where a screen point's ray meets the board's top plane, in grid units.
@@ -430,8 +488,50 @@ func _build_overlays(c: Circuit, ghosts: Dictionary, highlights: Array) -> void:
 			_overlay_root.add_child(halo)
 
 
-## The rubber band while a wire is dragged ({from, to, snap}), or the part being
-## placed ({part}); {} clears it.
+## Outlines the selected part or wire in the accent color ("" clears it).
+func set_selection(c: Circuit, id: String) -> void:
+	_ensure_scene()
+	if _selection_node != null:
+		_selection_node.queue_free()
+		_selection_node = null
+	selection = id
+	if id == "":
+		return
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(PartArt.ACCENT)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var p := c.find_part(id)
+	var w := c.find_wire(id)
+	if p != null and p.id == id:
+		var rect := CircuitGeometry.part_rect(p)
+		var ring := TorusMesh.new()
+		var r := rect.size.length() * PartDims.GRID * 0.55
+		ring.inner_radius = r
+		ring.outer_radius = r + 0.06
+		_selection_node = MeshInstance3D.new()
+		_selection_node.mesh = ring
+		_selection_node.position = PartDims.grid_to_world(rect.get_center()) + Vector3(0, 0.03, 0)
+	elif w != null:
+		var path := CircuitGeometry.wire_path(c, w)
+		if path.size() < 2:
+			selection = ""
+			return
+		_selection_node = MeshInstance3D.new()
+		_selection_node.mesh = WireMesh.tube(WireMesh.points(path, LIFT_MM), PartDims.WIRE_INSULATION_D / 2.0 * 1.4)
+	else:
+		selection = ""
+		return
+	_selection_node.material_override = mat
+	add_child(_selection_node)
+
+
+func selection_node() -> Node3D:
+	return _selection_node
+
+
+## The rubber band while a wire is dragged ({from, to, snap}), the part being
+## placed or moved ({part}), or the first pin of a tap-tap wire ({pin});
+## {} clears it.
 func set_preview(preview: Dictionary) -> void:
 	_ensure_scene()
 	if _preview != null:
@@ -451,6 +551,15 @@ func set_preview(preview: Dictionary) -> void:
 		_preview = PartModels.build(preview["part"])
 		for m in _preview.find_children("*", "MeshInstance3D", true, false):
 			(m as MeshInstance3D).material_override = mat
+	elif preview.has("pin"):
+		var ring := TorusMesh.new()
+		ring.inner_radius = 0.16
+		ring.outer_radius = 0.22
+		_preview = MeshInstance3D.new()
+		_preview.mesh = ring
+		_preview.position = PartDims.grid_to_world(preview["pin"]) + Vector3(0, 0.05, 0)
+		mat.albedo_color = Color(PartArt.ACCENT)
+		_preview.material_override = mat
 	add_child(_preview)
 
 

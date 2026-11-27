@@ -50,9 +50,17 @@ func handle(g: Dictionary, ctx: Dictionary) -> Array[Dictionary]:
 	return []
 
 
+## What is under the pointer: the layer's own pick when it has one (the 3D
+## view picks what is drawn), otherwise the flat hit test.
+static func _hit(c: Circuit, at: Vector2, ctx: Dictionary) -> Dictionary:
+	if ctx.has("hit"):
+		return ctx["hit"]
+	return HitTest.at(c, at, ctx["pin_r"], ctx["wire_r"])
+
+
 func _tap(at: Vector2, ctx: Dictionary) -> Array[Dictionary]:
 	var c: Circuit = ctx["circuit"]
-	var hit := HitTest.at(c, at, ctx["pin_r"], ctx["wire_r"])
+	var hit := _hit(c, at, ctx)
 	if mode["kind"] == "placing":
 		if hit["kind"] == "empty":
 			return _place(at, ctx)
@@ -67,17 +75,18 @@ func _tap(at: Vector2, ctx: Dictionary) -> Array[Dictionary]:
 				cancel()
 				return []
 			mode = {"kind": "pin_selected", "part": hit["part"], "pin": hit["pin"]}
+			selection = hit["part"]
 			return []
 		"part":
 			cancel()
 			var p := _part(c, hit["part"])
+			selection = p.id
 			if bool(p.props.get("burnt", false)):
 				return [{"type": "menu", "part": p.id, "at": at}]
 			if p.kind == "switch":
 				return [{"type": "commit", "circuit": CircuitEdits.set_props(c, p.id, {"closed": not bool(p.props.get("closed", false))})}]
 			if p.kind == "resistor" and bool(p.props.get("adjustable", false)):
 				return [{"type": "value", "part": p.id}]
-			selection = p.id
 			return [{"type": "datasheet", "part": p.id}]
 		"wire":
 			cancel()
@@ -106,7 +115,7 @@ func _place(at: Vector2, ctx: Dictionary) -> Array[Dictionary]:
 
 func _menu(at: Vector2, ctx: Dictionary) -> Array[Dictionary]:
 	var c: Circuit = ctx["circuit"]
-	var hit := HitTest.at(c, at, ctx["pin_r"], ctx["wire_r"])
+	var hit := _hit(c, at, ctx)
 	cancel()
 	match hit["kind"]:
 		"pin", "part":
@@ -121,14 +130,17 @@ func _menu(at: Vector2, ctx: Dictionary) -> Array[Dictionary]:
 func _drag_start(g: Dictionary, ctx: Dictionary) -> Array[Dictionary]:
 	var c: Circuit = ctx["circuit"]
 	var at: Vector2 = g["at"]
-	var hit := HitTest.at(c, at, ctx["pin_r"], ctx["wire_r"])
+	var hit := _hit(c, at, ctx)
 	if hit["kind"] == "pin":
 		mode = {"kind": "wiring", "from_part": hit["part"], "from_pin": hit["pin"], "to": at, "snap_part": "", "snap_pin": ""}
 	elif hit["kind"] == "part" and not _part(c, hit["part"]).locked:
 		var p := _part(c, hit["part"])
 		mode = {"kind": "moving", "part": p.id, "grab": at - Vector2(p.x, p.y), "at": at}
+		selection = p.id
 	else:
-		mode = {"kind": "panning", "last": g.get("screen", Vector2.ZERO)}
+		# A pan keeps the first pin of a tap-tap wire waiting.
+		var resume: Dictionary = mode.duplicate() if mode["kind"] == "pin_selected" else {}
+		mode = {"kind": "panning", "last": g.get("screen", Vector2.ZERO), "resume": resume}
 	return []
 
 
@@ -137,7 +149,7 @@ func _drag_move(g: Dictionary, ctx: Dictionary) -> Array[Dictionary]:
 	match mode["kind"]:
 		"wiring":
 			mode["to"] = at
-			var snap := _snap(ctx["circuit"], at, 1.5 * float(ctx["pin_r"]))
+			var snap: Array = ctx["snap"] if ctx.has("snap") else _snap(ctx["circuit"], at, 1.5 * float(ctx["pin_r"]))
 			mode["snap_part"] = snap[0]
 			mode["snap_pin"] = snap[1]
 		"moving":
@@ -155,8 +167,21 @@ func _drag_end(at: Vector2, ctx: Dictionary) -> Array[Dictionary]:
 	var m := mode
 	cancel()
 	match m["kind"]:
+		"panning":
+			if not (m.get("resume", {}) as Dictionary).is_empty():
+				mode = m["resume"]
 		"wiring":
-			var snap := _snap(c, at, 1.5 * float(ctx["pin_r"]), m)
+			var start := Vector2(CircuitGeometry.pin_position(_part(c, m["from_part"]), m["from_pin"])) if _part(c, m["from_part"]) != null else at
+			var snap: Array
+			if ctx.has("snap"):
+				snap = ctx["snap"]
+				if snap[0] == m["from_part"] and snap[1] == m["from_pin"]:
+					return []
+			else:
+				# Let go back on the start pin: nothing happens.
+				if at.distance_to(start) <= float(ctx["pin_r"]):
+					return []
+				snap = _snap(c, at, 1.5 * float(ctx["pin_r"]), m)
 			if snap[0] == "":
 				return [{"type": "toast", "text": "Drop the wire on a metal dot."}]
 			return _connect(c, m["from_part"], m["from_pin"], snap[0], snap[1])

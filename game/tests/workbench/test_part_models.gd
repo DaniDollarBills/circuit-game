@@ -101,3 +101,19 @@ func test_apply_state_lights_and_burns() -> void:
 	PartModels.apply_meter(meter, "13.8 mA", true)
 	assert_eq((meter.find_child("lcd_text", true, false) as Label3D).text, "FUSE")
 	_free(meter)
+
+
+## Checkpoint C, I10: the adjustable resistor is a real trimmer with a dial
+## whose slot turns with its value, and no color bands to get wrong.
+func test_adjustable_resistor_is_a_trimmer_with_a_dial() -> void:
+	var low := PartModels.build(Part.make("R1", "resistor", 0, 0, 0, {"ohms": 100.0, "adjustable": true}))
+	var high := PartModels.build(Part.make("R1", "resistor", 0, 0, 0, {"ohms": 2000.0, "adjustable": true}))
+	for n in [low, high]:
+		assert_true(n.find_child("dial", true, false) != null, "a dial to turn")
+		assert_eq(n.find_children("band*", "", true, false).size(), 0, "no bands on a trimmer")
+		assert_true(n.find_child("lead_a", true, false) != null and n.find_child("lead_b", true, false) != null)
+	var turn_low := (low.find_child("dial", true, false) as Node3D).rotation.y
+	var turn_high := (high.find_child("dial", true, false) as Node3D).rotation.y
+	assert_true(absf(turn_high - turn_low) > deg_to_rad(200.0), "the slot turns about 270° across the range")
+	low.free()
+	high.free()

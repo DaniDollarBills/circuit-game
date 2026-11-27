@@ -14,6 +14,10 @@ const LEAD_RED := "#D2342B"
 const LEAD_BLACK := "#1E1E22"
 ## Gap between a part's underside and the board, mm.
 const STANDOFF := 1.0
+## A 3386-style trimmer's body (x, height, z) in mm, its blue and its rotor.
+const TRIMMER_BODY := Vector3(9.5, 4.8, 9.5)
+const TRIMMER_BLUE := "#3B6FB6"
+const TRIMMER_ROTOR := "#EDE6D6"
 
 ## A SphereMesh hemisphere needs height = radius; its flat side is at y = 0.
 static var _gold: StandardMaterial3D
@@ -182,6 +186,9 @@ static func build_multimeter(kind: String) -> Node3D:
 
 
 static func _resistor(root: Node3D, p: Part) -> void:
+	if bool(p.props.get("adjustable", false)):
+		_trimmer(root, p)
+		return
 	var one_watt := float(p.props.get("watts", 0.25)) >= 1.0
 	var dims: Vector2 = PartDims.RESISTOR_1W_BODY if one_watt else PartDims.RESISTOR_BODY
 	var length := dims.x
@@ -218,6 +225,32 @@ static func _resistor(root: Node3D, p: Part) -> void:
 		var pts := PackedVector3Array([_v(s * (length / 2.0 - end * 0.5), axis_y, 0), Vector3(px, _mm(axis_y), 0),
 				Vector3(px, -_mm(PartDims.BOARD_THICK), 0)])
 		_lead(root, "lead_" + pin, WireMesh.fillet(pts, _mm(0.8)), PartDims.RESISTOR_LEAD_D / 2.0, 8, Materials.tin())
+
+
+## An adjustable resistor: a blue cermet trimmer (9.5 × 9.5 × 4.8 mm, like a
+## 3386-style trimmer) with a slotted dial on top. The slot turns through 270°
+## across the 100 Ω–2 kΩ range; two legs drop into the pin holes.
+static func _trimmer(root: Node3D, p: Part) -> void:
+	var body := Node3D.new()
+	body.name = "body"
+	body.position = _v(0, STANDOFF + TRIMMER_BODY.y / 2.0, 0)
+	root.add_child(body)
+	_mesh(body, "case", _box(TRIMMER_BODY.x, TRIMMER_BODY.y, TRIMMER_BODY.z), Materials.plastic_gloss(Color(TRIMMER_BLUE)))
+	var dial := Node3D.new()
+	dial.name = "dial"
+	dial.position = _v(0, TRIMMER_BODY.y / 2.0 + 0.5, 0)
+	var t := clampf((float(p.props.get("ohms", 1000.0)) - 100.0) / 1900.0, 0.0, 1.0)
+	dial.rotation.y = deg_to_rad(-135.0 + 270.0 * t)
+	body.add_child(dial)
+	_mesh(dial, "rotor", _cyl(3.0, 3.0, 1.0, 32), Materials.plastic_matte(Color(TRIMMER_ROTOR)))
+	_mesh(dial, "slot", _box(4.6, 0.3, 0.7), Materials.plastic_matte(Color(0.2, 0.2, 0.22)), _v(0, 0.4, 0))
+	_mesh(dial, "pointer", _box(0.7, 0.32, 1.2), Materials.plastic_matte(Color(0.2, 0.2, 0.22)), _v(0, 0.4, 1.9))
+	for pin in ["a", "b"]:
+		var px := _pin_local(p, pin).x
+		var s := signf(px)
+		var pts := PackedVector3Array([_v(s * (TRIMMER_BODY.x / 2.0 - 0.6), STANDOFF + 0.2, 0), Vector3(px, _mm(STANDOFF * 0.5), 0),
+				Vector3(px, -_mm(PartDims.BOARD_THICK), 0)])
+		_lead(root, "lead_" + pin, WireMesh.fillet(pts, _mm(0.4)), 0.25, 4, Materials.tin())
 
 
 static func _led(root: Node3D, p: Part) -> void:

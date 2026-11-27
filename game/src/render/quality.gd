@@ -26,9 +26,14 @@ static func resolve(setting: String, rendering_method: String) -> String:
 	return setting if PRESETS.has(setting) else auto(rendering_method)
 
 
-## The renderer this run uses.
+## The renderer this run actually uses (a fallback from Vulkan included).
 static func current_method() -> String:
-	return str(ProjectSettings.get_setting_with_override("rendering/renderer/rendering_method"))
+	return RenderingServer.get_current_rendering_method()
+
+
+## The most screen pixels per layout pixel worth rendering at this preset.
+static func max_resolution_scale(preset: String) -> float:
+	return {"low": 1.0, "medium": 1.5, "high": 2.0, "ultra": 3.0}.get(preset, 1.0)
 
 
 static func msaa(preset: String) -> Viewport.MSAA:

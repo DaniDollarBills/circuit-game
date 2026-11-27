@@ -93,6 +93,12 @@ func pan_screen(delta_px: Vector2) -> void:
 		set_camera(ZoomMath.pan(_cam, -delta_px * units_per_px))
 
 
+## Moves the active layer's view by `delta` layer units.
+func pan_units(delta: Vector2) -> void:
+	if _cam != null:
+		set_camera(ZoomMath.pan(_cam, delta))
+
+
 func go_home(layer_id: String) -> void:
 	if _layers.has(layer_id):
 		set_camera(ZoomCamera.make(layer_id, Vector2.ZERO, (_layers[layer_id] as ZoomLayer).home_view))

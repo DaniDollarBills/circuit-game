@@ -16,6 +16,9 @@ signal ghost_tapped(kind: String, data: Dictionary)
 ## A value label (a voltage or a current) was tapped; the HUD explains its part.
 signal explain_requested(part_id: String)
 
+## How close, in pixels, a tap must be to a pin's metal in the real view.
+const PICK_PX := 22.0
+
 var controller := EditorController.new()
 var pointer: PointerInput
 var workbench: Workbench3D
@@ -36,8 +39,6 @@ var safe_rect := Rect2()
 
 func _ready() -> void:
 	super._ready()
-	viewport.msaa_2d = Viewport.MSAA_4X
-	viewport.msaa_3d = Viewport.MSAA_4X
 	workbench = Workbench3D.new()
 	viewport.add_child(workbench)
 	schematic = Node2D.new()
@@ -51,7 +52,9 @@ func _ready() -> void:
 	pointer.gesture.connect(_on_gesture)
 	resized.connect(func() -> void: apply_view(view_center, view_height))
 	_apply_style()
+	_apply_quality()
 	apply_view(view_center, view_height)
+	resized.connect(_fit_resolution)
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -84,12 +87,16 @@ func set_state(c: Circuit, s: SimResult, st: Dictionary, gh: Dictionary, hl: Arr
 			_pop_3d(p.id)
 	circuit = c
 	sim = s
+	var quality_changed := str(st.get("quality", "auto")) != str(settings.get("quality", "auto"))
 	settings = st
+	if quality_changed:
+		_apply_quality()
 	ghosts = gh
 	highlights = hl
 	_apply_style()
 	if _physical():
 		workbench.set_state(c, s, st, gh, hl)
+		workbench.set_selection(c, controller.selection)
 		if not circuit_view.pops.is_empty():
 			for id in circuit_view.pops:
 				_pop_3d(id)
@@ -223,6 +230,14 @@ func pin_radius() -> float:
 	return maxf(0.35, 22.0 / (size.y / maxf(view_height, 1e-6)))
 
 
+## A layer that stops taking input drops any gesture under way, so a hand-off
+## mid-drag can't leave a rubber band behind.
+func set_live(live: bool, interactive: bool) -> void:
+	super.set_live(live, interactive)
+	if not interactive and pointer != null:
+		pointer.reset()
+
+
 func dynamic_child(_center: Vector2) -> ZoomLink:
 	return null
 
@@ -239,6 +254,47 @@ func _apply_style() -> void:
 	workbench.set_process(physical)
 	viewport.disable_3d = not physical
 	schematic.visible = not physical
+	if physical:
+		# The camera may have been left behind while the schematic showed.
+		workbench.apply_view(view_center, view_height)
+
+
+## The graphics preset: 3D anti-aliasing, shadow detail and render resolution.
+## 2D anti-aliasing is off on the Compatibility renderer, which lacks it.
+func _apply_quality() -> void:
+	if viewport == null:
+		return
+	var method := Quality.current_method()
+	var preset := Quality.resolve(str(settings.get("quality", "auto")), method)
+	viewport.msaa_3d = Quality.msaa(preset)
+	viewport.msaa_2d = Viewport.MSAA_DISABLED if method == "gl_compatibility" else Viewport.MSAA_4X
+	var shadow := int(Quality.PRESETS[preset]["shadow_size"])
+	viewport.positional_shadow_atlas_size = shadow
+	RenderingServer.directional_shadow_atlas_set_size(shadow, true)
+	_fit_resolution()
+
+
+## Renders at the screen's own resolution, up to what the preset allows.
+func _fit_resolution() -> void:
+	if not is_inside_tree():
+		return
+	var preset := Quality.resolve(str(settings.get("quality", "auto")), Quality.current_method())
+	var screen_k := get_viewport().get_final_transform().get_scale().x
+	set_resolution_scale(minf(screen_k, Quality.max_resolution_scale(preset)))
+
+
+## In the real view the board is seen in perspective, so screen and grid
+## points convert through the camera rig rather than a flat scale.
+func screen_to_layer(p: Vector2, view: float, center: Vector2) -> Vector2:
+	if not _physical():
+		return super.screen_to_layer(p, view, center)
+	return Workbench3D.board_point(p, size, center, view)
+
+
+func layer_to_screen(q: Vector2, view: float, center: Vector2) -> Vector2:
+	if not _physical():
+		return super.layer_to_screen(q, view, center)
+	return Workbench3D.screen_point(q, size, center, view)
 
 
 func _on_gesture(g: Dictionary) -> void:
@@ -248,11 +304,20 @@ func _on_gesture(g: Dictionary) -> void:
 		gg["at"] = screen_to_grid(g["at"])
 	if gg["type"] == "tap" and _tap_ghost(gg["at"]):
 		return
+	var ctx := {"circuit": circuit, "tray": tray, "tray_used": tray_used, "pin_r": pin_radius(), "wire_r": pin_radius() * 0.8}
+	if _physical() and gg.has("screen"):
+		var picked := pick_3d(gg["screen"])
+		if gg["type"] in ["tap", "long_press", "secondary_tap", "drag_start"]:
+			if picked.is_empty():
+				var flat := HitTest.at(circuit, gg["at"], ctx["pin_r"], ctx["wire_r"])
+				picked = flat if flat["kind"] == "wire" else {"kind": "empty"}
+			ctx["hit"] = picked
+		elif gg["type"] in ["drag_move", "drag_end"] and controller.mode["kind"] == "wiring":
+			ctx["snap"] = [picked["part"], picked["pin"]] if picked.get("kind", "") == "pin" else ["", ""]
 	if gg["type"] == "tap" and controller.mode["kind"] == "idle" \
-			and HitTest.at(circuit, gg["at"], pin_radius(), pin_radius() * 0.8)["kind"] == "empty" \
+			and (ctx["hit"] if ctx.has("hit") else HitTest.at(circuit, gg["at"], ctx["pin_r"], ctx["wire_r"]))["kind"] == "empty" \
 			and _tap_label(gg["screen"]):
 		return
-	var ctx := {"circuit": circuit, "tray": tray, "tray_used": tray_used, "pin_r": pin_radius(), "wire_r": pin_radius() * 0.8}
 	for e in controller.handle(gg, ctx):
 		_apply_effect(e, gg)
 	_update_preview()
@@ -280,7 +345,7 @@ func _apply_effect(e: Dictionary, g: Dictionary) -> void:
 		"camera_zoom":
 			_zoom(e["factor"], g.get("screen", size / 2.0))
 		"camera_pan":
-			_pan(e["delta"])
+			_pan(e["delta"], g.get("screen", size / 2.0))
 	circuit_view.selection = controller.selection
 	circuit_view.queue_redraw()
 
@@ -294,12 +359,101 @@ func _zoom(factor: float, screen: Vector2) -> void:
 	apply_view(cam.center, clampf(cam.view, min_view, max_view))
 
 
-func _pan(delta_px: Vector2) -> void:
+## Moves the board so the point that was under the finger (at `screen` −
+## `delta_px`) is under it again; exact in perspective too.
+func _pan(delta_px: Vector2, screen: Vector2) -> void:
+	var shift := screen_to_grid(screen - delta_px) - screen_to_grid(screen)
+	if not (is_finite(shift.x) and is_finite(shift.y)):
+		return
 	var stage := get_parent() as ZoomStage
 	if stage != null:
-		stage.pan_screen(delta_px)
+		stage.pan_units(shift)
 		return
-	apply_view(view_center - delta_px / (size.y / maxf(view_height, 1e-6)), view_height)
+	apply_view(view_center + shift, view_height)
+
+
+## What is drawn under a screen point in the real view: a pin (its metal,
+## from the hole to the top of its lead or post, within PICK_PX) or else the
+## part whose projected bounds hold the point, nearest the camera first.
+## Empty when neither: the board plane then decides (wires, empty board).
+func pick_3d(screen: Vector2) -> Dictionary:
+	var cam := workbench.camera
+	var best := {}
+	var best_d := PICK_PX
+	for p in circuit.parts:
+		var node := workbench.part_node(p.id)
+		if node == null:
+			continue
+		for pin in Catalog.pin_names(p.kind):
+			var base := PartDims.grid_to_world(Vector2(CircuitGeometry.pin_position(p, pin)))
+			var top := Vector3(base.x, maxf(_pin_top(node, pin), base.y), base.z)
+			if cam.is_position_behind(base) or cam.is_position_behind(top):
+				continue
+			var d := HitTest.distance_to_path(screen, PackedVector2Array([cam.unproject_position(base), cam.unproject_position(top)]))
+			if d < best_d:
+				best_d = d
+				best = {"kind": "pin", "part": p.id, "pin": pin}
+	if not best.is_empty():
+		return best
+	var near := INF
+	for p in circuit.parts:
+		var node := workbench.part_node(p.id)
+		if node == null:
+			continue
+		var box := _bounds(node)
+		if box.size == Vector3.ZERO:
+			continue
+		var rect := Rect2()
+		var first := true
+		var behind := false
+		for i in 8:
+			var corner := box.get_endpoint(i)
+			if cam.is_position_behind(corner):
+				behind = true
+				break
+			var px := cam.unproject_position(corner)
+			rect = Rect2(px, Vector2.ZERO) if first else rect.expand(px)
+			first = false
+		if behind or not rect.has_point(screen):
+			continue
+		var depth := cam.global_position.distance_to(box.get_center())
+		if depth < near:
+			near = depth
+			best = {"kind": "part", "part": p.id}
+	return best
+
+
+## The top of a pin's visible metal (lead, lug, post and the clip on it),
+## world y. Leads that run on inside a body (an LED's legs go up into the
+## epoxy) count only up to the body's underside.
+static func _pin_top(node: Node3D, pin: String) -> float:
+	var top := -INF
+	for m in node.find_children("*", "MeshInstance3D", true, false):
+		var n := str(m.name)
+		if n.ends_with("_" + pin) and (n.begins_with("lead") or n.begins_with("lug") or n.begins_with("post") or n.begins_with("collar") or n.begins_with("clip")):
+			var mi := m as MeshInstance3D
+			top = maxf(top, (mi.global_transform * mi.mesh.get_aabb()).end.y)
+	for body_name in ["epoxy", "body"]:
+		var body := node.get_node_or_null(body_name)
+		if body is MeshInstance3D:
+			var mi := body as MeshInstance3D
+			return minf(top, (mi.global_transform * mi.mesh.get_aabb()).position.y)
+		if body is Node3D:
+			return minf(top, _bounds(body as Node3D).position.y)
+	return top
+
+
+static func _bounds(node: Node3D) -> AABB:
+	var out := AABB()
+	var first := true
+	for m in node.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		if mi.mesh == null or not mi.visible:
+			continue
+		var b: AABB = mi.global_transform * mi.mesh.get_aabb()
+		out = b if first else out.merge(b)
+		first = false
+	return out
 
 
 func _tap_label(screen: Vector2) -> bool:
@@ -365,10 +519,24 @@ func _update_preview() -> void:
 			if m["has_ghost"] and i >= 0 and i < tray.size():
 				var spot := Vector2i(m["ghost"])
 				preview = {"part": Part.make("ghost", tray[i]["kind"], spot.x, spot.y, 0, tray[i].get("props", {}))}
+		"moving":
+			var p := circuit.find_part(m["part"])
+			if p != null:
+				var ghost := p.copy()
+				var spot := Vector2i(((m["at"] as Vector2) - (m["grab"] as Vector2)).round())
+				ghost.x = spot.x
+				ghost.y = spot.y
+				preview = {"part": ghost}
+		"pin_selected":
+			var p := circuit.find_part(m["part"])
+			if p != null:
+				preview = {"pin": Vector2(CircuitGeometry.pin_position(p, m["pin"]))}
 	circuit_view.preview = preview
+	circuit_view.selection = controller.selection
 	circuit_view.queue_redraw()
 	if _physical():
 		workbench.set_preview(preview)
+		workbench.set_selection(circuit, controller.selection)
 
 
 func _pop_3d(id: String) -> void:

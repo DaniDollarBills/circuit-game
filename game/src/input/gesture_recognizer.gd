@@ -23,6 +23,9 @@ var _pinch_mid := Vector2.ZERO
 
 func down(id: int, pos: Vector2, t: float, button := MOUSE_BUTTON_LEFT) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
+	if _pointers.has(id):
+		# Its release never arrived (focus moved away mid-gesture): start over.
+		out.append_array(reset())
 	_pointers[id] = {"start": pos, "pos": pos, "t0": t, "button": button}
 	match _mode:
 		"idle":
@@ -91,6 +94,37 @@ func up(id: int, pos: Vector2, t: float) -> Array[Dictionary]:
 		_primary = -1
 	elif id == _primary and _mode != "ignore":
 		_mode = "ignore"
+	return out
+
+
+## A pointer the system took back (a cancelled touch): it ends without a tap
+## or a drop, and a drag in progress is cancelled. Other fingers still down
+## are ignored until they lift.
+func cancel(id: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if not _pointers.has(id):
+		return out
+	_pointers.erase(id)
+	if _mode == "dragging" and id == _primary:
+		out.append({"type": "drag_cancel"})
+	if _pointers.is_empty():
+		_mode = "idle"
+		_primary = -1
+	else:
+		_mode = "ignore"
+	return out
+
+
+## Forgets every pointer (focus lost, or the layer stopped taking input); a
+## drag in progress is cancelled.
+func reset() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if _mode == "dragging":
+		out.append({"type": "drag_cancel"})
+	_pointers.clear()
+	_mode = "idle"
+	_primary = -1
+	_pinch_ids = []
 	return out
 
 

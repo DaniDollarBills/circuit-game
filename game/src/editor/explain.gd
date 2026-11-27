@@ -16,10 +16,12 @@ static func part(p: Part, sim: SimResult) -> PackedStringArray:
 	match p.kind:
 		"resistor":
 			var ohms := float(p.props.get("ohms", 220.0))
+			# A resistor works the same either way round, so the numbers are sizes.
+			var v := absf(across)
 			return PackedStringArray([
-				"Voltage across %s: %.2f V" % [name, across],
-				"Current = %.2f V ÷ %s = %s" % [across, Catalog.format_ohms(ohms), ma],
-				"Heat = %.2f V × %s = %.3f W (rated %s W)" % [across, ma, absf(across * amps), _trim(float(p.props.get("watts", 0.25)))],
+				"Voltage across %s: %.2f V" % [name, v],
+				"Current = %.2f V ÷ %s = %s" % [v, Catalog.format_ohms(ohms), ma],
+				"Heat = %.2f V × %s = %.3f W (rated %s W)" % [v, ma, absf(across * amps), _trim(float(p.props.get("watts", 0.25)))],
 			])
 		"led":
 			return PackedStringArray([

@@ -13,6 +13,7 @@ const TOAST_S := 4.0
 var progress_path := "user://progress.json"
 var game: Game
 var screen: Control
+var audio: Audio
 
 var _toast: PanelContainer
 var _toast_label: Label
@@ -29,8 +30,13 @@ func _ready() -> void:
 	game.navigate.connect(_show)
 	game.toast.connect(_show_toast)
 	game.changed.connect(_apply_look)
+	audio = Audio.new()
+	audio.name = "Audio"
+	add_child(audio)
+	game.changed.connect(func() -> void: audio.apply_settings(game.state.progress.settings))
 	_build_toast()
 	game.boot(progress_path)
+	audio.apply_settings(game.state.progress.settings)
 	_apply_look()
 	if not _open_from_args():
 		game.open_title()

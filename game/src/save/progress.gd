@@ -17,6 +17,8 @@ const DEFAULT_SETTINGS := {
 	"large_text": false,
 	"patterns": false,
 	"night": false,
+	"sound": true,
+	"music_volume": 0.5,
 }
 const SETTING_CHOICES := {
 	"help_level": ["heavy", "light", "off"],
@@ -93,7 +95,11 @@ static func from_dict(d: Variant) -> Progress:
 static func is_valid_setting(key: Variant, v: Variant) -> bool:
 	if typeof(key) != TYPE_STRING or not DEFAULT_SETTINGS.has(key):
 		return false
-	return typeof(v) == typeof(DEFAULT_SETTINGS[key]) and (not SETTING_CHOICES.has(key) or v in SETTING_CHOICES[key])
+	if typeof(v) != typeof(DEFAULT_SETTINGS[key]):
+		return false
+	if key == "music_volume":
+		return float(v) >= 0.0 and float(v) <= 1.0
+	return not SETTING_CHOICES.has(key) or v in SETTING_CHOICES[key]
 
 
 ## Records the terms not seen before and returns just those.

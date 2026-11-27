@@ -17,6 +17,7 @@ const TOGGLES := [
 	["large_text", "Large text"],
 	["patterns", "Patterns as well as colors"],
 	["night", "Night colors"],
+	["sound", "Sound"],
 ]
 
 var game: Game
@@ -25,6 +26,7 @@ var opener: Callable = func(url: String) -> Error: return OS.shell_open(url)
 
 var _choices := {}
 var _about: Label
+var _music: HSlider
 var _updates: Button
 var _toggles := {}
 
@@ -73,6 +75,20 @@ func _ready() -> void:
 		b.toggled.connect(func(on: bool) -> void: game.set_setting(key, on))
 		col.add_child(b)
 		_toggles[key] = b
+	var music := HBoxContainer.new()
+	var music_label := Label.new()
+	music_label.text = "Music"
+	music_label.custom_minimum_size = Vector2(120, 0)
+	music.add_child(music_label)
+	_music = HSlider.new()
+	_music.min_value = 0.0
+	_music.max_value = 1.0
+	_music.step = 0.05
+	_music.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_music.custom_minimum_size = Vector2(120, IconButton.MIN_TOUCH)
+	_music.value_changed.connect(func(v: float) -> void: game.set_setting("music_volume", v))
+	music.add_child(_music)
+	col.add_child(music)
 	# About: the version, and the way to new versions (the game never goes
 	# online itself).
 	var about := HBoxContainer.new()
@@ -114,6 +130,11 @@ func sync() -> void:
 		o.select(maxi((c[2] as Array).find(st.get(c[0])), 0))
 	for t in TOGGLES:
 		(_toggles[t[0]] as CheckButton).set_pressed_no_signal(bool(st.get(t[0], false)))
+	_music.set_value_no_signal(float(st.get("music_volume", 0.5)))
+
+
+func music_slider() -> HSlider:
+	return _music
 
 
 func toggle(key: String) -> CheckButton:

@@ -116,6 +116,12 @@ func skip_learn() -> void:
 	_changed()
 
 
+## Records that a part's Meet the part card has been seen.
+func mark_part_seen(key: String) -> void:
+	if state.progress.mark_part_seen(key, state.now()):
+		_changed()
+
+
 func finish_try() -> void:
 	state.finish_try()
 	_changed()

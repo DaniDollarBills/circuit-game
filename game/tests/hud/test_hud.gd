@@ -626,7 +626,7 @@ func test_hud_text_is_readable_by_day_and_night() -> void:
 			var tag := "%s %s" % [mode, id]
 			faint.append_array(_faint_text(s, tag + " board"))
 			s.guide.hide_bubble()
-			for name in ["datasheet:B1", "calculator", "notebook", "badges", "settings"]:
+			for name in ["datasheet:B1", "calculator", "notebook", "badges", "settings", "deck:1", "meet:led"]:
 				if name == "badges":
 					s.dev_show("notebook")
 					s.notebook.show_tab("badges")
@@ -636,6 +636,11 @@ func test_hud_text_is_readable_by_day_and_night() -> void:
 				faint.append_array(_faint_text(s, "%s %s" % [tag, name]))
 				for card in [s.datasheet, s.formula, s.notebook, s.settings_sheet]:
 					card.visible = false
+				if s.meet_card != null:
+					s.meet_card.visible = false
+				if s.game.state.session.phase == "learn":
+					s.game.skip_learn()
+					await wait_frames(1)
 	var unique := {}
 	for f in faint:
 		unique[f] = true

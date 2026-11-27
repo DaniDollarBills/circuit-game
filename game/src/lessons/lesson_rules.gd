@@ -49,8 +49,8 @@ static func _card_problems(c: Dictionary, where: String, out: PackedStringArray)
 			if (c.get("steps", PackedStringArray()) as PackedStringArray).size() < 2:
 				out.append("%s: a worked example needs at least two steps" % where)
 		"meet":
-			if str(c.get("part", "")) == "":
-				out.append("%s: a Meet the part card with no part" % where)
+			if PartIntros.get_intro(str(c.get("part", ""))).is_empty():
+				out.append("%s: no part intro called %s" % [where, c.get("part")])
 		"control":
 			if str(c.get("diagram", "")) == "":
 				out.append("%s: a New control card with no demo" % where)

@@ -37,6 +37,9 @@ var hint_button: HintButton
 var guide: GuideBubble
 var deck: LessonDeck
 var lesson_button: IconButton
+## The Meet the part card on screen, and the parts waiting to be met.
+var meet_card: MeetPartCard
+var _meet_queue := PackedStringArray()
 var toasts: Toasts
 var menu: ContextMenu
 var value_popover: ValuePopover
@@ -133,6 +136,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func dev_show(what: String) -> void:
 	if what.begins_with("datasheet:"):
 		_open_datasheet(what.substr("datasheet:".length()))
+	elif what.begins_with("meet:"):
+		_open_meet(what.substr("meet:".length()))
 	elif what.begins_with("deck:"):
 		game.reopen_lesson()
 		for i in int(what.substr("deck:".length())):
@@ -219,6 +224,7 @@ func _refresh() -> void:
 		_large = not _large
 		HudText.refresh_sizes(get_tree(), game)
 	_update_guide()
+	_check_new_parts()
 	_update_hints()
 	var shown := s.shown()
 	if explain.visible:
@@ -533,6 +539,10 @@ func _on_menu(action: String, target: Dictionary) -> void:
 			_open_explain(id)
 		"Replace":
 			game.commit(CircuitEdits.set_props(c, id, {"burnt": false}))
+		"About":
+			var p := c.find_part(id)
+			if p != null:
+				_open_meet(PartIntros.key_for(p))
 
 
 func _open_datasheet(id: String) -> void:
@@ -598,11 +608,58 @@ func _pump_words() -> void:
 		_sound("word")
 
 
+## The first time a part is on the bench or in the tray, at any help level,
+## its Meet the part card comes up, one at a time. Lesson 0 is about the
+## controls, so its parts wait for Lesson 1's deck.
+func _check_new_parts() -> void:
+	var s := game.state
+	if s.level == null or s.level.kind == "tutorial" or not s.session.phase in ["try", "build"]:
+		return
+	var keys := PackedStringArray()
+	for p in s.history.present.parts:
+		keys.append(PartIntros.key_for(p))
+	for item in s.current_tray():
+		keys.append(PartIntros.key_for(Part.make("T", item["kind"], 0, 0, 0, item["props"])))
+	var showing := meet_card != null and meet_card.visible
+	for k in keys:
+		if s.progress.parts_seen.has(k) or k in _meet_queue or PartIntros.get_intro(k).is_empty():
+			continue
+		if showing and meet_card.key == k:
+			continue
+		_meet_queue.append(k)
+	if not showing and not _meet_queue.is_empty():
+		_open_meet(_meet_queue[0])
+
+
+func _open_meet(key: String) -> void:
+	if meet_card != null:
+		meet_card.get_parent().remove_child(meet_card)
+		meet_card.queue_free()
+	meet_card = MeetPartCard.make(game, key)
+	meet_card.closed.connect(_on_meet_closed)
+	hud.add_child(meet_card)
+	# Under the glossary popup, so a word tapped on the card opens on top.
+	hud.move_child(meet_card, glossary_popup.get_index())
+	meet_card.visible = true
+	_place_floating()
+
+
+func _on_meet_closed(key: String) -> void:
+	var i := _meet_queue.find(key)
+	if i >= 0:
+		_meet_queue.remove_at(i)
+	game.mark_part_seen(key)
+	_queue_refresh()
+
+
 ## Closes the topmost open card or popup (Android's Back); false when none
 ## was open.
 func close_top() -> bool:
 	if menu.visible:
 		menu.close()
+		return true
+	if meet_card != null and meet_card.visible:
+		meet_card.close_button().pressed.emit()
 		return true
 	for card in [value_popover, explain, glossary_popup, datasheet, formula, notebook, settings_sheet]:
 		if card.visible:
@@ -879,6 +936,8 @@ func _place_floating() -> void:
 	var area := Rect2(MARGIN, top, w - 2.0 * MARGIN, h - top - MARGIN)
 	if deck.visible:
 		deck.fit_into(area, LessonDeck.MAX_W)
+	if meet_card != null and meet_card.visible:
+		meet_card.fit_into(area, MeetPartCard.MAX_W)
 	for card in [datasheet, formula, settings_sheet, notebook, glossary_popup]:
 		if card.visible:
 			var cw := minf(380.0, area.size.x)

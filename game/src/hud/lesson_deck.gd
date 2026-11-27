@@ -29,6 +29,8 @@ var _pip: Pip
 var _text: RichTextLabel
 var _picture: Control
 var _diagram: Diagram
+var _meet_holder: VBoxContainer
+var _meet: MeetPartCard
 var _breaks: RichTextLabel
 var _steps: RichTextLabel
 var _deeper_button: Button
@@ -99,6 +101,8 @@ func _ready() -> void:
 	_picture = Control.new()
 	_picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(_picture)
+	_meet_holder = VBoxContainer.new()
+	body.add_child(_meet_holder)
 	_breaks = HudText.label(game, 15)
 	body.add_child(_breaks)
 	_steps = HudText.label(game, 18)
@@ -106,6 +110,7 @@ func _ready() -> void:
 	_deeper_button = Button.new()
 	_deeper_button.text = "Go deeper"
 	_deeper_button.theme_type_variation = "FlatButton"
+	_deeper_button.flat = true
 	_deeper_button.toggle_mode = true
 	_deeper_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_deeper_button.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
@@ -121,6 +126,7 @@ func _ready() -> void:
 	_skip = Button.new()
 	_skip.text = "Skip lesson"
 	_skip.theme_type_variation = "FlatButton"
+	_skip.flat = true
 	_skip.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
 	_skip.pressed.connect(func() -> void: skip_pressed.emit())
 	buttons.add_child(_skip)
@@ -257,10 +263,12 @@ func _render() -> void:
 			else:
 				HudText.put(_text, "Now let's try it!" if _level.has_try() else "Now let's build it!", game)
 		"meet":
-			HudText.put(_text, "Meet the %s." % str(c.get("part", "")).replace("_", " "), game)
+			var intro := PartIntros.get_intro(str(c.get("part", "")))
+			HudText.put(_text, "Meet the %s!" % str(intro.get("title", c.get("part", ""))).to_lower(), game)
 		_:
 			HudText.put(_text, str(c.get("text", "")), game)
 	_show_diagram(str(c.get("diagram", "")))
+	_show_meet(str(c.get("part", "")) if kind == "meet" else "")
 	var breaks := str(c.get("breaks", ""))
 	_breaks.visible = breaks != ""
 	if _breaks.visible:
@@ -300,6 +308,25 @@ func _show_diagram(id: String) -> void:
 			_diagram.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_picture.visible = _diagram != null
 	_size_picture()
+
+
+## A meet card shows the part itself (a compact Meet the part card), and
+## counts the part as met.
+func _show_meet(part_key: String) -> void:
+	if _meet != null and _meet.key != part_key:
+		_meet_holder.remove_child(_meet)
+		_meet.queue_free()
+		_meet = null
+	if part_key != "" and _meet == null:
+		_meet = MeetPartCard.make(game, part_key, true)
+		_meet_holder.add_child(_meet)
+	_meet_holder.visible = _meet != null
+	if _meet != null and is_visible_in_tree():
+		game.mark_part_seen(part_key)
+
+
+func meet_card() -> MeetPartCard:
+	return _meet if _meet != null and _meet_holder.visible else null
 
 
 ## The picture keeps the diagrams' 400 × 220 shape at the deck's width.

@@ -379,3 +379,18 @@ func test_logic_gates_defined() -> void:
 	assert_eq(GlossaryText.resolve("OR gate"), "logic gate")
 	assert_true("logic gate" in GlossaryText.render(Levels.by_id("ch1.both").outro[1]["text"], {})["terms"])
 	assert_true("logic gate" in GlossaryText.render(Levels.by_id("ch1.either").outro[1]["text"], {})["terms"])
+
+
+## Meet the part copy keeps the main-path limits: at most 2 sentences and 30
+## words per line.
+func test_part_intro_copy_limits() -> void:
+	var sentence_end := RegEx.create_from_string("[.!?](\\s|$)")
+	for key in PartIntros.KEYS:
+		var intro := PartIntros.get_intro(key)
+		var lines := PackedStringArray([intro["does"], intro["where"], intro["spec"]["text"], intro["deeper"]])
+		for leg in intro["legs"]:
+			lines.append(leg["text"])
+		for line in lines:
+			var plain := GlossaryText.plain(line)
+			assert_true(plain.split(" ", false).size() <= 30, "%s: %s" % [key, plain])
+			assert_true(maxi(1, sentence_end.search_all(plain).size()) <= 2, "%s: %s" % [key, plain])

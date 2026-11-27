@@ -161,7 +161,8 @@ func grid(s: LevelScreen, g: Vector2) -> Vector2:
 	return s.editor.global_position + s.editor.grid_to_screen(g)
 
 
-## Clicks through the lesson: the deck's Next until it ends, then past Try it.
+## Clicks through the lesson: the deck's Next until it ends, then past Try it,
+## then closes any Meet the part cards for parts met for the first time.
 func skip_intro(s: LevelScreen) -> void:
 	for i in 40:
 		var phase := s.game.state.session.phase
@@ -173,6 +174,16 @@ func skip_intro(s: LevelScreen) -> void:
 		else:
 			break
 	await frames(2)
+	await close_part_cards(s)
+
+
+## Closes each Meet the part card that comes up, with its close button.
+func close_part_cards(s: LevelScreen) -> void:
+	for i in 12:
+		if s.meet_card == null or not s.meet_card.visible:
+			break
+		await click_control(s.meet_card.close_button())
+		await frames(2)
 
 
 ## Taps away any New word card covering `at` (each tap opens the glossary,

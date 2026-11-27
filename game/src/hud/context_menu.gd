@@ -1,12 +1,13 @@
 class_name ContextMenu
 extends PanelContainer
 ## The menu for a part or wire (right-click or long-press): Rotate, Delete,
-## Datasheet, Explain, and Replace for a burnt part, then Cancel. Locked parts
+## Datasheet, Explain, About (Meet the part), and Replace for a burnt part,
+## then Cancel. Locked parts
 ## can't be rotated or deleted. Esc or a press anywhere else closes it.
 
 signal chosen(action: String, target: Dictionary)
 
-const ACTIONS := ["Rotate", "Delete", "Datasheet", "Explain", "Replace", "Cancel"]
+const ACTIONS := ["Rotate", "Delete", "Datasheet", "Explain", "About", "Replace", "Cancel"]
 
 var game: Game
 var target: Dictionary = {}

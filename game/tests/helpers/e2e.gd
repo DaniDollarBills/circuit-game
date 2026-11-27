@@ -161,12 +161,17 @@ func grid(s: LevelScreen, g: Vector2) -> Vector2:
 	return s.editor.global_position + s.editor.grid_to_screen(g)
 
 
-## Clicks through the lesson's cards with Next.
+## Clicks through the lesson: the deck's Next until it ends, then past Try it.
 func skip_intro(s: LevelScreen) -> void:
-	for i in 16:
-		if s.game.state.session.phase != "learn":
+	for i in 40:
+		var phase := s.game.state.session.phase
+		if phase == "learn":
+			await click_control(s.deck.next_button())
+		elif phase == "try":
+			s.game.finish_try()
+			await frames(1)
+		else:
 			break
-		await click_control(s.guide.action_buttons()[0])
 	await frames(2)
 
 

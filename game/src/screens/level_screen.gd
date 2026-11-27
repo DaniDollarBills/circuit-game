@@ -35,6 +35,8 @@ var test_button: IconButton
 var column_scroll: ScrollContainer
 var hint_button: HintButton
 var guide: GuideBubble
+var deck: LessonDeck
+var lesson_button: IconButton
 var toasts: Toasts
 var menu: ContextMenu
 var value_popover: ValuePopover
@@ -131,6 +133,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func dev_show(what: String) -> void:
 	if what.begins_with("datasheet:"):
 		_open_datasheet(what.substr("datasheet:".length()))
+	elif what.begins_with("deck:"):
+		game.reopen_lesson()
+		for i in int(what.substr("deck:".length())):
+			game.next_card()
 	elif what == "calculator":
 		_open_card(formula)
 	elif what == "notebook":
@@ -226,14 +232,18 @@ func _refresh() -> void:
 	if key != _board_key:
 		_board_key = key
 		editor.set_state(shown.circuit, shown.result, st, _ghosts, _highlights)
-	editor.set_tray(s.level.tray, s.tray_used())
+	editor.set_tray(s.current_tray(), s.tray_used())
 	if str(st.get("view_style", "")) != _view_style:
 		var first := _view_style == ""
 		_view_style = str(st.get("view_style", ""))
 		if not first:
 			_frame_circuit.call_deferred()
 	top_bar.refresh(s)
-	tray.refresh(s.level.tray, s.tray_used())
+	tray.refresh(s.current_tray(), s.tray_used())
+	# The lesson has the stage to itself: the build's tray and column wait.
+	var learning := s.session.phase == "learn"
+	tray.visible = not s.current_tray().is_empty() and not learning
+	column_scroll.visible = not learning
 	goals.refresh(s.level, s.session, s.outcome.circuit)
 	checklist.visible = _help() == "heavy" and not s.level.steps.is_empty()
 	if checklist.visible:
@@ -243,6 +253,7 @@ func _refresh() -> void:
 	if test_sheet.visible:
 		test_sheet.refresh(s.session)
 	hint_button.visible = _help() != "off" and not s.level.hints.is_empty() and s.session.phase in ["build", "passed"]
+	lesson_button.visible = s.session.phase in ["build", "passed"] and (s.level.deck_size() > 0 or s.level.has_try())
 	back_to_building.visible = s.zoom_layer != "editor"
 	zoom_caption.visible = s.zoom_layer == "wire.copper"
 	if zoom_caption.visible and zoom_caption.text == "":
@@ -391,26 +402,14 @@ func _check_formula_offer() -> void:
 
 func _update_guide() -> void:
 	var s := game.state
-	if s.session.phase == "learn":
-		var line := _learn_line(s.level, s.session.card_index)
-		guide.show_line(line["text"], line["mood"], "intro", [{"label": "Next", "callback": game.next_card}], "", false)
+	deck.visible = s.session.phase == "learn"
+	if deck.visible:
+		deck.show_card(s.level, s.session.card_index)
+		if guide.visible and guide.kind != "help":
+			guide.hide_bubble()
 		return
-	if guide.kind == "intro":
-		guide.hide_bubble()
 	if _page >= 0 and guide.kind != "outro":
 		_show_page()
-
-
-## The deck card at `index` as one Pip line: the goals card, a card's text, or
-## the closing card.
-func _learn_line(l: LevelDef, index: int) -> Dictionary:
-	if index == 0:
-		var goals := "; ".join(l.learn_goals) if not l.learn_goals.is_empty() else l.summary
-		return {"text": "In this lesson: " + goals, "mood": "happy"}
-	if index > l.learn.size():
-		return {"text": "Now let's try it!" if l.has_try() else "Now let's build it!", "mood": "happy"}
-	var c: Dictionary = l.learn[index - 1]
-	return {"text": str(c.get("text", "")), "mood": str(c.get("mood", "happy"))}
 
 
 func _start_outro() -> void:
@@ -657,6 +656,10 @@ func _on_board_resized() -> void:
 
 
 func _connect() -> void:
+	deck.next_pressed.connect(game.next_card)
+	deck.back_pressed.connect(game.back_card)
+	deck.skip_pressed.connect(game.skip_learn)
+	lesson_button.pressed.connect(game.reopen_lesson)
 	editor.commit_requested.connect(game.commit)
 	editor.datasheet_requested.connect(_open_datasheet)
 	editor.toast_requested.connect(func(text: String) -> void: toasts.show_text(text))
@@ -713,7 +716,12 @@ func _build_hud() -> void:
 	hint_button = _add(HintButton.create())
 	# Beside Hint, never scrolled away with the column.
 	test_button = _add(TestSheet.make_button(game))
+	lesson_button = _add(IconButton.make("lesson", "Open the lesson again", "Lesson"))
+	lesson_button.custom_minimum_size = Vector2(112, 52)
 	guide = _add(GuideBubble.new())
+	# Under the New word cards and every popup, so a word tapped in a card
+	# opens its definition on top.
+	deck = _add(LessonDeck.new())
 	back_to_building = Button.new()
 	back_to_building.text = "Back to building"
 	back_to_building.visible = false
@@ -782,9 +790,6 @@ func _layout() -> void:
 		var row_y := tray.position.y - 8.0 - hint_size.y
 		hint_button.position = Vector2(w - MARGIN - hint_size.x, row_y)
 		test_button.position = Vector2(hint_button.position.x - 8.0 - test_size.x, row_y)
-		var bar_size := scale_bar.custom_minimum_size
-		var beside := MARGIN + bar_size.x + 8.0 <= (test_button.position.x if test_button.visible else hint_button.position.x)
-		scale_bar.position = Vector2(MARGIN, row_y + hint_size.y - bar_size.y if beside else row_y - 8.0 - bar_size.y)
 		var column_h := _column_height(w - 2.0 * MARGIN, h * 0.38)
 		_column_room = column_h
 		column_scroll.position = Vector2(MARGIN, top)
@@ -807,6 +812,27 @@ func _layout() -> void:
 	_place_floating()
 
 
+## Lesson goes left of Test (or of Hint), icon-only on a narrow phone; in
+## portrait the scale bar sits beside the row when it fits, else above it.
+func _place_button_row() -> void:
+	var narrow := _portrait and size.x < 420.0
+	lesson_button.text = "" if narrow else "Lesson"
+	lesson_button.custom_minimum_size = Vector2(52, 52) if narrow else Vector2(112, 52)
+	lesson_button.size = lesson_button.custom_minimum_size
+	var anchor_x := test_button.position.x if test_button.visible else hint_button.position.x
+	lesson_button.position = Vector2(anchor_x - 8.0 - lesson_button.size.x, hint_button.position.y)
+	if not _portrait:
+		return
+	var leftmost := hint_button.position.x
+	for b in [test_button, lesson_button]:
+		if (b as Control).visible:
+			leftmost = minf(leftmost, (b as Control).position.x)
+	var bar_size := scale_bar.custom_minimum_size
+	var row_y := hint_button.position.y
+	var beside := MARGIN + bar_size.x + 8.0 <= leftmost
+	scale_bar.position = Vector2(MARGIN, row_y + hint_button.custom_minimum_size.y - bar_size.y if beside else row_y - 8.0 - bar_size.y)
+
+
 ## The column's height at `width`: its content's, up to `cap`.
 func _column_height(width: float, cap: float) -> float:
 	_column.size.x = width
@@ -820,6 +846,7 @@ func _place_floating() -> void:
 	var w := size.x
 	var h := size.y
 	var top := MARGIN + BAR_H + 8.0
+	_place_button_row()
 	# The column grows and shrinks with its content, never past its room.
 	var column_cap := _column_room if _portrait else hint_button.position.y - 8.0 - top
 	column_scroll.size.y = _column_height(column_scroll.size.x, column_cap)
@@ -850,6 +877,8 @@ func _place_floating() -> void:
 	var above := guide.position.y if guide.visible else (hint_button.position.y if _portrait else h - MARGIN - 48.0)
 	toasts.position = Vector2(board.get_center().x - toasts.size.x / 2.0, above - 8.0 - toasts.size.y)
 	var area := Rect2(MARGIN, top, w - 2.0 * MARGIN, h - top - MARGIN)
+	if deck.visible:
+		deck.fit_into(area, LessonDeck.MAX_W)
 	for card in [datasheet, formula, settings_sheet, notebook, glossary_popup]:
 		if card.visible:
 			var cw := minf(380.0, area.size.x)

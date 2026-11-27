@@ -54,6 +54,13 @@ static func draw(ci: CanvasItem, name: String, r: Rect2, ink: Color) -> void:
 		"test":
 			_rrect(ci, Rect2(c - Vector2(s * 0.34, s * 0.4), Vector2(s * 0.68, s * 0.8)), ink, w)
 			ci.draw_polyline(PackedVector2Array([c + Vector2(-s * 0.16, 0), c + Vector2(-s * 0.04, s * 0.13), c + Vector2(s * 0.18, -s * 0.14)]), ink, w, true)
+		"lesson":
+			# A chalkboard on its stand, a line of writing on it.
+			_rrect(ci, Rect2(c + Vector2(-s * 0.42, -s * 0.36), Vector2(s * 0.84, s * 0.56)), ink, w)
+			ci.draw_line(c + Vector2(-s * 0.24, -s * 0.12), c + Vector2(s * 0.2, -s * 0.12), ink, w, true)
+			ci.draw_line(c + Vector2(-s * 0.24, s * 0.02), c + Vector2(s * 0.06, s * 0.02), ink, w, true)
+			ci.draw_line(c + Vector2(-s * 0.22, s * 0.2), c + Vector2(-s * 0.32, s * 0.42), ink, w, true)
+			ci.draw_line(c + Vector2(s * 0.22, s * 0.2), c + Vector2(s * 0.32, s * 0.42), ink, w, true)
 		"info":
 			ci.draw_arc(c, s * 0.4, 0, TAU, 24, ink, w, true)
 			ci.draw_line(c + Vector2(0, -s * 0.02), c + Vector2(0, s * 0.22), ink, w, true)

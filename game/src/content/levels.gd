@@ -37,3 +37,17 @@ static func chapter_ids(chapter: String) -> PackedStringArray:
 		if l.chapter == chapter:
 			out.append(l.id)
 	return out
+
+
+## The number a lesson shows ("Lesson 3"): its place in its chapter, counting
+## from 0 when the chapter opens with a tutorial (Lesson 0, the workbench) and
+## from 1 otherwise; -1 for a lesson that isn't in the game.
+static func lesson_number(id: String) -> int:
+	var all_levels := all()
+	for l in all_levels:
+		if l.id != id:
+			continue
+		var in_chapter := all_levels.filter(func(x: LevelDef) -> bool: return x.chapter == l.chapter)
+		var i := in_chapter.find(l)
+		return i if (in_chapter[0] as LevelDef).kind == "tutorial" else i + 1
+	return -1

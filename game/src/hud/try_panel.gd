@@ -12,6 +12,9 @@ var _prompt: RichTextLabel
 var _rows: VBoxContainer
 var _readouts: VBoxContainer
 var _ready_button: Button
+var _col: VBoxContainer
+## Lessons 5 and 6: the truth table, filled in as the switch cases are seen.
+var _table: Diagram
 var _signature := ""
 
 
@@ -20,6 +23,7 @@ func _ready() -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	add_child(col)
+	_col = col
 	var title := Label.new()
 	title.text = "Try it"
 	title.theme_type_variation = "HeadingLabel"
@@ -44,6 +48,7 @@ func refresh(s: GameState) -> void:
 	if s.level == null:
 		return
 	HudText.put(_prompt, s.level.try_prompt, game)
+	_refresh_table(s)
 	var reads := s.readouts()
 	var sig := "%s|%s|%s" % [s.session.poke_done, reads, game.state.progress.settings.get("night", false)]
 	if sig == _signature:
@@ -73,6 +78,36 @@ func refresh(s: GameState) -> void:
 		l.theme_type_variation = "HeadingLabel"
 		HudText.font_size(l, 18, game)
 		_readouts.add_child(l)
+
+
+## A truth table when Try it's circuit has switches A and B; each case seen
+## is marked with what the LED did. A new Try it starts a new table.
+func _refresh_table(s: GameState) -> void:
+	var wanted := TruthRows.row(s.level.try_circuit) >= 0
+	var rows := s.truth_rows()
+	if _table != null:
+		var stale := not wanted
+		var marked: Array = _table.call("results")
+		for i in marked.size():
+			if int(marked[i]) >= 0 and not rows.has(i):
+				stale = true
+		if stale:
+			_col.remove_child(_table)
+			_table.queue_free()
+			_table = null
+	if wanted and _table == null:
+		_table = Diagrams.make("truth_table", game)
+		_table.custom_minimum_size = Vector2(0, 150)
+		_col.add_child(_table)
+		_col.move_child(_table, _rows.get_index() + 1)
+	if _table != null:
+		for row in rows:
+			_table.call("mark", int(row), bool(rows[row]))
+
+
+## The truth table (null when this Try it has none).
+func truth_table() -> Diagram:
+	return _table
 
 
 func prompt_text() -> String:

@@ -100,3 +100,31 @@ func test_start_over_in_try_resets_try_circuit() -> void:
 	await wait_frames(2)
 	assert_eq(s.game.state.session.phase, "try")
 	assert_eq(s.game.state.history.present.wires.size(), 3)
+
+
+## Lessons 5 and 6: Try it shows the truth table, filling in each case as the
+## player sets the switches; a lesson without switches A and B shows none.
+func test_try_panel_fills_the_truth_table() -> void:
+	var plain := await _screen()
+	assert_true(plain.try_panel.truth_table() == null, "Lesson 1 style: no switches, no table")
+	var game := Game.new()
+	add_to_tree(game)
+	game.boot(_dir.path_join("progress_l5.json"))
+	game.state.progress.parts_seen = {"battery": 1, "resistor": 1, "led": 1, "switch": 1}
+	var host := Control.new()
+	host.size = Vector2(1280, 720)
+	add_to_tree(host)
+	game.open_level("ch1.both", true)
+	var s: LevelScreen = load("res://src/screens/level_screen.tscn").instantiate()
+	s.game = game
+	host.add_child(s)
+	await wait_frames(3)
+	game.skip_learn()
+	await wait_frames(3)
+	var table := s.try_panel.truth_table()
+	assert_true(table != null and table.is_visible_in_tree(), "the table shows in Try it")
+	assert_eq(table.call("results"), [0, -1, -1, -1], "both open: dark")
+	game.commit(CircuitEdits.set_props(game.state.history.present, "SW1", {"closed": true}))
+	game.commit(CircuitEdits.set_props(game.state.history.present, "SW2", {"closed": true}))
+	await wait_frames(3)
+	assert_eq(table.call("results"), [0, -1, 0, 1], "A alone: dark; both: lit")

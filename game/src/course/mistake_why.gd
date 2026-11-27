@@ -12,6 +12,12 @@ const WHY := {
 }
 
 
+## The why for a part of `kind` that has burned out: an LED's chip past its
+## 30 mA, or any other part past its power rating.
+static func for_burnt(kind: String) -> String:
+	return WHY["Pop!"] if kind == "led" else WHY["Something burned out"]
+
+
 ## The why for a mistake message; "" for a message that isn't one.
 static func for_message(m: String) -> String:
 	for opening in WHY:

@@ -296,7 +296,7 @@ func _refresh() -> void:
 		if row != null and row != _row_in_view:
 			_row_in_view = row
 			column_scroll.ensure_control_visible.call_deferred(row)
-	test_button.visible = not s.level.tests.is_empty() and not trying
+	test_button.visible = not s.level.tests.is_empty() and s.session.phase in ["build", "passed"]
 	test_sheet.visible = test_button.visible and not (s.session.test_report.get("cases", []) as Array).is_empty()
 	if test_sheet.visible:
 		test_sheet.refresh(s.session)
@@ -354,12 +354,16 @@ func _burn_help(p: Part) -> void:
 	if not _is_mistake(m):
 		m = Explain.part(p, game.state.outcome.result)[0]
 	_last_mistake = m
-	guide.show_line(m, "oops", "help", _why_actions(m))
+	var why := MistakeWhy.for_message(m)
+	guide.show_line(m, "oops", "help", _why_button(why if why != "" else MistakeWhy.for_burnt(p.kind)))
 
 
 ## A mistake line's Why? button, which adds the physics under it.
 func _why_actions(m: String) -> Array:
-	var why := MistakeWhy.for_message(m)
+	return _why_button(MistakeWhy.for_message(m))
+
+
+func _why_button(why: String) -> Array:
 	if why == "":
 		return []
 	return [{"label": "Why?", "callback": func() -> void: guide.expand(why)}]

@@ -58,6 +58,7 @@ func test_guide_why_expands() -> void:
 	host.add_child(s)
 	await wait_frames(3)
 	game.skip_learn()
+	game.finish_try()
 	var c := game.state.history.present
 	c = CircuitEdits.add_wire(c, "B1", "pos", "L1", "anode")
 	c = CircuitEdits.add_wire(c, "L1", "cathode", "B1", "neg")
@@ -105,3 +106,31 @@ func test_build_help_stays_out_of_try_it() -> void:
 	assert_true(s.guide.visible, "burn help")
 	assert_false(s.guide.plain_text().begins_with("Short circuit"), s.guide.plain_text())
 	assert_true("LED" in s.guide.plain_text(), s.guide.plain_text())
+
+
+## Lesson 2's Try it burns the LED on purpose: Pip says what burned, with a
+## Why? that gives the physics, as on the build.
+func test_burn_in_try_it_has_a_why() -> void:
+	var game := _game()
+	var host := Control.new()
+	host.size = Vector2(1280, 720)
+	add_to_tree(host)
+	game.open_level("ch1.pop", true)
+	var s: LevelScreen = load("res://src/screens/level_screen.tscn").instantiate()
+	s.game = game
+	host.add_child(s)
+	await wait_frames(3)
+	game.skip_learn()
+	assert_true(game.state.trying())
+	var c := game.state.history.present
+	c = CircuitEdits.add_wire(c, "B1", "pos", "L1", "anode")
+	c = CircuitEdits.add_wire(c, "L1", "cathode", "B1", "neg")
+	game.commit(c)
+	await wait_frames(3)
+	assert_true(s.guide.visible and "LED" in s.guide.plain_text(), s.guide.plain_text())
+	var why: Button = E2E.find_button(s.guide, "Why?")
+	assert_true(why != null, "a Why? in Try it too")
+	if why != null:
+		why.pressed.emit()
+		await wait_frames(1)
+		assert_true("30 mA" in s.guide.plain_text(), s.guide.plain_text())

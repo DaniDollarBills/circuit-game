@@ -118,7 +118,8 @@ func _ready() -> void:
 	_deeper_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_deeper_button.pressed.connect(func() -> void:
 		_deeper.visible = _deeper_button.button_pressed
-		_source.visible = _deeper.visible)
+		_source.visible = _deeper.visible
+		_fill_deeper())
 	col.add_child(_deeper_button)
 	_deeper = HudText.label(game, 15)
 	_deeper.visible = false
@@ -243,13 +244,22 @@ func _fill_text() -> void:
 	lines.append("Where you'll find one: " + str(_intro.get("where", "")))
 	HudText.put(_text, "\n".join(lines), game)
 	var spec: Dictionary = _intro.get("spec", {})
+	_deeper_button.visible = str(spec.get("text", "")) != "" or str(_intro.get("deeper", "")) != ""
+	_fill_deeper()
+
+
+## Go deeper's text is put in only while it shows, so its words are met when
+## they're read (a New word card for a hidden word would cover the card).
+func _fill_deeper() -> void:
+	if not _deeper.visible:
+		return
+	var spec: Dictionary = _intro.get("spec", {})
 	var more := PackedStringArray()
 	for part in [str(spec.get("text", "")), str(_intro.get("deeper", ""))]:
 		if part != "":
 			more.append(part)
-	_deeper_button.visible = not more.is_empty()
 	HudText.put(_deeper, "\n".join(more), game)
-	HudText.put(_source, "Source: " + str(spec.get("source", "")), game)
+	HudText.put(_source, "Source: " + str(spec.get("source", "")), game, false, false)
 
 
 ## The part in its own small world: studio light, a soft backdrop, a camera

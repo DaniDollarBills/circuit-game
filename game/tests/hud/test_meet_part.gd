@@ -253,3 +253,23 @@ func test_meet_card_fits_and_closes_on_every_screen() -> void:
 		assert_true(not is_instance_valid(card) or not card.visible, where + ": and it closes")
 		host.queue_free()
 		await wait_frames(1)
+
+
+## A word under Go deeper isn't met until Go deeper opens: the current
+## meter's fuse (in its datasheet line) didn't wait, and its New word card
+## covered the card.
+func test_words_under_go_deeper_wait_until_opened() -> void:
+	var game := _game()
+	var card := _card("ammeter", game)
+	await wait_frames(2)
+	assert_false(game.state.progress.seen_terms.has("fuse"), "not met yet")
+	card.deeper_button().button_pressed = true
+	card.deeper_button().pressed.emit()
+	await wait_frames(1)
+	assert_true(game.state.progress.seen_terms.has("fuse"), "met when shown")
+
+
+## "Power buttons" are buttons, not watts.
+func test_switch_card_power_buttons_stay_plain() -> void:
+	var where := str(PartIntros.get_intro("switch")["where"])
+	assert_false("power" in GlossaryText.render(where, {})["terms"], where)

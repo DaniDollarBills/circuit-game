@@ -53,7 +53,7 @@ func show_line(text: String, line_mood: String, line_kind: String, actions: Arra
 	HudText.put(_text, text, game)
 	_source.visible = source != ""
 	if source != "":
-		HudText.put(_source, "Source: " + source, game)
+		HudText.put(_source, "Source: " + source, game, false, false)
 	for c in _actions.get_children():
 		_actions.remove_child(c)
 		c.queue_free()

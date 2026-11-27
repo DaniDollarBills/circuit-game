@@ -216,3 +216,22 @@ func test_undo_sets_did_undone() -> void:
 	assert_false(s.ui_flags.has("did:undone"))
 	s.undo()
 	assert_true(s.ui_flags.has("did:undone"))
+
+
+## Lessons 5 and 6: while trying, each switch case the circuit is in is noted
+## (row:<n>, with whether the LED was lit) so Try it's truth table can fill in
+## and its poke can tick; the build never notes them.
+func test_truth_rows_noted_while_trying() -> void:
+	var s := _state()
+	var l := Levels.by_id("ch1.both")
+	s.start_level(l)
+	s.skip_learn()
+	assert_true(s.trying())
+	assert_eq(s.truth_rows(), {0: false}, "both open to begin with")
+	assert_true(s.ui_flags.has("row:0"))
+	s.commit(CircuitEdits.set_props(s.history.present, "SW2", {"closed": true}))
+	s.commit(CircuitEdits.set_props(s.history.present, "SW1", {"closed": true}))
+	assert_eq(s.truth_rows(), {0: false, 1: false, 3: true})
+	s.finish_try()
+	s.commit(s.history.present)
+	assert_false(s.ui_flags.has("row:2"), "only Try it notes cases")

@@ -326,7 +326,7 @@ func _render() -> void:
 	var source := str(c.get("source", ""))
 	_source.visible = source != ""
 	if _source.visible:
-		HudText.put(_source, "Source: " + source, game)
+		HudText.put(_source, "Source: " + source, game, false, false)
 	_back.disabled = _index <= 0
 	_skip.visible = not read_only
 	# Lesson 0's deck is a tour; "Skip Lesson 0" beside it skips the lesson.

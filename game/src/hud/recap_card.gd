@@ -124,7 +124,7 @@ func show_recap(level: LevelDef, outcome: SimOutcome, next_id: String) -> void:
 		HudText.put(fact, str(f["text"]), game)
 		_history.add_child(fact)
 		var source := HudText.label(game, 12)
-		HudText.put(source, "Source: " + str(f["source"]), game)
+		HudText.put(source, "Source: " + str(f["source"]), game, false, false)
 		_history.add_child(source)
 	_history.visible = not level.facts.is_empty()
 	_next.visible = next_id != ""

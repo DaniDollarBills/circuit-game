@@ -249,3 +249,31 @@ func test_pictures_whole_on_every_screen() -> void:
 					"%s: whole without scrolling, %s ends below %s" % [where, r, s.deck.next_button().get_global_rect().position.y])
 		host.queue_free()
 		await wait_frames(1)
+
+
+## A source is a citation: its words aren't linked (Georg Ohm's name isn't
+## the unit, the ohm).
+func test_sources_are_not_linked() -> void:
+	var game := _game()
+	var deck := _deck(game)
+	var l := Levels.by_id("ch1.push-and-flow")
+	for i in l.learn.size():
+		if l.learn[i]["type"] == "history":
+			deck.show_card(l, i + 1)
+	await wait_frames(1)
+	var source := deck.find_children("*", "RichTextLabel", true, false).filter(
+			func(n: Node) -> bool: return (n as RichTextLabel).visible and (n as RichTextLabel).get_parsed_text().begins_with("Source:"))
+	assert_eq(source.size(), 1)
+	assert_false("[url" in (source[0] as RichTextLabel).text, (source[0] as RichTextLabel).text)
+
+
+## The lesson has the stage: Test waits for the build, like the tray.
+func test_test_button_waits_for_the_build() -> void:
+	var game := _game()
+	var s := await _screen("ch1.on-and-off", game)
+	assert_eq(game.state.session.phase, "learn")
+	assert_false(s.test_button.visible, "no Test under the deck")
+	game.skip_learn()
+	game.finish_try()
+	await wait_frames(2)
+	assert_true(s.test_button.visible)

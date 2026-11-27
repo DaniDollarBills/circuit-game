@@ -91,8 +91,9 @@ func analogy(text: String, breaks: String, diagram: String, deeper := "") -> Lev
 
 
 ## A formula solved one step at a time.
-func worked(text: String, steps: Array, source := "") -> LevelBuilder:
-	return _card({"type": "worked", "text": text, "steps": PackedStringArray(steps), "mood": "curious", "source": source})
+func worked(text: String, steps: Array, source := "", deeper := "") -> LevelBuilder:
+	return _card({"type": "worked", "text": text, "steps": PackedStringArray(steps), "mood": "curious", "source": source,
+			"deeper": deeper})
 
 
 ## A Meet the part card for a PartIntros key.
@@ -105,8 +106,9 @@ func control(text: String, diagram: String) -> LevelBuilder:
 	return _card({"type": "control", "text": text, "diagram": diagram, "mood": "happy"})
 
 
-func real(text: String, diagram := "") -> LevelBuilder:
-	return _card({"type": "real", "text": text, "diagram": diagram, "mood": "happy"})
+## Where you meet the idea in real life; `source` for a claim worth one.
+func real(text: String, diagram := "", source := "") -> LevelBuilder:
+	return _card({"type": "real", "text": text, "diagram": diagram, "mood": "happy", "source": source})
 
 
 func history(text: String, source: String) -> LevelBuilder:

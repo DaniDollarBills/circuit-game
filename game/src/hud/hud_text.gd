@@ -22,18 +22,20 @@ static func label(game: Game, font_size := 0) -> RichTextLabel:
 
 
 ## Shows `text` in `l`, in bold if asked. Re-rendering the same text is skipped.
-static func put(l: RichTextLabel, text: String, game: Game, bold := false) -> void:
+## `autolink` off links only [[ ]] markup (a source's words are a citation).
+static func put(l: RichTextLabel, text: String, game: Game, bold := false, autolink := true) -> void:
 	var p := game.state.progress
 	var night := bool(p.settings.get("night", false))
-	var key := "%s|%s|%s" % [night, bold, text]
+	var key := "%s|%s|%s|%s" % [night, bold, autolink, text]
 	if l.get_meta("hud_text", "") == key:
 		return
 	l.set_meta("hud_text", key)
 	l.set_meta("hud_src", text)
 	l.set_meta("hud_bold", bold)
+	l.set_meta("hud_autolink", autolink)
 	if not l.is_in_group("hud_text"):
 		l.add_to_group("hud_text")
-	var r := GlossaryText.render(text, p.seen_terms, true, night)
+	var r := GlossaryText.render(text, p.seen_terms, autolink, night)
 	l.text = "[b]%s[/b]" % r["bbcode"] if bold else r["bbcode"]
 	if not (r["new_terms"] as PackedStringArray).is_empty():
 		game.mark_terms_seen(r["new_terms"])
@@ -70,7 +72,7 @@ static func refresh_all(tree: SceneTree, game: Game) -> void:
 	for n in tree.get_nodes_in_group("hud_text"):
 		var l := n as RichTextLabel
 		if l != null and l.has_meta("hud_src"):
-			put(l, str(l.get_meta("hud_src")), game, bool(l.get_meta("hud_bold", false)))
+			put(l, str(l.get_meta("hud_src")), game, bool(l.get_meta("hud_bold", false)), bool(l.get_meta("hud_autolink", true)))
 
 
 ## Introduces the glossary words in the plain text (labels, buttons) under

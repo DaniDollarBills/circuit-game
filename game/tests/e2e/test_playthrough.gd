@@ -220,7 +220,7 @@ func _undefined_words(root: Node, where: String) -> PackedStringArray:
 			text = (c as Button).text
 		if text.strip_edges() == "" or text == "Circuit":
 			continue
-		for t in GlossaryText.render(text, seen, true)["new_terms"]:
+		for t in GlossaryText.render(text, seen, bool(c.get_meta("hud_autolink", true)))["new_terms"]:
 			out.append("%s: '%s' in \"%s\"" % [where, t, text.strip_edges().left(48)])
 	return out
 

@@ -93,7 +93,7 @@ const INTROS := {
 			{"pin": "a", "chip": "leg", "text": "One leg: a switch works both ways round."},
 			{"pin": "b", "chip": "leg", "text": "The other leg. Flip the lever to join or part them."},
 		],
-		"where": "Light switches, power buttons and keyboards.",
+		"where": "Light switches, [[=power]] buttons and keyboards.",
 		"spec": {"text": "This one is single-pole, single-throw: it joins or splits just one pair of legs.",
 				"source": "P. Horowitz and W. Hill, The Art of Electronics, 3rd ed., Cambridge University Press (2015)"},
 		"inside": "switch_inside",

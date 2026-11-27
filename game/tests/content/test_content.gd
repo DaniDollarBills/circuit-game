@@ -8,7 +8,7 @@ const LAYERS := ["editor", "wire.closeup", "wire.copper"]
 const FORMULAS := ["led_resistor", "ohms_law", "power"]
 const MOODS := ["happy", "curious", "wow", "oops"]
 ## Lessons rewritten as full course lessons so far.
-const COURSE_READY := ["ch1.workbench", "ch1.light-it-up"]
+const COURSE_READY := ["ch1.workbench", "ch1.light-it-up", "ch1.pop", "ch1.push-and-flow", "ch1.on-and-off", "ch1.both"]
 
 
 func _ctx(c: Circuit, layer := "editor", seen := {}, flags := {}) -> Dictionary:
@@ -321,7 +321,7 @@ func test_every_fact_has_source() -> void:
 
 
 func test_glossary_definition_lengths() -> void:
-	assert_eq(Glossary.ENTRIES.size(), 63)
+	assert_eq(Glossary.ENTRIES.size(), 66)
 	for term in Glossary.ENTRIES:
 		var e: Dictionary = Glossary.ENTRIES[term]
 		assert_false(str(e["title"]).is_empty(), term)
@@ -412,8 +412,12 @@ func test_fact_sources_are_citations() -> void:
 func test_logic_gates_defined() -> void:
 	assert_eq(GlossaryText.resolve("AND gate"), "logic gate")
 	assert_eq(GlossaryText.resolve("OR gate"), "logic gate")
-	assert_true("logic gate" in GlossaryText.render(Levels.by_id("ch1.both").outro[1]["text"], {})["terms"])
-	assert_true("logic gate" in GlossaryText.render(Levels.by_id("ch1.either").outro[1]["text"], {})["terms"])
+	# Lessons 5 and 6 link AND and OR to the definition, in a card or a closing line.
+	for id in ["ch1.both", "ch1.either"]:
+		var l := Levels.by_id(id)
+		var texts: Array = l.learn.map(func(c: Dictionary) -> String: return str(c.get("text", "")))
+		texts.append_array(l.outro.map(func(o: Dictionary) -> String: return str(o["text"])))
+		assert_true(texts.any(func(t: String) -> bool: return "logic gate" in GlossaryText.render(t, {})["terms"]), id)
 
 
 ## Meet the part copy keeps the main-path limits: at most 2 sentences and 30
@@ -458,6 +462,25 @@ func test_course_lessons_complete() -> void:
 			var s := LevelSession.start(l, true)
 			LevelSession.skip_learn(s, l)
 			assert_eq(s.phase, "try", id)
+			# Try it marks each switch case it sees (Lessons 5 and 6), as the game does.
+			var flags := {}
 			for c in [l.try_circuit] + l.try_path:
-				LevelSession.update(s, l, _ctx(c))
+				var row := TruthRows.row(Simulator.simulate(c).circuit)
+				if row >= 0:
+					flags["row:%d" % row] = true
+				LevelSession.update(s, l, _ctx(c, "editor", {}, flags.duplicate()))
 			assert_true(s.poke_done.all(func(d: bool) -> bool: return d), "%s: the try path ticks every poke: %s" % [id, s.poke_done])
+
+
+## Lesson 5's Try it: its path through the two switches shows all four cases,
+## and the LED lights only in the last (A and B closed): AND.
+func test_l5_truth_table_try() -> void:
+	var l := Levels.by_id("ch1.both")
+	var rows := {}
+	for c in [l.try_circuit] + l.try_path:
+		var out := Simulator.simulate(c)
+		var row := TruthRows.row(out.circuit)
+		if row >= 0 and not rows.has(row):
+			rows[row] = TruthRows.lit(out.circuit, out.result)
+	assert_eq(rows.size(), 4, "every case: %s" % [rows])
+	assert_eq(rows, {0: false, 1: false, 2: false, 3: true})

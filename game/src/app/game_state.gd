@@ -17,6 +17,8 @@ var zoom_layer := "editor"
 ## Every zoom layer reached in this visit to the level.
 var zoom_seen: Dictionary = {}
 var ui_flags: Dictionary = {}
+## Try it's switch cases seen so far (Lessons 5 and 6): row → LED lit.
+var _truth_rows := {}
 ## The circuit being previewed (a value slider mid-drag), or null.
 var preview_circuit: Circuit
 var preview_outcome: SimOutcome
@@ -217,6 +219,10 @@ func _entered(was: String) -> void:
 
 
 func _put_try_out() -> void:
+	# A fresh Try it: no switch cases seen yet.
+	_truth_rows = {}
+	for i in 4:
+		ui_flags.erase("row:%d" % i)
 	if _build_history == null:
 		_build_history = history
 		_build_outcome = outcome
@@ -329,6 +335,8 @@ func _end_preview() -> void:
 func _update() -> void:
 	if level == null:
 		return
+	if trying():
+		_note_truth_row()
 	var was := session.phase
 	LevelSession.update(session, level, _ctx())
 	_after_evaluation(was)
@@ -349,6 +357,22 @@ func _after_evaluation(was: String) -> void:
 
 func _star_holds() -> bool:
 	return not level.star.is_empty() and bool(Goals.evaluate(level.star["goal"], _ctx())["pass"])
+
+
+## Try it's switch cases seen so far: row → whether the LED was lit.
+func truth_rows() -> Dictionary:
+	return _truth_rows.duplicate()
+
+
+## While trying, notes the switch case the bench is in (the first time it's
+## seen), as a row:<n> flag for the pokes and with the LED's state for the
+## table.
+func _note_truth_row() -> void:
+	var row := TruthRows.row(outcome.circuit)
+	if row < 0 or _truth_rows.has(row):
+		return
+	_truth_rows[row] = TruthRows.lit(outcome.circuit, outcome.result)
+	ui_flags["row:%d" % row] = true
 
 
 func _ctx() -> Dictionary:

@@ -12,7 +12,7 @@ func test_badge_copy() -> void:
 	assert_eq(Achievements.ALL.size(), 8)
 	assert_eq(Achievements.ALL[0], {"id": "first_light", "name": "First Light", "description": "Light your first LED."})
 	assert_eq(Achievements.ALL[2], {"id": "on_spec", "name": "Right on Spec", "description": "Earn the 18–20 mA star."})
-	assert_eq(Achievements.ALL[7], {"id": "spark_graduate", "name": "Spark Graduate", "description": "Finish every Chapter 1 level."})
+	assert_eq(Achievements.ALL[7], {"id": "spark_graduate", "name": "Spark Graduate", "description": "Finish every Chapter 1 lesson."})
 
 
 func test_first_light_earned_once() -> void:

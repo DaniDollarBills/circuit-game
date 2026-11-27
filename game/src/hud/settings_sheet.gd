@@ -20,8 +20,12 @@ const TOGGLES := [
 ]
 
 var game: Game
+## Opens a web address in the player's browser; tests swap it.
+var opener: Callable = func(url: String) -> Error: return OS.shell_open(url)
 
 var _choices := {}
+var _about: Label
+var _updates: Button
 var _toggles := {}
 
 
@@ -69,7 +73,31 @@ func _ready() -> void:
 		b.toggled.connect(func(on: bool) -> void: game.set_setting(key, on))
 		col.add_child(b)
 		_toggles[key] = b
+	# About: the version, and the way to new versions (the game never goes
+	# online itself).
+	var about := HBoxContainer.new()
+	about.add_theme_constant_override("separation", 12)
+	_about = Label.new()
+	_about.text = "Circuit %s" % Version.text()
+	_about.theme_type_variation = "SoftLabel"
+	_about.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_about.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	about.add_child(_about)
+	_updates = Button.new()
+	_updates.text = "Check for updates"
+	_updates.tooltip_text = "Opens the downloads page in your browser"
+	_updates.pressed.connect(func() -> void: opener.call(Version.RELEASES_URL))
+	about.add_child(_updates)
+	col.add_child(about)
 	visible = false
+
+
+func updates_button() -> Button:
+	return _updates
+
+
+func about_text() -> String:
+	return _about.text
 
 
 func open() -> void:

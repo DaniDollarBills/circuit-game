@@ -468,6 +468,8 @@ It's the same game and the same save format everywhere. Builds are produced auto
 
 Each milestone ends with something playable and downloadable. Each one gets its own detailed plan when it starts, informed by what the previous milestone taught us.
 
+> **Update, 2026-11-27:** a new M3, **Class Is In**, was inserted after M2. It turns Chapter 1 into a course (Lesson 0, Meet the part, Learn, Try it, Build it, Recap) and makes that format the standard for every chapter; see `2026-11-27-course-design.md`. The milestones below from First Chip on each move one number later: First Chip is now M4.
+
 | # | Milestone | Contents |
 |---|---|---|
 | M1 | **First Light** | Foundation, a realistic 3D workbench with true-to-size parts, datasheets and a schematic toggle, analog simulator, lessons with heavy help (checklist, instant explanations, value explanations, formula calculator), automatic new-word definitions, Notebook and badges, the zoom system, the title zoom from Earth to an atom, Chapter 1 (9 levels), the wire zoom, downloadable builds |

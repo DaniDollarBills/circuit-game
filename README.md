@@ -11,6 +11,8 @@ The game is a Godot 4.7.2 project in `game/`.
 
 - Run the tests: `tools/test.sh`. On first use it downloads Godot 4.7.2 from the official release and checks its SHA-512 checksum.
 - Run only some tests: `tools/test.sh <part of a test path or name>`
+- Rebuild the music loop: `tools/make_music.sh` (needs ffmpeg). The sound effects are synthesized in code (`game/src/audio/sfx.gd`).
+- Check the downloads carry their licenses: `tools/check_dist.sh` (after `tools/export.sh all`; Android needs `ANDROID_HOME`).
 
 ## Play it
 

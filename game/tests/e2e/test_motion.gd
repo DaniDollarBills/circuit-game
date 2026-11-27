@@ -29,7 +29,7 @@ func test_reduced_motion() -> void:
 	var cam_before := title.stage.camera()
 	await e2e.seconds(0.5)
 	assert_eq(title.stage.camera().view, cam_before.view, "no zooming within a slide")
-	e2e.game().open_level("ch1.light-it-up")
+	e2e.game().open_level("ch1.light-it-up", true)
 	await e2e.frames(4)
 	var s := e2e.screen() as LevelScreen
 	e2e.game().commit(s.game.state.level.solution)

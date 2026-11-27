@@ -13,6 +13,9 @@ var notebook: NotebookSheet
 var glossary_popup: GlossaryPopup
 
 var _buttons: Array[Button] = []
+## The chapter's lessons by id, and whether it opens with Lesson 0.
+var _levels := {}
+var _first_is_tutorial := false
 var _cards: Array[Control] = []
 var _path: MapPath
 
@@ -70,6 +73,9 @@ func _ready() -> void:
 	for l in Levels.all():
 		if l.chapter != "ch1":
 			continue
+		if i == 0:
+			_first_is_tutorial = l.kind == "tutorial"
+		_levels[l.id] = l
 		_path.add_child(_level_node(i, l, p, ids))
 		i += 1
 	_path.done = _done_flags(ids, p)
@@ -134,9 +140,10 @@ func _level_node(i: int, l: LevelDef, p: Progress, ids: PackedStringArray) -> Co
 		marks += "  ✓"
 		if bool(p.completed[l.id]["star"]):
 			marks += " ★"
-	b.text = "%d  %s%s" % [i + 1, l.title, marks]
+	var number := i if _first_is_tutorial else i + 1
+	b.text = "Lesson %d · %s%s" % [number, l.title, marks]
 	b.disabled = not p.is_unlocked(l.id, ids)
-	b.tooltip_text = l.summary if not b.disabled else "Finish level %d to unlock this one." % i
+	b.tooltip_text = l.summary if not b.disabled else "Finish Lesson %d to unlock this one." % (number - 1)
 	b.pressed.connect(func() -> void: game.open_level(l.id))
 	node.add_child(b)
 	# What a level is about shows once it can be played: its words are met
@@ -154,8 +161,29 @@ func _level_node(i: int, l: LevelDef, p: Progress, ids: PackedStringArray) -> Co
 	backing.content_margin_right = 6
 	summary.add_theme_stylebox_override("normal", backing)
 	node.add_child(summary)
+	# How far through the lesson: Learn, Try (when it has one), Build, Recap.
+	if not b.disabled:
+		var marks_label := Label.new()
+		marks_label.text = course_marks_text(l.id)
+		marks_label.theme_type_variation = "SoftLabel"
+		marks_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		HudText.font_size(marks_label, 12, game)
+		node.add_child(marks_label)
 	_buttons.append(b)
 	return node
+
+
+## "Learn ✓ · Try ○ · Build ✓ · Recap ○" for a lesson.
+func course_marks_text(level_id: String) -> String:
+	var p := game.state.progress
+	var marks := p.lesson_marks(level_id)
+	var l: LevelDef = _levels.get(level_id)
+	var parts := PackedStringArray(["Learn " + ("✓" if marks.has("learn") else "○")])
+	if l != null and l.has_try():
+		parts.append("Try " + ("✓" if marks.has("try") else "○"))
+	parts.append("Build " + ("✓" if p.completed.has(level_id) else "○"))
+	parts.append("Recap " + ("✓" if marks.has("recap") else "○"))
+	return " · ".join(parts)
 
 
 func _done_flags(ids: PackedStringArray, p: Progress) -> Array[bool]:

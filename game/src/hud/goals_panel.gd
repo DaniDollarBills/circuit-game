@@ -74,6 +74,8 @@ func _apply_compact() -> void:
 
 ## A short name for a goal, like "Light the LED (20 mA max)".
 static func label_for(goal: Dictionary, c: Circuit) -> String:
+	if goal.has("label"):
+		return str(goal["label"])
 	match str(goal.get("kind", "")):
 		"led_lit":
 			var lo: Variant = goal.get("min_ma")

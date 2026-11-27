@@ -1,8 +1,8 @@
 extends TestCase
 
-const CH1_IDS := ["ch1.light-it-up", "ch1.pop", "ch1.push-and-flow", "ch1.on-and-off", "ch1.both", "ch1.either",
+const CH1_IDS := ["ch1.workbench", "ch1.light-it-up", "ch1.pop", "ch1.push-and-flow", "ch1.on-and-off", "ch1.both", "ch1.either",
 		"ch1.short-circuit", "ch1.too-hot", "ch1.inside-the-wire"]
-const CH1_TITLES := ["Light it up", "Pop!", "Push and flow", "On and off", "Both switches", "Either switch",
+const CH1_TITLES := ["Your workbench", "Light it up", "Pop!", "Push and flow", "On and off", "Both switches", "Either switch",
 		"Short circuit!", "Too hot to handle", "Inside the wire"]
 const LAYERS := ["editor", "wire.closeup", "wire.copper"]
 const FORMULAS := ["led_resistor", "ohms_law", "power"]
@@ -73,6 +73,8 @@ func _check_refs(level: LevelDef, g: Dictionary, where: String) -> void:
 		var what := flag.get_slice(":", 0)
 		var arg := flag.get_slice(":", 1)
 		var known := flag == "tested" or flag == "datasheet:tray"
+		known = known or (what == "did" and arg in ["placed", "moved", "rotated", "wired", "deleted", "undone",
+				"zoomed", "panned", "menu", "hint", "calculator", "notebook"])
 		match what:
 			"datasheet", "value":
 				known = known or _find(level, arg) != null
@@ -114,7 +116,7 @@ func _lines(level: LevelDef) -> PackedStringArray:
 	return out
 
 
-func test_nine_ch1_levels_in_order() -> void:
+func test_ten_ch1_lessons_in_order() -> void:
 	assert_eq(Levels.chapter_ids("ch1"), PackedStringArray(CH1_IDS))
 	assert_eq(Levels.all().map(func(l: LevelDef) -> String: return l.title), CH1_TITLES)
 	assert_eq(Levels.by_id("ch1.pop").title, "Pop!")
@@ -156,7 +158,8 @@ func test_every_level_follows_lesson_rules() -> void:
 
 func test_every_level_has_valid_steps() -> void:
 	for l in Levels.all():
-		assert_between(l.steps.size(), 2, 5, l.id)
+		# Lesson 0 has a step per control.
+		assert_between(l.steps.size(), 2, 10 if l.kind == "tutorial" else 5, l.id)
 		for i in l.steps.size():
 			for g in _flatten(l.steps[i]["check"]):
 				_check_refs(l, g, "step %d" % (i + 1))
@@ -234,6 +237,10 @@ func test_hint_highlights_exist() -> void:
 ## Three tiers; only the third shows the solution, except in the zoom level.
 func test_three_hint_tiers() -> void:
 	for l in Levels.all():
+		if l.kind == "tutorial":
+			# Lesson 0 has one hint: follow the moving hand.
+			assert_eq(l.hints.size(), 1, l.id)
+			continue
 		assert_eq(l.hints.size(), 3, l.id)
 		if l.hints.size() != 3:
 			continue

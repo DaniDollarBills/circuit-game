@@ -36,6 +36,17 @@ func play(gesture: String, from: Vector2, to := Vector2.ZERO, key := "") -> void
 	queue_redraw()
 
 
+## Moves the gesture's ends (the screen moved) without restarting it.
+func retarget(from: Vector2, to := Vector2.ZERO) -> void:
+	_from = from
+	_to = to
+	queue_redraw()
+
+
+func gesture() -> String:
+	return _gesture
+
+
 func stop() -> void:
 	_gesture = ""
 	visible = false

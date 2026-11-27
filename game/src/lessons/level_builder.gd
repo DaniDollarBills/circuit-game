@@ -149,6 +149,13 @@ func why(text: String) -> LevelBuilder:
 	return self
 
 
+## The moving hand's demo for the last step: {gesture, from, to?, key?,
+## mouse?} where `mouse` overrides the gesture for mouse players.
+func demo(spec: Dictionary) -> LevelBuilder:
+	_level.steps[-1]["demo"] = spec.duplicate(true)
+	return self
+
+
 func try_it(prompt: String) -> LevelBuilder:
 	_level.try_prompt = prompt
 	return self

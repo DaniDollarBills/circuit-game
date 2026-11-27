@@ -38,6 +38,11 @@ var deck: LessonDeck
 var lesson_button: IconButton
 var try_panel: TryPanel
 var recap: RecapCard
+## Lesson 0: the tour's spotlight, the moving hand, and Skip.
+var spotlight: Spotlight
+var hand: GestureHand
+var skip_tutorial_button: Button
+var _hand_key := ""
 ## The Meet the part card on screen, and the parts waiting to be met.
 var meet_card: MeetPartCard
 var _meet_queue := PackedStringArray()
@@ -257,9 +262,11 @@ func _refresh() -> void:
 	top_bar.refresh(s)
 	tray.refresh(s.current_tray(), s.tray_used())
 	# The lesson has the stage to itself: the build's tray and column wait.
-	var learning := s.session.phase == "learn"
+	# (Lesson 0's tour points at them, so a tutorial keeps them.)
+	var learning := s.session.phase == "learn" and s.level.kind != "tutorial"
 	tray.visible = not s.current_tray().is_empty() and not learning
 	column_scroll.visible = not learning
+	skip_tutorial_button.visible = s.level.kind == "tutorial" and s.session.phase != "passed"
 	# Trying: the try panel has the column; the build's goals, steps and Test wait.
 	var trying := s.session.phase == "try"
 	try_panel.visible = trying
@@ -274,7 +281,8 @@ func _refresh() -> void:
 	test_sheet.visible = test_button.visible and not (s.session.test_report.get("cases", []) as Array).is_empty()
 	if test_sheet.visible:
 		test_sheet.refresh(s.session)
-	hint_button.visible = _help() != "off" and not s.level.hints.is_empty() and s.session.phase in ["build", "passed"]
+	hint_button.visible = _help() != "off" and not s.level.hints.is_empty() \
+			and (s.session.phase in ["build", "passed"] or s.level.kind == "tutorial")
 	lesson_button.visible = s.session.phase in ["build", "passed"] and (s.level.deck_size() > 0 or s.level.has_try())
 	back_to_building.visible = s.zoom_layer != "editor"
 	zoom_caption.visible = s.zoom_layer == "wire.copper"
@@ -716,6 +724,7 @@ func _on_board_resized() -> void:
 
 func _connect() -> void:
 	try_panel.ready_pressed.connect(game.finish_try)
+	skip_tutorial_button.pressed.connect(game.skip_tutorial)
 	# What the player did, for Lesson 0's steps.
 	editor.view_moved.connect(func(how: String) -> void: game.set_ui_flag("did:" + how))
 	hint_button.pressed.connect(func() -> void: game.set_ui_flag("did:hint"))
@@ -778,11 +787,17 @@ func _build_hud() -> void:
 	_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_column.add_theme_constant_override("separation", 8)
 	column_scroll.add_child(_column)
+	skip_tutorial_button = Button.new()
+	skip_tutorial_button.text = "Skip Lesson 0"
+	skip_tutorial_button.theme_type_variation = "FlatButton"
+	skip_tutorial_button.flat = true
+	skip_tutorial_button.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
+	skip_tutorial_button.visible = false
 	try_panel = _with_game(TryPanel.new())
 	goals = _with_game(GoalsPanel.new())
 	checklist = _with_game(StepsChecklist.new())
 	test_sheet = _with_game(TestSheet.new())
-	for p in [try_panel, goals, checklist, test_sheet]:
+	for p in [skip_tutorial_button, try_panel, goals, checklist, test_sheet]:
 		_column.add_child(p)
 	tray = _add(PartsTray.new())
 	top_bar = _add(TopBar.new())
@@ -795,6 +810,10 @@ func _build_hud() -> void:
 	guide = _add(GuideBubble.new())
 	# Under the New word cards and every popup, so a word tapped in a card
 	# opens its definition on top.
+	hand = _add(GestureHand.new())
+	hand.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	spotlight = _add(Spotlight.new())
+	spotlight.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	deck = _add(LessonDeck.new())
 	recap = _add(RecapCard.new())
 	back_to_building = Button.new()
@@ -887,6 +906,132 @@ func _layout() -> void:
 	_place_floating()
 
 
+## The part of the screen the current tour card points at ("" when none).
+func _tour_target() -> String:
+	var s := game.state
+	if s.level == null or s.session.phase != "learn":
+		return ""
+	var i := s.session.card_index - 1
+	if i < 0 or i >= s.level.learn.size() or s.level.learn[i]["type"] != "tour":
+		return ""
+	return str(s.level.learn[i]["target"])
+
+
+## Where a tour target is on screen.
+func tour_rect(target: String) -> Rect2:
+	match target:
+		"board":
+			return Rect2(editor.global_position - global_position + editor.safe_rect.position, editor.safe_rect.size)
+		"tray":
+			return _local_rect(tray)
+		"top_bar":
+			return _local_rect(top_bar)
+		"column":
+			return _local_rect(column_scroll)
+		"hint":
+			return _local_rect(hint_button)
+		"battery":
+			var a := demo_target({"pin": "B1:pos"})
+			var b := demo_target({"pin": "B1:neg"})
+			return Rect2(a.min(b), (a - b).abs()).grow(40.0)
+	return Rect2()
+
+
+func _local_rect(c: Control) -> Rect2:
+	return Rect2(c.global_position - global_position, c.size)
+
+
+## Moves `card` off `hole`: to the far side, top or bottom, and when the hole
+## is narrow, to the other side across too.
+func _dodge(card: Control, hole: Rect2, area: Rect2) -> void:
+	var y := area.position.y if hole.get_center().y > area.get_center().y else area.end.y - card.size.y
+	card.position.y = y
+	if card.get_rect().intersects(hole) and hole.size.x < area.size.x * 0.5:
+		card.position.x = area.end.x - card.size.x if hole.get_center().x < area.get_center().x else area.position.x
+	card.position = card.position.round()
+
+
+## A demo's point on screen: {tray: i}, {part: id | "placed", offset?},
+## {pin: "B1:pos" | "placed:a"}, {wire: "placed"}, {button: "undo" | "hint"}
+## or {board: [x, y]}. (-1, -1) when what it names isn't there.
+func demo_target(spec: Dictionary) -> Vector2:
+	var c := game.state.history.present
+	var to_screen := func(g: Vector2) -> Vector2: return editor.global_position - global_position + editor.grid_to_screen(g)
+	if spec.has("tray"):
+		var items := tray.items()
+		var i := int(spec["tray"])
+		return _local_rect(items[i]).get_center() if i < items.size() else Vector2(-1, -1)
+	if spec.has("part"):
+		var p := _demo_part(c, str(spec["part"]))
+		if p == null:
+			return Vector2(-1, -1)
+		var off: Array = spec.get("offset", [0, 0])
+		return to_screen.call(CircuitGeometry.part_rect(p).get_center() + Vector2(float(off[0]), float(off[1])))
+	if spec.has("pin"):
+		var parts := str(spec["pin"]).split(":")
+		var p := _demo_part(c, parts[0])
+		if p == null:
+			return Vector2(-1, -1)
+		return editor.global_position - global_position + editor.pin_screen_pos(p.id, parts[1])
+	if spec.has("wire"):
+		for w in c.wires:
+			if not w.locked:
+				# Halfway along it, clear of the parts at its ends.
+				var path := CircuitGeometry.wire_path(c, w)
+				return to_screen.call(Diagram.along(path, Diagram.path_length(path) / 2.0))
+		return Vector2(-1, -1)
+	if spec.has("button"):
+		var b: Control = hint_button if spec["button"] == "hint" else top_bar.button(str(spec["button"]))
+		return _local_rect(b).get_center() if b != null else Vector2(-1, -1)
+	if spec.has("board"):
+		var xy: Array = spec["board"]
+		return to_screen.call(Vector2(float(xy[0]), float(xy[1])))
+	return Vector2(-1, -1)
+
+
+## "placed" is the first part the player added; otherwise a part id.
+func _demo_part(c: Circuit, name: String) -> Part:
+	if name != "placed":
+		return c.find_part(name)
+	for p in c.parts:
+		if not p.locked:
+			return p
+	return null
+
+
+## Lesson 0: the moving hand shows the first step not done yet, where it's
+## done; mouse players get the mouse version of a gesture.
+func _update_hand() -> void:
+	var s := game.state
+	var step := -1
+	if s.level != null and s.level.kind == "tutorial" and s.session.phase == "build":
+		for i in s.level.steps.size():
+			if not (i < s.session.step_results.size() and bool(s.session.step_results[i]["pass"])):
+				step = i
+				break
+	if step < 0 or not s.level.steps[step].has("demo"):
+		if hand.playing():
+			hand.stop()
+		_hand_key = ""
+		return
+	var spec: Dictionary = s.level.steps[step]["demo"].duplicate()
+	if InputMode.current() == "mouse" and spec.has("mouse"):
+		spec.merge(spec["mouse"], true)
+	var from := demo_target(spec["from"])
+	var to := demo_target(spec.get("to", spec["from"]))
+	if from.x < 0.0:
+		hand.stop()
+		_hand_key = ""
+		return
+	var key := "%d|%s" % [step, spec["gesture"]]
+	if key != _hand_key:
+		_hand_key = key
+		hand.still = bool(s.progress.settings.get("reduced_motion", false))
+		hand.play(str(spec["gesture"]), from, to, str(spec.get("key", "")))
+	else:
+		hand.retarget(from, to)
+
+
 ## Lesson goes left of Test (or of Hint), icon-only on a narrow phone; in
 ## portrait the scale bar sits beside the row when it fits, else above it.
 func _place_button_row() -> void:
@@ -954,6 +1099,14 @@ func _place_floating() -> void:
 	var area := Rect2(MARGIN, top, w - 2.0 * MARGIN, h - top - MARGIN)
 	if deck.visible:
 		deck.fit_into(area, LessonDeck.MAX_W)
+	var target := _tour_target()
+	if target != "" and deck.visible:
+		var hole := tour_rect(target)
+		spotlight.show_rect(hole)
+		_dodge(deck, hole, area)
+	elif spotlight.visible:
+		spotlight.clear()
+	_update_hand()
 	if meet_card != null and meet_card.visible:
 		meet_card.fit_into(area, MeetPartCard.MAX_W)
 	if recap.visible:

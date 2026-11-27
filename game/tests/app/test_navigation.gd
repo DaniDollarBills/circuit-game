@@ -28,23 +28,43 @@ func _map(game: Game) -> MapScreen:
 	return map
 
 
-func test_map_only_l1_enabled_on_fresh_progress() -> void:
+func test_map_only_lesson0_enabled_on_fresh_progress() -> void:
 	var map := _map(_game())
 	var buttons := map.level_buttons()
-	assert_eq(buttons.size(), 9)
+	assert_eq(buttons.size(), 10)
 	assert_false(buttons[0].disabled)
-	for i in range(1, 9):
+	for i in range(1, 10):
 		assert_true(buttons[i].disabled, str(i))
 	assert_eq(map.chapter_cards().size(), 12)
 
 
 func test_map_l2_enabled_after_l1() -> void:
 	var game := _game()
+	game.state.progress.mark_complete("ch1.workbench", false, 1)
 	game.state.progress.mark_complete("ch1.light-it-up", false, 1)
 	var map := _map(game)
-	assert_false(map.level_buttons()[1].disabled)
-	assert_true(map.level_buttons()[0].text.contains("✓"))
-	assert_true(map.level_buttons()[2].disabled)
+	assert_false(map.level_buttons()[2].disabled)
+	assert_true(map.level_buttons()[1].text.contains("✓"))
+	assert_true(map.level_buttons()[3].disabled)
+
+
+func test_map_numbers_lessons_from_zero() -> void:
+	var map := _map(_game())
+	assert_true(map.level_buttons()[0].text.begins_with("Lesson 0 · Your workbench"), map.level_buttons()[0].text)
+	assert_true(map.level_buttons()[1].text.begins_with("Lesson 1 · Light it up"), map.level_buttons()[1].text)
+	assert_eq(map.level_buttons()[2].tooltip_text, "Finish Lesson 1 to unlock this one.")
+
+
+func test_map_shows_course_marks() -> void:
+	var game := _game()
+	var p := game.state.progress
+	p.mark_complete("ch1.workbench", false, 1)
+	p.mark_lesson("ch1.light-it-up", "learn", 1)
+	p.mark_lesson("ch1.light-it-up", "try", 1)
+	p.mark_complete("ch1.light-it-up", false, 1)
+	var map := _map(game)
+	var marks := map.course_marks_text("ch1.light-it-up")
+	assert_true("Learn ✓" in marks and "Build ✓" in marks and "Recap ○" in marks, marks)
 
 
 func test_open_level_shows_level_screen() -> void:
@@ -52,7 +72,7 @@ func test_open_level_shows_level_screen() -> void:
 	main.set("progress_path", _dir.path_join("progress.json"))
 	add_to_tree(main)
 	await wait_frames(2)
-	(main.get("game") as Game).open_level("ch1.light-it-up")
+	(main.get("game") as Game).open_level("ch1.light-it-up", true)
 	await wait_frames(2)
 	assert_true(main.get("screen") is LevelScreen)
 	var screen: LevelScreen = main.get("screen")
@@ -63,7 +83,7 @@ func test_open_level_shows_level_screen() -> void:
 func test_commit_autosaves_after_debounce() -> void:
 	var game := _game()
 	var path := _dir.path_join("progress.json")
-	game.open_level("ch1.light-it-up")
+	game.open_level("ch1.light-it-up", true)
 	game.commit(TestCircuits.with_wire(game.state.level.circuit, "w1", "B1", "pos", "R1", "a"))
 	assert_false(FileAccess.file_exists(path), "saves wait for the debounce")
 	await tree.create_timer(Game.SAVE_DELAY_S + 0.2).timeout
@@ -74,7 +94,7 @@ func test_commit_autosaves_after_debounce() -> void:
 func test_close_request_saves_immediately() -> void:
 	var game := _game()
 	var path := _dir.path_join("progress.json")
-	game.open_level("ch1.light-it-up")
+	game.open_level("ch1.light-it-up", true)
 	game.commit(TestCircuits.with_wire(game.state.level.circuit, "w1", "B1", "pos", "R1", "a"))
 	game.notification(Node.NOTIFICATION_WM_CLOSE_REQUEST)
 	assert_true(ProgressStorage.load(path)["progress"].drafts.has("ch1.light-it-up"))
@@ -113,7 +133,7 @@ func test_next_level_gives_the_new_screen_its_new_words() -> void:
 	add_to_tree(main)
 	await wait_frames(2)
 	var game: Game = main.get("game")
-	game.open_level("ch1.light-it-up")
+	game.open_level("ch1.light-it-up", true)
 	await wait_frames(3)
 	var before := game.state.progress.seen_terms.duplicate()
 	game.open_level("ch1.pop", true)

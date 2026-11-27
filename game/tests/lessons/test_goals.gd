@@ -177,3 +177,14 @@ func test_burnt_goal() -> void:
 	var popped := CircuitEdits.set_props(TestCircuits.compact_loop(), "L1", {"burnt": true})
 	assert_true(Goals.evaluate(burnt, _ctx(popped))["pass"])
 	assert_false(Goals.evaluate({"kind": "burnt", "part": "Z9"}, _ctx(popped))["pass"], "no such part")
+
+
+## Lesson 0's goal names itself, and says what to do while it isn't met.
+func test_goal_label_and_message_override() -> void:
+	var g := {"kind": "all", "goals": [{"kind": "ui_flag", "flag": "did:placed"}, {"kind": "ui_flag", "flag": "did:hint"}],
+			"label": "Try every control once", "message": "Follow the steps: the moving hand shows each one."}
+	var c := TestCircuits.compact_loop()
+	assert_eq(GoalsPanel.label_for(g, c), "Try every control once")
+	assert_eq(Goals.evaluate(g, _ctx(c))["message"], "Follow the steps: the moving hand shows each one.")
+	var met := Goals.evaluate(g, _ctx(c, {"ui_flags": {"did:placed": true, "did:hint": true}}))
+	assert_true(met["pass"])

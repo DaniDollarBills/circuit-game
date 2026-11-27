@@ -15,7 +15,15 @@ const REVERSED_VOLTS := 0.5
 const BYPASS_VOLTS := 0.1
 
 
+## A goal may carry its own `message`, said while it isn't met.
 static func evaluate(goal: Dictionary, ctx: Dictionary) -> Dictionary:
+	var r := _evaluate_kind(goal, ctx)
+	if not bool(r["pass"]) and goal.has("message"):
+		r["message"] = str(goal["message"])
+	return r
+
+
+static func _evaluate_kind(goal: Dictionary, ctx: Dictionary) -> Dictionary:
 	match str(goal.get("kind", "")):
 		"led_lit":
 			return _led_lit(goal, ctx)

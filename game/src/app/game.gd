@@ -116,6 +116,22 @@ func skip_learn() -> void:
 	_changed()
 
 
+## Skips a tutorial (Lesson 0) once: it counts as done, with no star, and
+## the next lesson opens.
+func skip_tutorial() -> void:
+	var l := state.level
+	if l == null:
+		return
+	state.progress.mark_complete(l.id, false, state.now())
+	save_soon()
+	var ids := Levels.chapter_ids(l.chapter)
+	var i := ids.find(l.id)
+	if i >= 0 and i + 1 < ids.size():
+		open_level(ids[i + 1])
+	else:
+		open_map()
+
+
 ## Records a step of the open lesson ("learn", "try" or "recap") as seen.
 func mark_lesson_step(step: String) -> void:
 	if state.level != null:

@@ -4,6 +4,7 @@ extends RefCounted
 ## a caller does to one can leak into another.
 
 const _CH1 := [
+	preload("res://src/content/ch1/l0_workbench.gd"),
 	preload("res://src/content/ch1/l1_light_it_up.gd"),
 	preload("res://src/content/ch1/l2_pop.gd"),
 	preload("res://src/content/ch1/l3_push_and_flow.gd"),

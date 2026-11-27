@@ -19,6 +19,8 @@ func after_each() -> void:
 
 
 func _to_map() -> MapScreen:
+	# Lesson 0 (the workbench tour) has its own playthrough; these start at Lesson 1.
+	e2e.game().state.progress.mark_complete("ch1.workbench", false, 1)
 	var title := e2e.screen() as TitleScreen
 	await e2e.click_control(title.find_child("Skip", true, false))
 	await e2e.click_control(title.find_child("Start", true, false))
@@ -71,7 +73,7 @@ func test_play_l1_by_mouse() -> void:
 	await e2e.start(_dir.path_join("progress.json"))
 	var map := await _to_map()
 	assert_true(map != null, "the title leads to the map")
-	var s := await _open(map, 0)
+	var s := await _open(map, 1)
 	await _wire(s, ["B1", "pos"], ["R1", "a"])
 	await _wire(s, ["R1", "b"], ["L1", "anode"])
 	await _wire(s, ["L1", "cathode"], ["B1", "neg"])
@@ -83,14 +85,14 @@ func test_play_l1_by_mouse() -> void:
 	var back := e2e.screen() as MapScreen
 	assert_true(back != null, "back on the map")
 	if back != null:
-		assert_false(back.level_buttons()[1].disabled, "L2 is open")
+		assert_false(back.level_buttons()[2].disabled, "L2 is open")
 
 
 func test_play_l2_burn_and_replace() -> void:
 	await e2e.start(_dir.path_join("progress.json"))
 	e2e.game().state.progress.mark_complete("ch1.light-it-up", false, 1)
 	var map := await _to_map()
-	var s := await _open(map, 1)
+	var s := await _open(map, 2)
 	await _wire(s, ["B1", "pos"], ["L1", "anode"])
 	await _wire(s, ["L1", "cathode"], ["B1", "neg"])
 	assert_true(s.game.state.history.present.find_part("L1").props.get("burnt", false), "the LED pops")
@@ -123,10 +125,10 @@ func test_play_l2_burn_and_replace() -> void:
 
 func test_play_l8_power_rating() -> void:
 	await e2e.start(_dir.path_join("progress.json"))
-	for id in Levels.chapter_ids("ch1").slice(0, 7):
+	for id in Levels.chapter_ids("ch1").slice(0, 8):
 		e2e.game().state.progress.mark_complete(id, false, 1)
 	var map := await _to_map()
-	var s := await _open(map, 7)
+	var s := await _open(map, 8)
 	var weak := await _place(s, 0, Vector2(-2, 0))
 	assert_true(weak != "")
 	var turned := s.game.state.history.present.find_part(weak)
@@ -157,7 +159,13 @@ func test_every_word_defined_on_first_sight() -> void:
 	# The map introduces its own words (with New word cards).
 	await e2e.frames(2)
 	announced.append_array(Array(map.word_card_terms()))
-	var s := await _open(map, 0)
+	# A new player reads Lesson 0's tour, then skips its steps.
+	var tour := await _open(map, 0)
+	announced.append_array(Array(tour.shown_word_terms()))
+	await e2e.click_control(tour.skip_tutorial_button)
+	await e2e.frames(4)
+	var s := e2e.screen() as LevelScreen
+	await e2e.skip_intro(s)
 	await _wire(s, ["B1", "pos"], ["R1", "a"])
 	await _wire(s, ["R1", "b"], ["L1", "anode"])
 	await _wire(s, ["L1", "cathode"], ["B1", "neg"])

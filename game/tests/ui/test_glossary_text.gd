@@ -2,7 +2,7 @@ extends TestCase
 
 
 func _link(term: String, shown: String) -> String:
-	return "[url=%s][color=#7C5CC4]%s[/color][/url]" % [term, shown]
+	return "[url=%s][color=%s]%s[/color][/url]" % [term, GlossaryText.LINK_LIGHT, shown]
 
 
 func test_render_explicit_markup() -> void:
@@ -89,3 +89,23 @@ func test_resolve_terms_and_aliases() -> void:
 	assert_eq(GlossaryText.resolve("Ohm's law"), "ohms law")
 	assert_eq(GlossaryText.resolve("Current meter"), "ammeter")
 	assert_eq(GlossaryText.resolve("flux capacitor"), "")
+
+
+## Checkpoint B (I5): unit symbols are defined where they appear, right after a
+## number; a lone letter such as "switch A" stays plain.
+func test_render_unit_symbols_after_numbers() -> void:
+	var r := GlossaryText.render("Resistor = (5 V − 2.0 V) ÷ 0.020 A, so 150 Ω and ¼ W.", {})
+	assert_eq(r["terms"], PackedStringArray(["resistor", "volt", "amp", "ohm", "watt"]))
+	assert_eq(GlossaryText.render("A 1 kΩ resistor", {})["terms"], PackedStringArray(["ohm", "resistor"]))
+	assert_eq(GlossaryText.render("The battery says 5V", {})["terms"], PackedStringArray(["battery", "volt"]))
+	assert_eq(GlossaryText.render("Switch A and B, and 4 × AA cells.", {})["terms"], PackedStringArray(["switch"]))
+
+
+## Checkpoint B (I7): links meet the spec's 7:1 contrast for main text, in
+## both themes.
+func test_link_color_meets_7_to_1() -> void:
+	assert_true(GlossaryText.render("[[switch]]", {})["bbcode"].contains(GlossaryText.LINK_LIGHT))
+	assert_true(GlossaryText.render("[[switch]]", {}, true, true)["bbcode"].contains(GlossaryText.LINK_NIGHT))
+	for bg in ["cream", "paper"]:
+		assert_true(Palette.contrast_ratio(Color(GlossaryText.LINK_LIGHT), Palette.color(bg)) >= 7.0, bg)
+		assert_true(Palette.contrast_ratio(Color(GlossaryText.LINK_NIGHT), Palette.color(bg, true)) >= 7.0, bg + " at night")

@@ -11,6 +11,8 @@ const KINDS: PackedStringArray = ["led_lit", "led_dark", "no_damage", "no_short"
 const NO_CURRENT_AMPS := 1e-9
 ## A reverse voltage above this means the LED is in backwards.
 const REVERSED_VOLTS := 0.5
+## Under this across an LED that carries nothing, a wire is going around it.
+const BYPASS_VOLTS := 0.1
 
 
 static func evaluate(goal: Dictionary, ctx: Dictionary) -> Dictionary:
@@ -67,17 +69,19 @@ static func _led_lit(goal: Dictionary, ctx: Dictionary) -> Dictionary:
 	if p == null:
 		return _missing(goal.get("part", ""))
 	if bool(p.props.get("burnt", false)):
-		return _result(false, "Pop! The LED burned out from too much current. Hold it to replace it, then add a resistor.")
+		return _result(false, "Pop! Too much current burned out the LED, so replace it and put a resistor in its loop.")
 	if not sim.shorts.is_empty():
 		return _result(false, "Short circuit! The current is taking a shortcut around your parts.")
 	var amps := float(sim.part_amps.get(p.id, 0.0))
 	var reverse := sim.pin_volts(p.id, "cathode") - sim.pin_volts(p.id, "anode")
 	var backwards := reverse > REVERSED_VOLTS
 	var floating := sim.is_floating(p.id, "anode") or sim.is_floating(p.id, "cathode")
+	if not floating and absf(amps) < NO_CURRENT_AMPS and absf(reverse) < BYPASS_VOLTS and _battery_drives(p, ctx):
+		return _result(false, "Current is flowing, but around the LED instead of through it. Make the path go through the LED.")
 	if floating or (absf(amps) < NO_CURRENT_AMPS and not backwards):
 		return _result(false, "The loop isn't closed yet. Current needs a full path from + back to −.")
 	if backwards:
-		return _result(false, "The LED is backwards. Flip it so its + side points toward the battery's +.")
+		return _result(false, "The LED is backwards. Swap its wires so its + side connects toward the battery's +.")
 	if amps < Devices.LED_LIT_AMPS:
 		return _result(false, "A little current flows, but not enough to see. Try a smaller resistor.")
 	var ma := amps * 1000.0
@@ -87,6 +91,22 @@ static func _led_lit(goal: Dictionary, ctx: Dictionary) -> Dictionary:
 	if goal.has("min_ma") and ma < float(goal["min_ma"]):
 		return _result(false, "It's glowing, but dimly (%.1f mA). Can you make it brighter?" % ma)
 	return _result(true, "Lit! %.1f mA flowing." % ma)
+
+
+## True when a battery in the LED's part of the circuit delivers real current
+## (more than leakage), so the loop around the LED is closed somewhere else.
+static func _battery_drives(led: Part, ctx: Dictionary) -> bool:
+	var sim: SimResult = ctx["sim"]
+	var k := Netlist.key(led.id, "anode")
+	if not sim.net_of.has(k):
+		return false
+	var comp := sim.component_of_net[sim.net_of[k]]
+	for p in (ctx["circuit"] as Circuit).parts:
+		var pk := Netlist.key(p.id, "pos")
+		if p.kind == "battery" and sim.net_of.has(pk) and sim.component_of_net[sim.net_of[pk]] == comp \
+				and absf(float(sim.part_amps.get(p.id, 0.0))) > NO_CURRENT_AMPS:
+			return true
+	return false
 
 
 static func _led_dark(goal: Dictionary, ctx: Dictionary) -> Dictionary:

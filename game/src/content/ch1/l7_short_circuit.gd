@@ -21,5 +21,5 @@ static func build() -> LevelDef:
 	b.solution_remove_wire("w_bad")
 	b.outro("Fixed! The current goes through the LED again.", "wow")
 	b.outro("Real short circuits can melt wires. Never connect a real battery's + and − together!", "curious")
-	b.fact("Fuses and circuit breakers cut the power when too much current flows.", "Standard overcurrent protection, e.g. IEC 60269 fuses")
+	b.fact("Fuses and circuit breakers cut the power when too much current flows.", "IEC 60269 (fuses) and IEC 60898-1 (circuit breakers)")
 	return b.done()

@@ -61,12 +61,6 @@ func test_wrong_types_rejected() -> void:
 	var bad_table := Progress.defaults().to_dict()
 	bad_table["settings"] = "loud"
 	assert_true(Progress.from_dict(bad_table) == null)
-	var bad_setting := Progress.defaults().to_dict()
-	bad_setting["settings"]["help_level"] = 3
-	assert_true(Progress.from_dict(bad_setting) == null)
-	var bad_choice := Progress.defaults().to_dict()
-	bad_choice["settings"]["view_style"] = "sketchy"
-	assert_true(Progress.from_dict(bad_choice) == null)
 	var bad_entry := Progress.defaults().to_dict()
 	bad_entry["completed"] = {"ch1.pop": {"star": "yes", "at": 1}}
 	assert_true(Progress.from_dict(bad_entry) == null)
@@ -103,3 +97,21 @@ func test_star_is_sticky() -> void:
 	assert_false(p.completed["ch1.both"]["star"])
 	p.mark_complete("ch1.both", true, 40)
 	assert_true(p.completed["ch1.both"]["star"])
+
+
+## Checkpoint B (M7): a setting this build can't use (a newer value, a wrong
+## type) falls back to its default instead of throwing away all progress.
+func test_bad_setting_values_take_defaults() -> void:
+	var d := Progress.defaults().to_dict()
+	d["completed"] = {"ch1.pop": {"star": true, "at": 5}}
+	d["settings"]["help_level"] = 3
+	d["settings"]["view_style"] = "sketchy"
+	d["settings"]["night"] = true
+	var p := Progress.from_dict(d)
+	assert_true(p != null)
+	if p == null:
+		return
+	assert_eq(p.settings["help_level"], "heavy")
+	assert_eq(p.settings["view_style"], "physical")
+	assert_eq(p.settings["night"], true)
+	assert_true(p.completed.has("ch1.pop"))

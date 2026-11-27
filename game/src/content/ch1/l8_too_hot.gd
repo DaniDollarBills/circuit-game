@@ -10,7 +10,7 @@ static func build() -> LevelDef:
 	b.tray("resistor", {"ohms": 47.0, "watts": 0.25}).tray("resistor", {"ohms": 47.0, "watts": 1.0})
 	b.goal({"kind": "resistor_watts", "min": 0.4, "max": 0.6}).goal({"kind": "no_damage"})
 	b.formula("power")
-	b.intro("Resistors turn electricity into heat. That's how toasters work!", "happy")
+	b.intro("Resistors turn electrical energy into heat. That's how toasters work!", "happy")
 	b.intro("Make about half a [[watt]] of heat without burning anything. Check each resistor's [[datasheet]] first.", "curious")
 	b.step("Read both resistors' datasheets in the tray.", {"kind": "ui_flag", "flag": "datasheet:tray"})
 	b.step("Work out the heat with the calculator.", {"kind": "ui_flag", "flag": "formula:power"})
@@ -24,5 +24,5 @@ static func build() -> LevelDef:
 	b.outro("Toasty! That's 0.51 watts of heat, and the 1 W resistor handles it easily.", "wow")
 	b.outro("Engineers always check the power rating. A ¼ W resistor here would burn.", "curious")
 	b.fact("A hair dryer turns about 1,500 watts into heat, 3,000 times more than your resistor.",
-			"Typical hair dryer rating 1,200–1,875 W; 1,500 ÷ 0.51 ≈ 2,940")
+			"U.S. Department of Energy, Energy Saver: Estimating Appliance and Home Electronic Energy Use (hair dryers 1,200–1,875 W); 1,500 ÷ 0.51 ≈ 2,940")
 	return b.done()

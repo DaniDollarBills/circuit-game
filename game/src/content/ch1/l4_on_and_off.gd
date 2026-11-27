@@ -26,6 +26,6 @@ static func build() -> LevelDef:
 	b.solution_wire("R1", "b", "SW1", "a").solution_wire("SW1", "b", "L1", "anode")
 	b.outro("On and off, 1 and 0. That's a [[bit]]!", "wow")
 	b.outro("Computers are made of billions of tiny switches doing exactly this.", "happy")
-	b.fact("'[[bit|Bit]]' is short for 'binary digit'. The word was first used in 1947.",
-			"J. W. Tukey, Bell Labs memo, January 1947; popularized by C. E. Shannon, 1948")
+	b.fact("'[[bit|Bit]]' is short for 'binary digit'. It was first used this way in 1947.",
+			"J. W. Tukey, Bell Labs memo, January 1947; C. E. Shannon, Bell System Technical Journal 27, 380 (1948), credits Tukey with the word")
 	return b.done()

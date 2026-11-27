@@ -10,7 +10,7 @@ const EXPLICIT_ONLY: PackedStringArray = ["bit"]
 ## term, title, simple, precise, aliases
 const _ROWS := [
 	["electricity", "Electricity",
-		"Energy carried by moving electric charges, like electrons flowing through a wire.",
+		"What electric charges do: they push and pull on each other, and flow through wires as a current.",
 		"Everything to do with electric charge: charges at rest make electric fields, and moving charges are an electric current.", []],
 	["charge", "Electric charge",
 		"A property of tiny particles that makes them push or pull on each other. Electrons are negative, protons positive.",
@@ -64,7 +64,7 @@ const _ROWS := [
 		"A material that blocks electricity, like plastic or rubber.",
 		"A material with almost no free charges, so its resistance is enormous.", []],
 	["current", "Current",
-		"How much electricity flows past a point each second. Measured in amps.",
+		"How much electric charge flows past a point each second. Measured in amps.",
 		"The rate of flow of electric charge: 1 amp = 1 coulomb per second. Drawn flowing from + to −.", []],
 	["conventional current", "Conventional current",
 		"The direction we draw current: from + to −. In wires, electrons actually move the other way!",
@@ -120,6 +120,9 @@ const _ROWS := [
 	["bit", "Bit",
 		"A single 1 or 0, the smallest piece of information.",
 		"A binary digit: the basic unit of information, with exactly two possible values.", []],
+	["logic gate", "Logic gate",
+		"A tiny circuit that makes a yes-or-no decision from its inputs. An AND gate needs every input on; an OR gate needs any one.",
+		"A circuit whose output is a 1 or a 0 set by its inputs: AND gives 1 only when every input is 1, and OR gives 1 when at least one is.", ["AND gate", "OR gate"]],
 	["series", "Series",
 		"Parts connected one after another, so current must pass through all of them.",
 		"Parts in series carry the same current, and their voltages add up.", []],

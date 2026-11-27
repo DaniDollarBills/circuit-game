@@ -51,8 +51,8 @@ func to_dict() -> Dictionary:
 	return d
 
 
-## Null for an unknown version or any value of the wrong type. Keys that are
-## missing take their defaults.
+## Null for an unknown version or any progress value of the wrong type. Keys
+## that are missing, and settings this build can't use, take their defaults.
 static func from_dict(d: Variant) -> Progress:
 	if typeof(d) != TYPE_DICTIONARY:
 		return null
@@ -79,11 +79,9 @@ static func from_dict(d: Variant) -> Progress:
 		if not DEFAULT_SETTINGS.has(key):
 			continue
 		var v: Variant = settings_in[key]
-		if typeof(v) != typeof(DEFAULT_SETTINGS[key]):
-			return null
-		if SETTING_CHOICES.has(key) and not v in SETTING_CHOICES[key]:
-			return null
-		p.settings[key] = v
+		var usable: bool = typeof(v) == typeof(DEFAULT_SETTINGS[key]) and (not SETTING_CHOICES.has(key) or v in SETTING_CHOICES[key])
+		if usable:
+			p.settings[key] = v
 	for table in ["stats", "seen_terms", "achievements"]:
 		var from: Dictionary = src.get(table, {})
 		var into: Dictionary = p.get(table)

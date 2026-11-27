@@ -22,6 +22,6 @@ static func build() -> LevelDef:
 	b.solution_wire("B1", "pos", "R1", "a").solution_wire("R1", "b", "L1", "anode").solution_wire("L1", "cathode", "B1", "neg")
 	b.outro("You made light! About 14 [[milliamp|milliamps]] are flowing around your loop.", "wow")
 	b.outro("Every phone and computer works because of loops like this one.", "happy")
-	b.fact("The first LED that gave visible light, made in 1962, could only glow red.",
-			"Nick Holonyak Jr., General Electric, 1962 (infrared LEDs came first: J. R. Biard and G. Pittman, Texas Instruments, 1961)")
+	b.fact("The first practical visible-light LED, made in 1962, could only glow red.",
+			"N. Holonyak Jr. and S. F. Bevacqua, Applied Physics Letters 1, 82 (1962). Earlier LEDs were infrared (J. R. Biard and G. Pittman, Texas Instruments, 1961) or far too dim to use (H. J. Round, Electrical World 49, 309 (1907)).")
 	return b.done()

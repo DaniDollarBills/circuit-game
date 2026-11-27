@@ -87,3 +87,16 @@ func test_leftover_tmp_used_when_main_missing() -> void:
 
 func test_save_to_missing_dir_returns_false() -> void:
 	assert_false(ProgressStorage.save(Progress.defaults(), "user://no_such_dir/x/progress.json"))
+
+
+## Checkpoint B (C1): a write that comes out short (disk full, quota) must
+## never be renamed over the good file.
+func test_truncated_save_never_replaces_good_file() -> void:
+	var good := Progress.defaults()
+	good.mark_complete("ch1.pop", true, 42)
+	assert_true(ProgressStorage.save(good, _path()))
+	var tmp := _path() + ".tmp"
+	_write(tmp, "{\"version\": 1, \"compl")
+	assert_false(ProgressStorage._commit(tmp, _path(), JSON.stringify(good.to_dict(), "\t")))
+	assert_false(FileAccess.file_exists(tmp), "the short temporary file is removed")
+	assert_true((ProgressStorage.load(_path())["progress"] as Progress).completed.has("ch1.pop"))

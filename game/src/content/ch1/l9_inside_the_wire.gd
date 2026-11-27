@@ -20,5 +20,5 @@ static func build() -> LevelDef:
 	b.outro("Those are copper [[atom|atoms]] in a [[crystal lattice]]. Electrons drift from − to +, against the [[conventional current]] arrows.", "wow")
 	b.outro("Electrons crawl slower than a snail, but the push travels down the wire at a large fraction of the speed of light.", "happy")
 	b.fact("In this wire, electrons drift only about 0.2 millimeters per minute.",
-			"v = I ÷ (n·A·e): 13.8 mA, n = 8.47 × 10²⁸ m⁻³ for copper, 22 AWG (0.644 mm) wire gives ≈ 3.1 µm/s ≈ 0.19 mm/min")
+			"Copper's free-electron density n = 8.47 × 10²² cm⁻³ (C. Kittel, Introduction to Solid State Physics, 8th ed., ch. 6, table 1); v = I ÷ (n·A·e) with 13.8 mA in 22 AWG (0.644 mm) wire ≈ 3.1 µm/s ≈ 0.19 mm/min")
 	return b.done()

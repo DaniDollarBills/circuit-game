@@ -287,7 +287,7 @@ func test_every_fact_has_source() -> void:
 
 
 func test_glossary_definition_lengths() -> void:
-	assert_eq(Glossary.ENTRIES.size(), 55)
+	assert_eq(Glossary.ENTRIES.size(), 56)
 	for term in Glossary.ENTRIES:
 		var e: Dictionary = Glossary.ENTRIES[term]
 		assert_false(str(e["title"]).is_empty(), term)
@@ -317,3 +317,40 @@ func test_datasheet_terms_exist() -> void:
 			for row in Catalog.datasheet(Part.make("X1", kind, 0, 0, 0, props)):
 				if row["term"] != "":
 					assert_true(Glossary.ENTRIES.has(row["term"]), "%s: %s" % [kind, row["term"]])
+
+
+
+## Checkpoint B (C2): energy in a circuit travels through the field around the
+## wires, not with the drifting electrons, so the first definitions must not
+## say otherwise.
+func test_core_definitions_are_physically_right() -> void:
+	assert_eq(Glossary.ENTRIES["electricity"]["simple"], "What electric charges do: they push and pull on each other, and flow through wires as a current.")
+	assert_eq(Glossary.ENTRIES["current"]["simple"], "How much electric charge flows past a point each second. Measured in amps.")
+	assert_eq(Levels.by_id("ch1.too-hot").intro[0]["text"], "Resistors turn electrical energy into heat. That's how toasters work!")
+
+
+## Checkpoint B (C3, M1): history stated exactly.
+func test_history_facts_exact() -> void:
+	assert_eq(Levels.by_id("ch1.light-it-up").facts[0]["text"], "The first practical visible-light LED, made in 1962, could only glow red.")
+	assert_eq(Levels.by_id("ch1.on-and-off").facts[0]["text"], "'[[bit|Bit]]' is short for 'binary digit'. It was first used this way in 1947.")
+
+
+## Checkpoint B (I8): every source is something a reader can look up.
+func test_fact_sources_are_citations() -> void:
+	var expect := {
+		"ch1.light-it-up": "Applied Physics Letters 1, 82 (1962)",
+		"ch1.on-and-off": "Bell System Technical Journal 27",
+		"ch1.short-circuit": "IEC 60898-1",
+		"ch1.too-hot": "U.S. Department of Energy",
+		"ch1.inside-the-wire": "Kittel",
+	}
+	for id in expect:
+		assert_true(str(Levels.by_id(id).facts[0]["source"]).contains(expect[id]), id)
+
+
+## Checkpoint B (I6): the AND and OR gates of L5 and L6 are defined.
+func test_logic_gates_defined() -> void:
+	assert_eq(GlossaryText.resolve("AND gate"), "logic gate")
+	assert_eq(GlossaryText.resolve("OR gate"), "logic gate")
+	assert_true("logic gate" in GlossaryText.render(Levels.by_id("ch1.both").outro[1]["text"], {})["terms"])
+	assert_true("logic gate" in GlossaryText.render(Levels.by_id("ch1.either").outro[1]["text"], {})["terms"])

@@ -91,3 +91,55 @@ func test_solution_diff_lists_extra_player_wire_for_removal() -> void:
 	var c := CircuitEdits.add_wire(_solved_switch_circuit(level), "R1", "b", "L1", "anode")
 	var bypass := c.wires[c.wires.size() - 1].id
 	assert_eq(SolutionDiff.compute(c, level.solution)["remove_wires"], PackedStringArray([bypass]))
+
+
+
+## Checkpoint B (I3): a switch works either way round, so wiring it reversed
+## is not a mistake.
+func test_solution_diff_accepts_reversed_switch() -> void:
+	var level := _switch_level()
+	var sw := Part.make("SW9", "switch", 6, -4, 0, {"label": "S"})
+	sw.tray = 0
+	var c := CircuitEdits.add_part(level.circuit, sw)
+	c = CircuitEdits.add_wire(c, "R1", "b", "SW9", "b")
+	c = CircuitEdits.add_wire(c, "SW9", "a", "L1", "anode")
+	var d := SolutionDiff.compute(c, level.solution)
+	assert_eq(d["wires"].size(), 0)
+	assert_eq(d["remove_wires"].size(), 0)
+
+
+## Checkpoint B (I3): the same connections made with different wires are fine.
+func test_solution_diff_accepts_equivalent_parallel_wiring() -> void:
+	var b := LevelBuilder.new("test.either", "ch1", "Either")
+	b.part("B1", "battery", -6, 0).part("R1", "resistor", -2, -4).part("L1", "led", 12, 0, 90)
+	b.wire("w1", "B1", "pos", "R1", "a").wire("w3", "L1", "cathode", "B1", "neg")
+	b.tray("switch", {"label": "A"}).tray("switch", {"label": "B"})
+	b.solution_part("SW1", "switch", 4, -4, 0, {"label": "A"}).solution_part("SW2", "switch", 4, -7, 0, {"label": "B"})
+	b.solution_wire("R1", "b", "SW1", "a").solution_wire("SW1", "a", "SW2", "a")
+	b.solution_wire("SW2", "b", "SW1", "b").solution_wire("SW1", "b", "L1", "anode")
+	var level := b.done()
+	var a := Part.make("SA", "switch", 4, -4, 0, {"label": "A"})
+	a.tray = 0
+	var bb := Part.make("SB", "switch", 4, -7, 0, {"label": "B"})
+	bb.tray = 1
+	var c := CircuitEdits.add_part(CircuitEdits.add_part(level.circuit, a), bb)
+	for w in [["R1", "b", "SA", "a"], ["R1", "b", "SB", "a"], ["SA", "b", "L1", "anode"], ["SB", "b", "L1", "anode"]]:
+		c = CircuitEdits.add_wire(c, w[0], w[1], w[2], w[3])
+	var d := SolutionDiff.compute(c, level.solution)
+	assert_eq(d["wires"].size(), 0)
+	assert_eq(d["remove_wires"].size(), 0)
+
+
+## Checkpoint B (I4): a ghost never reuses an id the player's board has, and a
+## wrong part from the tray is marked for removal.
+func test_ghost_part_ids_never_clash() -> void:
+	var level := _pop_level()
+	var wrong := Part.make("R1", "resistor", -2, -4, 0, {"ohms": 47.0})
+	wrong.tray = 0
+	var c := CircuitEdits.add_part(level.circuit, wrong)
+	var d := SolutionDiff.compute(c, level.solution)
+	assert_eq(d["parts"].size(), 1)
+	var ghost: Part = d["parts"][0]
+	assert_eq(ghost.props["ohms"], 150.0)
+	assert_true(c.find_part(ghost.id) == null, "ghost id %s is free" % ghost.id)
+	assert_eq(d["remove_parts"], PackedStringArray(["R1"]))

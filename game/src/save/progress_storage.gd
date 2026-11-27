@@ -22,13 +22,25 @@ static func load(path := "user://progress.json") -> Dictionary:
 
 static func save(p: Progress, path := "user://progress.json") -> bool:
 	var tmp := path + ".tmp"
+	var text := JSON.stringify(p.to_dict(), "\t")
 	var f := FileAccess.open(tmp, FileAccess.WRITE)
 	if f == null:
 		return false
-	f.store_string(JSON.stringify(p.to_dict(), "\t"))
-	var written := f.get_error() == OK
+	var stored := f.store_string(text)
+	f.flush()
+	stored = stored and f.get_error() == OK
 	f.close()
-	if not written:
+	if not stored:
+		DirAccess.remove_absolute(tmp)
+		return false
+	return _commit(tmp, path, text)
+
+
+## Renames the finished temporary file over the real one, but only after reading
+## it back whole. A write that came out short (disk full, a size limit, an error
+## that only showed up on close) is removed instead, and the good file stays.
+static func _commit(tmp: String, path: String, expected: String) -> bool:
+	if FileAccess.get_file_as_string(tmp) != expected:
 		DirAccess.remove_absolute(tmp)
 		return false
 	return DirAccess.rename_absolute(tmp, path) == OK

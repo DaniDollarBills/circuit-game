@@ -21,7 +21,7 @@ func _without(c: Circuit, wire_id: String) -> Circuit:
 func test_led_lit_each_diagnosis() -> void:
 	var lit := {"kind": "led_lit", "part": "L1"}
 	var burnt := CircuitEdits.set_props(TestCircuits.compact_loop(), "L1", {"burnt": true})
-	assert_eq(_msg(lit, burnt), "Pop! The LED burned out from too much current. Hold it to replace it, then add a resistor.")
+	assert_eq(_msg(lit, burnt), "Pop! Too much current burned out the LED, so replace it and put a resistor in its loop.")
 	var shorted := TestCircuits.with_wire(TestCircuits.compact_loop(), "w9", "B1", "pos", "B1", "neg")
 	assert_eq(_msg(lit, shorted), "Short circuit! The current is taking a shortcut around your parts.")
 	var open := _without(TestCircuits.compact_loop(), "w3")
@@ -29,7 +29,7 @@ func test_led_lit_each_diagnosis() -> void:
 	var reversed := _without(_without(TestCircuits.compact_loop(), "w2"), "w3")
 	reversed.wires.append(Wire.make("w2", "R1", "b", "L1", "cathode"))
 	reversed.wires.append(Wire.make("w3", "L1", "anode", "B1", "neg"))
-	assert_eq(_msg(lit, reversed), "The LED is backwards. Flip it so its + side points toward the battery's +.")
+	assert_eq(_msg(lit, reversed), "The LED is backwards. Swap its wires so its + side connects toward the battery's +.")
 	assert_eq(_msg(lit, TestCircuits.compact_loop(1.0e6)), "A little current flows, but not enough to see. Try a smaller resistor.")
 	var dim := {"kind": "led_lit", "part": "L1", "min_ma": 10.0}
 	assert_eq(_msg(dim, TestCircuits.compact_loop(1000.0)), "It's glowing, but dimly (3.2 mA). Can you make it brighter?")
@@ -133,3 +133,31 @@ func test_evaluate_all_returns_one_result_per_goal() -> void:
 	var rs := Goals.evaluate_all([{"kind": "no_short"}, {"kind": "no_damage"}], _ctx(TestCircuits.compact_loop()))
 	assert_eq(rs.size(), 2)
 	assert_true(rs[0]["pass"] and rs[1]["pass"])
+
+
+## Checkpoint B (I1): current that flows around the LED (a wire straight across
+## it) is not an open loop.
+func test_led_bypassed_by_wire() -> void:
+	var lit := {"kind": "led_lit", "part": "L1"}
+	var bypass := TestCircuits.with_wire(TestCircuits.compact_loop(), "w9", "L1", "anode", "L1", "cathode")
+	assert_eq(_msg(lit, bypass), "Current is flowing, but around the LED instead of through it. Make the path go through the LED.")
+	var both := TestCircuits.with_wire(TestCircuits.compact_loop(), "w9", "L1", "anode", "B1", "neg")
+	assert_eq(_msg(lit, both), "Current is flowing, but around the LED instead of through it. Make the path go through the LED.")
+	assert_eq(_msg(lit, _without(TestCircuits.compact_loop(), "w3")), "The loop isn't closed yet. Current needs a full path from + back to −.")
+
+
+## Every diagnosis keeps to the copy rule: at most two sentences.
+func test_led_messages_keep_copy_limits() -> void:
+	var sentence_end := RegEx.create_from_string("[.!?](\\s|$)")
+	var circuits := [
+		CircuitEdits.set_props(TestCircuits.compact_loop(), "L1", {"burnt": true}),
+		TestCircuits.with_wire(TestCircuits.compact_loop(), "w9", "B1", "pos", "B1", "neg"),
+		TestCircuits.with_wire(TestCircuits.compact_loop(), "w9", "L1", "anode", "L1", "cathode"),
+		_without(TestCircuits.compact_loop(), "w3"),
+		TestCircuits.compact_loop(1.0e6),
+		TestCircuits.compact_loop(100.0),
+	]
+	for c in circuits:
+		var m := _msg({"kind": "led_lit", "part": "L1", "max_ma": 20.0}, c)
+		assert_true(sentence_end.search_all(m).size() <= 2, m)
+		assert_true(m.split(" ", false).size() <= 30, m)

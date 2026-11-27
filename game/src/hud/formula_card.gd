@@ -34,7 +34,7 @@ func _ready() -> void:
 	var title := Label.new()
 	title.text = "Calculator"
 	title.theme_type_variation = "HeadingLabel"
-	title.add_theme_font_size_override("font_size", 22)
+	HudText.font_size(title, 22, game)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(title)
 	var close_b := IconButton.make("close", "Close")
@@ -57,7 +57,7 @@ func _ready() -> void:
 	col.add_child(_form)
 	_note = Label.new()
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_note.add_theme_font_size_override("font_size", 14)
+	HudText.font_size(_note, 14, game)
 	_note.theme_type_variation = "SoftLabel"
 	col.add_child(_note)
 	var go := Button.new()
@@ -76,6 +76,7 @@ func open(name := "") -> void:
 		name = level.formula
 	_show_tab(name if TABS.has(name) else "led_resistor")
 	visible = true
+	HudText.introduce_in(game, self)
 
 
 func field(name: String) -> LineEdit:
@@ -137,6 +138,8 @@ func _show_tab(id: String) -> void:
 		_steps.remove_child(c)
 		c.queue_free()
 	_prefill()
+	if is_visible_in_tree():
+		HudText.introduce_in(game, self)
 
 
 ## Starts from the level's numbers: the battery's voltage, the LED's datasheet

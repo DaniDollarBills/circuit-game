@@ -25,6 +25,8 @@ static func make(g: Game, t: String) -> NewWordCard:
 
 
 func _ready() -> void:
+	# A definition: its own words stay plain (HudText.introduce_in skips it).
+	add_to_group("definitions")
 	custom_minimum_size = Vector2(300, 0)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_animate = not bool(game.state.progress.settings.get("reduced_motion", false))
@@ -35,7 +37,7 @@ func _ready() -> void:
 	add_child(col)
 	var tag := Label.new()
 	tag.text = "New word"
-	tag.add_theme_font_size_override("font_size", 13)
+	HudText.font_size(tag, 13, game)
 	var pill := StyleBoxFlat.new()
 	pill.bg_color = Palette.color("mint")
 	pill.set_corner_radius_all(9)
@@ -47,7 +49,7 @@ func _ready() -> void:
 	col.add_child(tag)
 	var title := Label.new()
 	title.text = e["title"]
-	title.add_theme_font_size_override("font_size", 19)
+	HudText.font_size(title, 19, game)
 	col.add_child(title)
 	# Plain text here: the card itself is the definition, and it must not
 	# mark the words it uses as seen.
@@ -55,7 +57,7 @@ func _ready() -> void:
 		var l := Label.new()
 		l.text = line[0]
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.add_theme_font_size_override("font_size", line[1])
+		HudText.font_size(l, line[1], game)
 		# Theme colors, so switching Night on recolors a card already showing.
 		l.theme_type_variation = "SoftLabel" if line[2] == "ink_soft" else ""
 		col.add_child(l)

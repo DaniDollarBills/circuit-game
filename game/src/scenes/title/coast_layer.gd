@@ -6,6 +6,8 @@ extends TitleLayer
 ## sea (drawn glowing and labeled as a visualization). The beach at (0, 0) is
 ## where the next zoom lands.
 
+## The cable's real radius: 4 m (0.4 units of 10 m).
+const CABLE_REAL_RADIUS := 0.4
 const SKY := "res://assets/third_party/polyhaven/hdri/kloofendal_48d_partly_cloudy_puresky_2k.hdr"
 const BEACH := "res://assets/third_party/polyhaven/textures/aerial_beach_01/aerial_beach_01_diff_2k.jpg"
 
@@ -57,6 +59,11 @@ void fragment() {
 }
 """
 
+
+## The cable as drawn, in units (it widens as the view zooms out).
+var cable_radius := CABLE_REAL_RADIUS
+var _cable: MeshInstance3D
+var _cable_pts := PackedVector3Array()
 
 func _init() -> void:
 	layer_id = "title.coast"
@@ -145,22 +152,22 @@ func _box(at: Vector3, size: Vector3, mat: Material) -> void:
 ## cables really are buried near the shore and lie on the seabed beyond; the
 ## glow only shows where it is.
 func _add_cable() -> void:
-	var pts := PackedVector3Array()
 	var start := Vector3(_coast_x(4.0) + 8.0, 0.1, 4.0)
+	_cable_pts.clear()
 	for i in 41:
 		var t := i / 40.0
 		var x := lerpf(start.x, -900.0, t * t)
-		pts.append(Vector3(x, 0.15 - 0.1 * t, lerpf(4.0, -40.0, t)))
+		_cable_pts.append(Vector3(x, 0.15 - 0.1 * t, lerpf(4.0, -40.0, t)))
 	var glow := StandardMaterial3D.new()
 	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	glow.albedo_color = Color(Palette.color("peach"))
 	glow.emission_enabled = true
 	glow.emission = Color(Palette.color("peach"))
 	glow.emission_energy_multiplier = 2.5
-	var tube := MeshInstance3D.new()
-	tube.mesh = WireMesh.tube(pts, 4.0, 6)
-	tube.material_override = glow
-	world.add_child(tube)
+	_cable = MeshInstance3D.new()
+	_cable.material_override = glow
+	world.add_child(_cable)
+	_set_cable_radius(cable_radius)
 	var label := Label3D.new()
 	label.text = "Undersea cable (visualization)"
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -170,8 +177,29 @@ func _add_cable() -> void:
 	label.outline_size = 8
 	label.modulate = Color(Palette.color("ink"))
 	label.outline_modulate = Color(Palette.color("paper"))
-	label.position = Vector3(-60.0, 6.0, -6.0)
+	# On the cable's middle, its text just above the line so the cable shows;
+	# drawn over the ground rather than half buried in it.
+	label.position = _cable_pts[_cable_pts.size() / 2]
+	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	label.offset = Vector2(0, 10)
+	label.no_depth_test = true
 	world.add_child(label)
+
+
+## The real cable is 4 m across at most, far under a pixel from kilometres up:
+## the visualization keeps it about 3 px wide at any zoom.
+func on_view(_center: Vector2, view: float, _distance: float) -> void:
+	if _cable == null or size.y < 1.0:
+		return
+	var want := maxf(CABLE_REAL_RADIUS, 1.5 * view / size.y)
+	# Rebuilt only when the width is off by a quarter, not on every frame.
+	if absf(log(want / cable_radius)) > log(1.25):
+		_set_cable_radius(want)
+
+
+func _set_cable_radius(r: float) -> void:
+	cable_radius = r
+	_cable.mesh = WireMesh.tube(_cable_pts, r / PartDims.mm(1.0), 6)
 
 
 static func _coast_x(z: float) -> float:

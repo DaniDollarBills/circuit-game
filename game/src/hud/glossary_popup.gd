@@ -12,6 +12,8 @@ var _precise: RichTextLabel
 
 
 func _ready() -> void:
+	# A definition: its own words stay plain (HudText.introduce_in skips it).
+	add_to_group("definitions")
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	# Narrower on a phone, and scrolls when it is still too tall.
@@ -20,7 +22,7 @@ func _ready() -> void:
 	col.add_child(top)
 	_title = Label.new()
 	_title.theme_type_variation = "HeadingLabel"
-	_title.add_theme_font_size_override("font_size", 22)
+	HudText.font_size(_title, 22, game)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	top.add_child(_title)
@@ -32,7 +34,7 @@ func _ready() -> void:
 	col.add_child(_simple)
 	var more := Label.new()
 	more.text = "More precisely"
-	more.add_theme_font_size_override("font_size", 14)
+	HudText.font_size(more, 14, game)
 	more.theme_type_variation = "SoftLabel"
 	col.add_child(more)
 	_precise = HudText.label(game, 15)

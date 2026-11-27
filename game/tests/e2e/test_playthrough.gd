@@ -54,7 +54,11 @@ func _wire_mid(s: LevelScreen, id: String) -> Vector2:
 
 func _place(s: LevelScreen, tray_index: int, spot: Vector2) -> String:
 	var before := s.game.state.history.present.parts.size()
-	await e2e.click_control(s.tray.items()[tray_index])
+	# A New word card slides in from the left edge, across the tray: let it
+	# land (and clear it) before pressing the tray item, or the press hits it.
+	var item: Control = s.tray.items()[tray_index]
+	await e2e.clear_cards_at(s, [item.get_global_rect().get_center()])
+	await e2e.click_control(item)
 	var at := e2e.grid(s, spot)
 	await e2e.clear_cards_at(s, [at])
 	await e2e.click(at)
@@ -155,6 +159,9 @@ func test_every_word_defined_on_first_sight() -> void:
 	await e2e.click_control(title.find_child("Start", true, false))
 	await e2e.frames(2)
 	var map := e2e.screen() as MapScreen
+	# The map introduces its own words (with New word cards).
+	await e2e.frames(2)
+	announced.append_array(Array(map.word_card_terms()))
 	var s := await _open(map, 0)
 	await _wire(s, ["B1", "pos"], ["R1", "a"])
 	await _wire(s, ["R1", "b"], ["L1", "anode"])
@@ -180,3 +187,72 @@ func test_every_word_defined_on_first_sight() -> void:
 	back.notebook.open()
 	for t in seen:
 		assert_true(t in back.notebook.word_terms(), "Notebook lists '%s'" % t)
+
+
+## True inside a definition (New word card, definition popup, Notebook): its
+## own words are plain text by design (Task 17).
+func _in_definition(c: Node) -> bool:
+	var n := c
+	while n != null:
+		if n.is_in_group("definitions"):
+			return true
+		n = n.get_parent()
+	return false
+
+
+## Glossary words in the visible text under `root` that the player hasn't met.
+func _undefined_words(root: Node, where: String) -> PackedStringArray:
+	var seen := e2e.game().state.progress.seen_terms
+	var out := PackedStringArray()
+	for n in root.find_children("*", "Control", true, false):
+		var c := n as Control
+		if not c.is_visible_in_tree() or _in_definition(c):
+			continue
+		var text := ""
+		if c is Label:
+			text = (c as Label).text
+		elif c is RichTextLabel:
+			# Glossary text is checked as the game renders it, from its source.
+			text = str(c.get_meta("hud_src")) if c.has_meta("hud_src") else (c as RichTextLabel).get_parsed_text()
+		elif c is Button:
+			text = (c as Button).text
+		if text.strip_edges() == "" or text == "Circuit":
+			continue
+		for t in GlossaryText.render(text, seen, true)["new_terms"]:
+			out.append("%s: '%s' in \"%s\"" % [where, t, text.strip_edges().left(48)])
+	return out
+
+
+## The plan's rule, checked on what is really on screen: every glossary word
+## the title, the map, each level and each card shows has been introduced.
+func test_every_visible_word_is_defined() -> void:
+	await e2e.start(_dir.path_join("progress.json"))
+	var problems := PackedStringArray()
+	var title := e2e.screen() as TitleScreen
+	await e2e.frames(3)
+	await e2e.click_control(title.find_child("Skip", true, false))
+	await e2e.frames(3)
+	problems.append_array(_undefined_words(title, "title"))
+	title.get("_settings").call("open")
+	await e2e.frames(3)
+	problems.append_array(_undefined_words(title, "title settings"))
+	title.get("_settings").set("visible", false)
+	await e2e.click_control(title.find_child("Start", true, false))
+	await e2e.frames(3)
+	var map := e2e.screen() as MapScreen
+	problems.append_array(_undefined_words(map, "map"))
+	for id in Levels.chapter_ids("ch1"):
+		e2e.game().open_level(id, true)
+		await e2e.frames(4)
+		var s := e2e.screen() as LevelScreen
+		problems.append_array(_undefined_words(s, id + " intro"))
+		await e2e.skip_intro(s)
+		await e2e.frames(2)
+		problems.append_array(_undefined_words(s, id))
+		for card in ["datasheet:" + s.game.state.level.circuit.parts[0].id, "calculator", "settings"]:
+			s.dev_show(card)
+			await e2e.frames(3)
+			problems.append_array(_undefined_words(s, "%s %s" % [id, card]))
+			for c in [s.datasheet, s.formula, s.settings_sheet]:
+				c.visible = false
+	assert_eq("\n".join(problems), "")

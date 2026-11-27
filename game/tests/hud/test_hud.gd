@@ -681,3 +681,49 @@ func test_datasheet_shows_the_holder_and_multimeters() -> void:
 		var shown: Array = s.datasheet._turntable.get_children().filter(func(n: Node) -> bool: return not n.is_queued_for_deletion())
 		assert_eq(shown.size(), 1, pair[0])
 		assert_eq(str((shown[0] as Node).name), pair[1], pair[0])
+
+
+## The trimmer's definition says its rating is for the whole track; the
+## game's simplification of that must be said, as for other parts.
+func test_trimmer_go_deeper_explains_its_derating() -> void:
+	var note := GoDeeper.for_part(Part.make("R1", "resistor", 0, 0, 0, {"ohms": 1000.0, "adjustable": true, "watts": 0.5}))
+	assert_true(note.contains("whole track") and note.contains("0.025 W") and note.contains("The game"), note)
+	assert_false(GoDeeper.for_part(Part.make("R2", "resistor", 0, 0)).contains("track"), "fixed resistors keep their own note")
+
+
+## Each visible piece of text's font size, by node path.
+func _text_sizes(root: Node) -> Dictionary:
+	var out := {}
+	for n in root.find_children("*", "Control", true, false):
+		var c := n as Control
+		if not c.is_visible_in_tree():
+			continue
+		if c is Label and (c as Label).text.strip_edges() != "":
+			out[root.get_path_to(c)] = c.get_theme_font_size("font_size")
+		elif c is RichTextLabel and (c as RichTextLabel).get_parsed_text().strip_edges() != "":
+			out[root.get_path_to(c)] = c.get_theme_font_size("normal_font_size")
+		elif c is Button and (c as Button).text.strip_edges() != "":
+			out[root.get_path_to(c)] = c.get_theme_font_size("font_size")
+	return out
+
+
+## Spec §11's large-text option: every piece of HUD text grows, not just the
+## few that use the theme's default size.
+func test_large_text_grows_every_hud_text() -> void:
+	var s := await _screen("ch1.both", Vector2(1280, 720), {}, null, true)
+	await _skip_intro(s)
+	s.guide.show_line("Hello [[voltage]]", "happy", "help", [], "a source")
+	s.dev_show("datasheet:B1")
+	await wait_frames(2)
+	var before := _text_sizes(s)
+	assert_true(before.size() > 20, "found %d texts" % before.size())
+	s.game.set_setting("large_text", true)
+	# Main rebuilds the theme when the look changes.
+	(s.get_parent() as Control).theme = PastelTheme.build(false, true)
+	await wait_frames(2)
+	var after := _text_sizes(s)
+	var small := PackedStringArray()
+	for path in before:
+		if after.has(path) and float(after[path]) < float(before[path]) * 1.2 - 0.5:
+			small.append("%s: %d → %d" % [str(path).get_file(), before[path], after[path]])
+	assert_eq("\n".join(small), "")

@@ -126,3 +126,37 @@ func test_narrow_top_bar_hides_the_title_pill() -> void:
 	var pill := s.top_bar.find_child("TitlePill", true, false) as Control
 	assert_true(pill != null)
 	assert_eq(pill.modulate.a, 0.0, "an empty pill would show as a blank white bar")
+
+
+## The closest two pins of the board, in screen pixels.
+func _closest_pins_px(s: LevelScreen) -> float:
+	var pts: Array[Vector2] = []
+	for p in s.game.state.history.present.parts:
+		for pin in Catalog.pin_names(p.kind):
+			pts.append(s.editor.pin_screen_pos(p.id, pin))
+	var best := INF
+	for i in pts.size():
+		for j in range(i + 1, pts.size()):
+			var d := pts[i].distance_to(pts[j])
+			if d > 0.5:
+				best = minf(best, d)
+	return best
+
+
+## Spec §11 (44 px touch targets) and §17 (phones are first-class): at the
+## first framing on a phone, neighboring pins are at least a pick radius
+## apart, so a tap resolves to the pin meant without pinching first. (The
+## whole circuit must stay in view, which caps this near 23 px on a 390 px
+## phone; the meters beside the board used to shrink it to 5 px.)
+func test_phone_framing_keeps_pins_tappable() -> void:
+	var report := PackedStringArray()
+	var tight := PackedStringArray()
+	for size in [Vector2(390, 844), Vector2(844, 390)]:
+		for id in Levels.chapter_ids("ch1"):
+			var s := await _level(id, size)
+			await wait_frames(4)
+			var px := _closest_pins_px(s)
+			report.append("%s %s %.1f" % [id, size, px])
+			if px < EditorLayer.PICK_PX:
+				tight.append("%s at %s: pins %.1f px apart" % [id, size, px])
+	assert_eq("\n".join(tight), "", ", ".join(report))

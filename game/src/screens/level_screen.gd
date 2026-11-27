@@ -68,6 +68,7 @@ var _highlights: Array = []
 var _board_key := ""
 var _view_style := ""
 var _night := false
+var _large := false
 var _cards: Array[NewWordCard] = []
 var _word_queue := PackedStringArray()
 var _carded := PackedStringArray()
@@ -96,6 +97,7 @@ func _ready() -> void:
 	editor.resized.connect(_on_board_resized)
 	_layout()
 	_refresh()
+	HudText.introduce_in(game, hud)
 	_initial_frame.call_deferred()
 
 
@@ -194,6 +196,9 @@ func _refresh() -> void:
 	if bool(st.get("night", false)) != _night:
 		_night = not _night
 		HudText.refresh_all(get_tree(), game)
+	if bool(st.get("large_text", false)) != _large:
+		_large = not _large
+		HudText.refresh_sizes(get_tree(), game)
 	_update_guide()
 	_update_hints()
 	var shown := s.shown()

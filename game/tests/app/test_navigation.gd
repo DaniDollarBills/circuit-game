@@ -123,3 +123,28 @@ func test_next_level_gives_the_new_screen_its_new_words() -> void:
 	assert_true(not fresh.is_empty(), "L2 should introduce new words")
 	for t in fresh:
 		assert_true(t in screen.shown_word_terms(), "%s has no card on the new screen" % t)
+
+
+## The map's Notebook and definitions use the same scrolling cards as levels;
+## they must still get the room to show their words.
+func test_map_notebook_and_definitions_have_room() -> void:
+	var game := _game()
+	game.state.progress.mark_terms_seen(PackedStringArray(["voltage", "current", "resistance"]), 1)
+	var host := Control.new()
+	host.size = Vector2(1280, 720)
+	host.theme = PastelTheme.build()
+	add_to_tree(host)
+	var map: MapScreen = load("res://src/screens/map_screen.tscn").instantiate()
+	map.game = game
+	host.add_child(map)
+	await wait_frames(2)
+	map.notebook.open()
+	map.notebook.visible = true
+	await wait_frames(3)
+	var list := map.notebook._list.get_parent() as Control
+	assert_true(list.size.y >= 200.0, "the word list is %s tall" % list.size.y)
+	map.notebook.visible = false
+	map.glossary_popup.open("voltage")
+	await wait_frames(3)
+	assert_true(map.glossary_popup.size.y >= 120.0, "the definition card is %s tall" % map.glossary_popup.size.y)
+	assert_true(Rect2(Vector2.ZERO, host.size).encloses(map.glossary_popup.get_global_rect()))

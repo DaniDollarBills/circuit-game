@@ -16,7 +16,7 @@ func _ready() -> void:
 	add_child(col)
 	var title := Label.new()
 	title.text = "Steps"
-	title.add_theme_font_size_override("font_size", 15)
+	HudText.font_size(title, 15, game)
 	title.theme_type_variation = "SoftLabel"
 	col.add_child(title)
 	_rows = VBoxContainer.new()

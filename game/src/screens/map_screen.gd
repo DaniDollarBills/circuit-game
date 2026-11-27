@@ -17,6 +17,10 @@ var _cards: Array[Control] = []
 var _path: MapPath
 
 
+var _cards_root: Control
+var _word_cards: Array[NewWordCard] = []
+var _word_queue: Array[String] = []
+
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var margin := MarginContainer.new()
@@ -90,16 +94,24 @@ func _ready() -> void:
 	glossary_popup.game = game
 	add_child(glossary_popup)
 	game.term_requested.connect(func(term: String) -> void: glossary_popup.open(term))
+	_cards_root = Control.new()
+	_cards_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_cards_root)
+	# Plain text (level titles such as "Short circuit!") is introduced too.
+	HudText.introduce_in(game, self)
 
 
+## The cards fit the screen as in a level (CardFit): narrower on a phone, and
+## scrolling when they're still too tall.
 func _process(_delta: float) -> void:
-	for card in [notebook, glossary_popup]:
+	_take_events()
+	_place_cards()
+	var area := Rect2(12, 64, size.x - 24.0, size.y - 80.0)
+	for card: Control in [notebook, glossary_popup]:
 		if card != null and card.visible:
-			var cw := minf(maxf(card.custom_minimum_size.x, 360.0), size.x - 24.0)
-			card.size = Vector2(cw, 0)
-			card.reset_size()
-			card.size = Vector2(cw, minf(card.size.y, size.y - 80.0))
-			card.position = ((size - card.size) / 2.0).max(Vector2(12, 64)).round()
+			var w := minf(380.0, area.size.x)
+			var at := area.position + (area.size - Vector2(w, card.size.y)) / 2.0
+			CardFit.fit(card, w, area, at, 420.0 if card == notebook else -1.0)
 
 
 ## Chapter 1's level buttons, in play order.
@@ -127,12 +139,14 @@ func _level_node(i: int, l: LevelDef, p: Progress, ids: PackedStringArray) -> Co
 	b.tooltip_text = l.summary if not b.disabled else "Finish level %d to unlock this one." % i
 	b.pressed.connect(func() -> void: game.open_level(l.id))
 	node.add_child(b)
-	var summary := Label.new()
-	summary.text = l.summary
-	summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# What a level is about shows once it can be played: its words are met
+	# (with New word cards) then, not all at once on a first visit.
+	var summary := HudText.label(game, 14)
 	summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	summary.add_theme_font_size_override("font_size", 14)
-	summary.add_theme_color_override("font_color", Palette.color("ink_soft", _night()))
+	summary.add_theme_color_override("default_color", Palette.color("ink_soft", _night()))
+	summary.visible = not b.disabled
+	if summary.visible:
+		HudText.put(summary, l.summary, game)
 	var backing := StyleBoxFlat.new()
 	backing.bg_color = Palette.color("cream", _night())
 	backing.set_corner_radius_all(8)
@@ -159,10 +173,8 @@ func _chapter_header(ch: Dictionary) -> Control:
 	title.theme_type_variation = "HeadingLabel"
 	title.text = "Chapter 1 · %s" % ch["title"]
 	box.add_child(title)
-	var sub := Label.new()
-	sub.text = "%s · %s" % [ch["era"], ch["blurb"]]
-	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	sub.add_theme_color_override("font_color", Palette.color("ink_soft", _night()))
+	var sub := HudText.make(game, "%s · %s" % [ch["era"], ch["blurb"]])
+	sub.add_theme_color_override("default_color", Palette.color("ink_soft", _night()))
 	box.add_child(sub)
 	return panel
 
@@ -177,23 +189,63 @@ func _chapter_card(number: int, ch: Dictionary) -> Control:
 	var soft := Palette.color("ink_soft", _night())
 	var top := Label.new()
 	top.text = "Chapter %d · %s" % [number, ch["era"]]
-	top.add_theme_font_size_override("font_size", 14)
+	HudText.font_size(top, 14, game)
 	top.add_theme_color_override("font_color", soft)
 	box.add_child(top)
 	var title := Label.new()
 	title.text = ch["title"]
-	title.add_theme_font_size_override("font_size", 22)
+	HudText.font_size(title, 22, game)
 	box.add_child(title)
-	var blurb := Label.new()
-	blurb.text = ch["blurb"]
-	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(blurb)
+	box.add_child(HudText.make(game, ch["blurb"]))
 	var lock := Label.new()
 	lock.text = "Locked: coming in a later update"
-	lock.add_theme_font_size_override("font_size", 14)
+	HudText.font_size(lock, 14, game)
 	lock.add_theme_color_override("font_color", soft)
 	box.add_child(lock)
 	return panel
+
+
+## Words met on the map get New word cards, as in a level; badges, toasts.
+func _take_events() -> void:
+	if game.state.events.is_empty():
+		return
+	for e in game.state.take_events():
+		match str(e["type"]):
+			"new_word":
+				_word_queue.append(str(e["term"]))
+			"badge":
+				for a in Achievements.ALL:
+					if a["id"] == e["id"]:
+						game.toast.emit("Badge earned: %s" % a["name"])
+	while _word_cards.size() < (1 if size.y < 600.0 or size.x < 700.0 else 2) and not _word_queue.is_empty():
+		var card := NewWordCard.make(game, _word_queue.pop_front())
+		card.finished.connect(func(c: NewWordCard) -> void:
+			_word_cards.erase(c)
+			c.queue_free()
+			_take_events())
+		_cards_root.add_child(card)
+		_word_cards.append(card)
+
+
+## New word cards slide in at the bottom left, one above another.
+func _place_cards() -> void:
+	var y := size.y - 16.0
+	for card in _word_cards:
+		var w := minf(card.custom_minimum_size.x if card.custom_minimum_size.x > 0.0 else 320.0, size.x - 32.0)
+		card.size = Vector2(w, 0)
+		card.reset_size()
+		card.size.x = w
+		y -= card.size.y
+		card.position = Vector2(16.0 - (1.0 - card.slide_progress()) * (w + 16.0), y)
+		y -= 8.0
+
+
+## Every term that has a New word card here, shown or waiting.
+func word_card_terms() -> PackedStringArray:
+	var out := PackedStringArray(_word_queue)
+	for c in _word_cards:
+		out.append(c.term)
+	return out
 
 
 func _night() -> bool:

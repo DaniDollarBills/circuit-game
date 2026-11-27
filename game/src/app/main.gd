@@ -94,6 +94,7 @@ func _apply_look() -> void:
 	theme = PastelTheme.build(look[0], look[1])
 	($Background as ColorRect).color = Palette.color("cream", look[0])
 	HudText.refresh_all(get_tree(), game)
+	HudText.refresh_sizes(get_tree(), game)
 
 
 func _build_toast() -> void:

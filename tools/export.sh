@@ -15,8 +15,8 @@ if [ ! -f "$TEMPLATES/version.txt" ]; then
   mkdir -p "$DIR" "$TEMPLATES"
   BASE="https://github.com/godotengine/godot/releases/download/$VERSION"
   TPZ="Godot_v${VERSION}_export_templates.tpz"
-  curl -fsSL -o "$DIR/$TPZ" "$BASE/$TPZ"
-  curl -fsSL -o "$DIR/SHA512-SUMS.txt" "$BASE/SHA512-SUMS.txt"
+  curl -fsSL --retry 4 --retry-delay 5 --retry-all-errors -o "$DIR/$TPZ" "$BASE/$TPZ"
+  curl -fsSL --retry 4 --retry-delay 5 --retry-all-errors -o "$DIR/SHA512-SUMS.txt" "$BASE/SHA512-SUMS.txt"
   EXPECTED="$(grep " ${TPZ}\$" "$DIR/SHA512-SUMS.txt" | cut -d' ' -f1)"
   echo "$EXPECTED  $DIR/$TPZ" | sha512sum -c - >/dev/null
   unzip -q -o "$DIR/$TPZ" -d "$DIR"
@@ -24,13 +24,28 @@ if [ ! -f "$TEMPLATES/version.txt" ]; then
   rm -rf "$DIR"
 fi
 
+# Every download carries the texts its parts' licenses require, and the
+# credits: tools/check_dist.sh checks them.
+licenses_into() {
+  local dir="$1/Licenses"
+  rm -rf "$dir" && mkdir -p "$dir"
+  cp "$ROOT/game/assets/third_party/CREDITS.md" "$dir/CREDITS.md"
+  cp "$ROOT/game/assets/fonts/LICENSE" "$dir/Nunito-OFL.txt"
+  cp "$ROOT/game/assets/fonts/LICENSE-DejaVu.txt" "$dir/DejaVu-LICENSE.txt"
+  cp "$ROOT/game/assets/third_party/naturalearth/LICENSE-Apache-2.0.md" "$dir/NaturalEarthII-tiles-Apache-2.0.md"
+  "$GODOT" --headless --path "$ROOT/game" -s res://tools/write_licenses.gd -- "$dir" >/dev/null
+}
+
 export_one() {
   local platform="$1" preset="$2" out="$3"
   mkdir -p "$ROOT/build/$platform" "$ROOT/build/dist"
   "$GODOT" --headless --path "$ROOT/game" --import >/dev/null 2>&1 || true
   "$GODOT" --headless --path "$ROOT/game" --export-release "$preset" "$ROOT/$out"
   rm -f "$ROOT/build/dist/Circuit-$platform.zip"
+  licenses_into "$ROOT/build/$platform"
   if [ "$platform" = macos ]; then
+    # Godot writes the app as a zip already: the licenses go in beside it.
+    (cd "$ROOT/build/macos" && zip -q -r "$ROOT/$out" Licenses)
     cp "$ROOT/$out" "$ROOT/build/dist/Circuit-$platform.zip"
   else
     (cd "$ROOT/build/$platform" && zip -q -r "$ROOT/build/dist/Circuit-$platform.zip" .)

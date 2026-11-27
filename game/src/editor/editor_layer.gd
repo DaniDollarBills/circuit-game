@@ -19,6 +19,10 @@ signal explain_requested(part_id: String)
 ## How close, in pixels, a tap must be to a pin's metal in the real view,
 ## and how close when the tap is on a part's body.
 const PICK_PX := 22.0
+## Framing the meters and holder may not push pins closer than one pick
+## radius on screen: closer, a tap meant for one pin can land nearer another.
+## (Desktop windows keep the whole bench; phones frame the board.)
+const MIN_PIN_PITCH_PX := PICK_PX
 const PICK_PX_ON_BODY := 8.0
 ## How near a wire, in grid units, the view's center must be to zoom into it.
 const WIRE_ENTRY := 0.4
@@ -128,7 +132,33 @@ func begin_placing(i: int) -> void:
 ## least 12); its center is fit_center(). In the real view that includes the
 ## battery holders and meters beside the board.
 func fit_view() -> float:
-	var bounds := _fit_bounds()
+	var view := _view_for(_fit_bounds())
+	# On a small screen the meters and holder beside the board can shrink it
+	# until pins are too close to tap: then frame the board, and the
+	# equipment is a pan or pinch away (its readings show on the board too).
+	if _physical() and min_pin_gap(circuit) * size.y / view < MIN_PIN_PITCH_PX:
+		view = _view_for(_fit_bounds(false))
+	home_view = view
+	return view
+
+
+## The smallest distance between two pins on the board, in grid units.
+static func min_pin_gap(c: Circuit) -> float:
+	var pts: Array[Vector2] = []
+	for p in c.parts:
+		for pin in Catalog.pin_names(p.kind):
+			pts.append(Vector2(CircuitGeometry.pin_position(p, pin)))
+	var best := INF
+	for i in pts.size():
+		for j in range(i + 1, pts.size()):
+			var d := pts[i].distance_to(pts[j])
+			if d >= 0.5:
+				best = minf(best, d)
+	return best if best < INF else 4.0
+
+
+## The view height that frames `bounds` in the safe rect.
+func _view_for(bounds: Rect2) -> float:
 	var safe := _safe()
 	var aspect := safe.size.y / maxf(safe.size.x, 1.0)
 	var widen := 1.0
@@ -137,16 +167,16 @@ func fit_view() -> float:
 		widen = Workbench3D.near_edge_widening()
 		raised = Workbench3D.raised_allowance(MeterRig.tallest(circuit))
 	var view := maxf(bounds.size.y, bounds.size.x * aspect * widen) + raised
-	view = maxf(12.0, view * size.y / maxf(safe.size.y, 1.0))
-	home_view = view
-	return view
+	return maxf(12.0, view * size.y / maxf(safe.size.y, 1.0))
 
 
 ## The center for fit_view(): the circuit lands in the middle of safe_rect.
 func fit_center() -> Vector2:
-	var units_per_px := fit_view() / maxf(size.y, 1.0)
+	var view := fit_view()
+	var units_per_px := view / maxf(size.y, 1.0)
 	var offset := _safe().get_center() - size / 2.0
-	return _fit_bounds().get_center() - offset * units_per_px
+	var with_equipment := is_equal_approx(view, _view_for(_fit_bounds()))
+	return _fit_bounds(with_equipment).get_center() - offset * units_per_px
 
 
 func _safe() -> Rect2:
@@ -181,8 +211,9 @@ func value_label_spots() -> Array[Dictionary]:
 	return out
 
 
-## The area fit_view() frames, in grid units.
-func _fit_bounds() -> Rect2:
+## The area fit_view() frames, in grid units: the circuit, and in the real
+## view the holders and meters beside the board unless `with_equipment` is off.
+func _fit_bounds(with_equipment := true) -> Rect2:
 	var bounds := Rect2()
 	var first := true
 	for p in circuit.parts:
@@ -194,7 +225,7 @@ func _fit_bounds() -> Rect2:
 			bounds = bounds.expand(pt)
 	if first:
 		bounds = Rect2(-6, -6, 12, 12)
-	if _physical():
+	if _physical() and with_equipment:
 		var world := MeterRig.content_rect(circuit)
 		bounds = bounds.merge(Rect2(world.position / PartDims.GRID, world.size / PartDims.GRID))
 	return bounds.grow(3.0)

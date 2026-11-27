@@ -86,6 +86,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if not game.state.events.is_empty():
+		_take_events()
 	_place_bottom()
 	var area := Rect2(12, 12, size.x - 24.0, size.y - 24.0)
 	for card: Control in [_settings, glossary_popup]:
@@ -147,27 +149,40 @@ func _on_layer(id: String) -> void:
 	for c in _subtitles.get_children():
 		c.queue_free()
 	for t in fresh:
-		var e: Dictionary = Glossary.ENTRIES.get(t, {})
-		if e.is_empty():
-			continue
-		_subtitled.append(t)
-		var line := Label.new()
-		line.text = "%s: %s" % [e["title"], e["simple"]]
-		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		line.add_theme_font_size_override("font_size", 14)
-		line.add_theme_color_override("font_color", Color(0.86, 0.85, 0.92))
-		_subtitles.add_child(line)
+		_subtitle(t)
 	if not fresh.is_empty():
 		game.mark_terms_seen(fresh)
-		# The subtitles stand in for New word cards here; badges become toasts.
-		for e in game.state.take_events():
-			if e["type"] == "badge":
+	_take_events()
+	_deeper.visible = atom
+	_simple.visible = atom
+
+
+## A word's short definition under the caption: the title's New word card.
+func _subtitle(t: String) -> void:
+	var e: Dictionary = Glossary.ENTRIES.get(t, {})
+	if e.is_empty() or t in _subtitled:
+		return
+	_subtitled.append(t)
+	var line := Label.new()
+	line.text = "%s: %s" % [e["title"], e["simple"]]
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	HudText.font_size(line, 14, game)
+	line.add_theme_color_override("font_color", Color(0.86, 0.85, 0.92))
+	_subtitles.add_child(line)
+
+
+## Words met here (in a caption or the settings card) get subtitles; badges
+## become toasts.
+func _take_events() -> void:
+	for e in game.state.take_events():
+		match str(e["type"]):
+			"new_word":
+				_subtitle(str(e["term"]))
+			"badge":
 				for a in Achievements.ALL:
 					if a["id"] == e["id"]:
 						game.toast.emit("Badge earned: %s" % a["name"])
-	_deeper.visible = atom
-	_simple.visible = atom
 
 
 func _step_slideshow(delta: float) -> void:
@@ -227,7 +242,7 @@ func _build_ui() -> void:
 	var title := Label.new()
 	title.text = "Circuit"
 	title.theme_type_variation = "HeadingLabel"
-	title.add_theme_font_size_override("font_size", 40)
+	HudText.font_size(title, 40, game)
 	title.add_theme_color_override("font_color", Color(0.97, 0.95, 1.0))
 	title.add_theme_color_override("font_outline_color", Color(0.1, 0.09, 0.15, 0.7))
 	title.add_theme_constant_override("outline_size", 6)
@@ -265,25 +280,45 @@ func _build_ui() -> void:
 	_caption.fit_content = true
 	_caption.scroll_active = false
 	_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_caption.add_theme_font_size_override("normal_font_size", 22)
+	HudText.font_size(_caption, 22, game, ["normal_font_size"])
 	_caption.add_theme_color_override("default_color", Color(0.97, 0.96, 1.0))
 	_caption.add_theme_color_override("font_outline_color", Color(0.08, 0.07, 0.12, 0.8))
 	_caption.add_theme_constant_override("outline_size", 6)
 	_caption.meta_clicked.connect(func(meta: Variant) -> void: game.term_requested.emit(str(meta)))
-	bottom.add_child(_caption)
+	# A dark backing: the caption and its definitions stay readable over
+	# bright photos (spec §11), not only over space.
+	var scrim := PanelContainer.new()
+	scrim.name = "CaptionScrim"
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.05, 0.045, 0.09, 0.85)
+	sb.set_corner_radius_all(16)
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
+	scrim.add_theme_stylebox_override("panel", sb)
+	bottom.add_child(scrim)
+	var text := VBoxContainer.new()
+	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text.add_theme_constant_override("separation", 8)
+	scrim.add_child(text)
+	text.add_child(_caption)
 	_subtitles = VBoxContainer.new()
+	# Definitions: their own words stay plain (HudText.introduce_in skips them).
+	_subtitles.add_to_group("definitions")
 	_subtitles.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bottom.add_child(_subtitles)
+	text.add_child(_subtitles)
 	_deeper = RichTextLabel.new()
 	_deeper.bbcode_enabled = true
 	_deeper.fit_content = true
 	_deeper.scroll_active = false
 	_deeper.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_deeper.add_theme_font_size_override("normal_font_size", 14)
+	HudText.font_size(_deeper, 14, game, ["normal_font_size"])
 	_deeper.add_theme_color_override("default_color", Color(0.8, 0.78, 0.9))
 	_deeper.meta_clicked.connect(func(meta: Variant) -> void: game.term_requested.emit(str(meta)))
 	_deeper.visible = false
-	bottom.add_child(_deeper)
+	text.add_child(_deeper)
 	# Wraps on a narrow phone instead of pushing past its edges.
 	var row := HFlowContainer.new()
 	row.alignment = FlowContainer.ALIGNMENT_CENTER

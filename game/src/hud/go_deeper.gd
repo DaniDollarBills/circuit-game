@@ -8,6 +8,8 @@ static func for_part(p: Part) -> String:
 		"led":
 			return "Go deeper: a real LED rarely pops the instant it passes its 30 mA absolute maximum. It runs hotter and wears out sooner, and far more current destroys it. The game pops it at the limit so the danger is easy to see."
 		"resistor":
+			if bool(p.props.get("adjustable", false)):
+				return "Go deeper: a trimmer's ½ W rating is for its whole track. Turned down to 100 Ω, only a twentieth of the track carries the current, so a real one could take only about 0.025 W there, and 49 mA would overheat it. The game lets it take the full ½ W at any setting."
 			return "Go deeper: a real resistor pushed past its power rating gets hotter and hotter, drifts in value, then chars or burns. The game burns it right at the rating."
 		"ammeter":
 			return "Go deeper: a real current meter adds a little resistance (its burden) and has a fuse. The game's meter adds 0.1 Ω and its 500 mA fuse blows at once; a real fuse takes a moment, and blows faster the bigger the overload."

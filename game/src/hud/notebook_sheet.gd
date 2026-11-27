@@ -13,6 +13,8 @@ var _badges := 0
 
 
 func _ready() -> void:
+	# A definition: its own words stay plain (HudText.introduce_in skips it).
+	add_to_group("definitions")
 	# Its list scrolls; CardFit gives the card its height (420 px, or less).
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
@@ -22,7 +24,7 @@ func _ready() -> void:
 	var title := Label.new()
 	title.text = "Notebook"
 	title.theme_type_variation = "HeadingLabel"
-	title.add_theme_font_size_override("font_size", 22)
+	HudText.font_size(title, 22, game)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(title)
 	var close_b := IconButton.make("close", "Close")
@@ -127,7 +129,7 @@ func _plain(text: String, font_size: int, token: String, on_pastel := false) -> 
 	var l := Label.new()
 	l.text = text
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.add_theme_font_size_override("font_size", font_size)
+	HudText.font_size(l, font_size, game)
 	if on_pastel:
 		l.add_theme_color_override("font_color", Palette.color(token, false))
 	elif token == "ink_soft":

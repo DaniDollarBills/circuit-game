@@ -35,7 +35,7 @@ func _ready() -> void:
 	var title := Label.new()
 	title.text = "Settings"
 	title.theme_type_variation = "HeadingLabel"
-	title.add_theme_font_size_override("font_size", 22)
+	HudText.font_size(title, 22, game)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(title)
 	var close_b := IconButton.make("close", "Close")
@@ -75,6 +75,7 @@ func _ready() -> void:
 func open() -> void:
 	sync()
 	visible = true
+	HudText.introduce_in(game, self)
 
 
 ## Shows the saved values without sending them back.

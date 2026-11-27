@@ -22,7 +22,7 @@ func _ready() -> void:
 	_add("map", IconButton.make("back", "Back to the map"))
 	_title = Label.new()
 	_title.theme_type_variation = "HeadingLabel"
-	_title.add_theme_font_size_override("font_size", 22)
+	HudText.font_size(_title, 22, game)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_title.clip_text = true

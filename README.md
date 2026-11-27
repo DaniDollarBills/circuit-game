@@ -17,8 +17,10 @@ The game is a Godot 4.7.2 project in `game/`.
 Download the zip for your computer from the latest release on this repository's Releases page.
 
 - **Windows:** unzip and run `Circuit.exe`. If Windows shows "Windows protected your PC", choose **More info → Run anyway** (the game isn't code-signed yet).
-- **Mac:** unzip, then right-click **Circuit** and choose **Open** (the first time only, because the app isn't notarized yet).
+- **Mac:** unzip and open **Circuit**. The app isn't notarized yet, so the first time, macOS stops it. On macOS 15 (Sequoia) or later, open **System Settings → Privacy & Security**, find the message about Circuit and click **Open Anyway**. On older versions, right-click **Circuit** and choose **Open**.
 - **Linux:** unzip, run `chmod +x Circuit.x86_64`, then `./Circuit.x86_64`.
-- **Browser:** the GitHub Pages link, once Pages is enabled for this repository (set the repository variable `PAGES_ENABLED` to `true`).
+- **Browser:** this repository's GitHub Pages site, once it's switched on: in the repository's **Settings → Pages**, set **Source** to **GitHub Actions**, and set the repository variable `PAGES_ENABLED` to `true`. The `Circuit-web.zip` download is for putting the game on a web server; browsers won't run it straight from a downloaded file.
+
+Every download has a `Licenses` folder: the credits, and the license texts for the fonts, the Earth imagery and the Godot engine.
 
 To build the downloads yourself: `tools/export.sh all` (it fetches Godot 4.7.2 and its export templates, checking their SHA-512 sums).

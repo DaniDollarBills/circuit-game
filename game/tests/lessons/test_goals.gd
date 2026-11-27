@@ -161,3 +161,19 @@ func test_led_messages_keep_copy_limits() -> void:
 		var m := _msg({"kind": "led_lit", "part": "L1", "max_ma": 20.0}, c)
 		assert_true(sentence_end.search_all(m).size() <= 2, m)
 		assert_true(m.split(" ", false).size() <= 30, m)
+
+
+func test_not_goal() -> void:
+	var dark := {"kind": "not", "goal": {"kind": "led_lit", "part": "L1"}}
+	assert_false(Goals.evaluate(dark, _ctx(TestCircuits.compact_loop()))["pass"])
+	assert_true(Goals.evaluate(dark, _ctx(_without(TestCircuits.compact_loop(), "w3")))["pass"])
+	var shorted := TestCircuits.with_wire(TestCircuits.compact_loop(), "w9", "B1", "pos", "B1", "neg")
+	assert_true(Goals.evaluate({"kind": "not", "goal": {"kind": "no_short"}}, _ctx(shorted))["pass"])
+
+
+func test_burnt_goal() -> void:
+	var burnt := {"kind": "burnt", "part": "L1"}
+	assert_false(Goals.evaluate(burnt, _ctx(TestCircuits.compact_loop()))["pass"])
+	var popped := CircuitEdits.set_props(TestCircuits.compact_loop(), "L1", {"burnt": true})
+	assert_true(Goals.evaluate(burnt, _ctx(popped))["pass"])
+	assert_false(Goals.evaluate({"kind": "burnt", "part": "Z9"}, _ctx(popped))["pass"], "no such part")

@@ -26,6 +26,9 @@ var events: Array[Dictionary] = []
 var now_fn: Callable = func() -> int: return int(Time.get_unix_time_from_system())
 
 var _announced_pass := false
+## The build's history and outcome, set aside while Try it's circuit is out.
+var _build_history: CircuitHistory
+var _build_outcome: SimOutcome
 var _ch1_ids := PackedStringArray()
 
 
@@ -33,18 +36,28 @@ var _ch1_ids := PackedStringArray()
 ## otherwise on a fresh copy of the start circuit.
 func start_level(l: LevelDef) -> void:
 	level = l
-	session = LevelSession.start(l, true)
 	zoom_layer = "editor"
 	zoom_seen = {}
 	ui_flags = {}
 	preview_circuit = null
 	preview_outcome = null
 	_announced_pass = false
+	_build_history = null
+	_build_outcome = null
 	var draft := _usable_draft(l)
 	var start := draft if draft != null else l.circuit.copy()
 	outcome = Simulator.simulate(start)
 	history = CircuitHistory.new(outcome.circuit)
+	session = LevelSession.start(l, _plays_lesson(l))
+	_entered("build")
 	_update()
+
+
+## The lesson plays by itself (Learn, then Try it) on a first visit at Heavy
+## help: never passed, and its deck never seen.
+func _plays_lesson(l: LevelDef) -> bool:
+	return str(progress.settings.get("help_level", "heavy")) == "heavy" \
+			and not progress.completed.has(l.id) and not progress.lesson_marks(l.id).has("learn")
 
 
 ## Simulates `c` and makes it the present: parts that burn are stored burnt, so
@@ -101,6 +114,9 @@ func redo() -> bool:
 func start_over() -> void:
 	if level == null:
 		return
+	if trying():
+		commit(level.try_circuit.copy())
+		return
 	if session.phase == "passed":
 		session.phase = "build"
 		_announced_pass = false
@@ -118,7 +134,9 @@ func run_tests() -> void:
 func next_card() -> void:
 	if level == null:
 		return
+	var was := session.phase
 	LevelSession.next_card(session, level)
+	_entered(was)
 	_update()
 
 
@@ -132,8 +150,87 @@ func back_card() -> void:
 func skip_learn() -> void:
 	if level == null:
 		return
+	var was := session.phase
 	LevelSession.skip_learn(session, level)
+	_entered(was)
 	_update()
+
+
+func finish_try() -> void:
+	if level == null:
+		return
+	var was := session.phase
+	LevelSession.finish_try(session)
+	_entered(was)
+	_update()
+
+
+## Back to the lesson's deck (or its Try it) from building; the build's
+## circuit waits untouched.
+func reopen_lesson() -> void:
+	if level == null:
+		return
+	var was := session.phase
+	LevelSession.reopen(session, level)
+	_entered(was)
+	_update()
+
+
+func trying() -> bool:
+	return session != null and session.phase == "try"
+
+
+## The tray the bench offers now: Try it's own while trying.
+func current_tray() -> Array[Dictionary]:
+	if level == null:
+		return []
+	return level.try_tray if trying() else level.tray
+
+
+## Try it's live values: [{label, text}] such as "LED: 13.8 mA".
+func readouts() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if level == null:
+		return out
+	for r in level.readouts:
+		out.append({"part": r["part"], "text": Readouts.text(r, outcome.circuit, outcome.result)})
+	return out
+
+
+## Every phase change goes through here: leaving the deck or Try it marks it
+## seen, and Try it's circuit comes out (and goes away) with its phase.
+func _entered(was: String) -> void:
+	var phase := session.phase
+	if was == phase:
+		return
+	if was == "learn":
+		progress.mark_lesson(level.id, "learn", now())
+	if was == "try":
+		progress.mark_lesson(level.id, "try", now())
+		_put_build_back()
+	if phase == "try":
+		_put_try_out()
+
+
+func _put_try_out() -> void:
+	if _build_history == null:
+		_build_history = history
+		_build_outcome = outcome
+	_end_preview()
+	outcome = Simulator.simulate(level.try_circuit.copy())
+	history = CircuitHistory.new(outcome.circuit)
+	_circuit_changed()
+
+
+func _put_build_back() -> void:
+	if _build_history == null:
+		return
+	_end_preview()
+	history = _build_history
+	outcome = _build_outcome
+	_build_history = null
+	_build_outcome = null
+	_circuit_changed()
 
 
 func use_hint() -> void:
@@ -187,7 +284,7 @@ func tray_used() -> Array[int]:
 	var used: Array[int] = []
 	if level == null:
 		return used
-	used.resize(level.tray.size())
+	used.resize(current_tray().size())
 	used.fill(0)
 	for p in history.present.parts:
 		if p.tray >= 0 and p.tray < used.size():
@@ -253,7 +350,10 @@ func _ctx() -> Dictionary:
 	}
 
 
+## Try it's circuit is never saved: the draft is always the build's.
 func _save_draft() -> void:
+	if trying():
+		return
 	progress.drafts[level.id] = CircuitIO.to_dict(history.present)
 
 

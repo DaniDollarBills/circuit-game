@@ -15,6 +15,8 @@ var test_report: Dictionary = {}
 var used_hints := false
 ## One result per level step.
 var step_results: Array[Dictionary] = []
+## One flag per Try it poke: ticked in order, and staying ticked.
+var poke_done: Array[bool] = []
 
 
 ## `auto` plays the lesson first: its Learn deck, then its Try it. Without it,
@@ -25,7 +27,7 @@ static func start(level: LevelDef, auto: bool) -> LevelSession:
 	if auto and level.deck_size() > 0:
 		s.phase = "learn"
 	elif auto and level.has_try():
-		s.phase = "try"
+		_start_try(s, level)
 	else:
 		s.phase = "build"
 	return s
@@ -52,12 +54,39 @@ static func skip_learn(s: LevelSession, level: LevelDef) -> void:
 
 static func _after_learn(s: LevelSession, level: LevelDef) -> void:
 	s.card_index = 0
-	s.phase = "try" if level.has_try() else "build"
+	if level.has_try():
+		_start_try(s, level)
+	else:
+		s.phase = "build"
+
+
+static func finish_try(s: LevelSession) -> void:
+	if s.phase == "try":
+		s.phase = "build"
+
+
+## Back to the lesson from building (or after passing): its deck, or its Try
+## it when it has no deck.
+static func reopen(s: LevelSession, level: LevelDef) -> void:
+	if level.deck_size() > 0:
+		s.phase = "learn"
+		s.card_index = 0
+	elif level.has_try():
+		_start_try(s, level)
+
+
+static func _start_try(s: LevelSession, level: LevelDef) -> void:
+	s.phase = "try"
+	s.poke_done.resize(level.pokes.size())
+	s.poke_done.fill(false)
 
 
 ## Re-evaluates goals and steps. A level without tests passes as soon as every
 ## goal passes; a level with tests waits for run_tests().
 static func update(s: LevelSession, level: LevelDef, ctx: Dictionary) -> void:
+	if s.phase == "try":
+		_tick_pokes(s, level, ctx)
+		return
 	_evaluate(s, level, ctx)
 	if s.phase == "build" and level.tests.is_empty() and _all_pass(s.goal_results):
 		s.phase = "passed"
@@ -73,6 +102,18 @@ static func run_tests(s: LevelSession, level: LevelDef, circuit: Circuit, ctx: D
 static func hint(s: LevelSession, level: LevelDef) -> void:
 	s.hint_tier = mini(s.hint_tier + 1, level.hints.size())
 	s.used_hints = true
+
+
+## Pokes tick in order: one can only tick once the one before it has.
+static func _tick_pokes(s: LevelSession, level: LevelDef, ctx: Dictionary) -> void:
+	if s.poke_done.size() != level.pokes.size():
+		s.poke_done.resize(level.pokes.size())
+	for i in level.pokes.size():
+		if s.poke_done[i]:
+			continue
+		if not bool(Goals.evaluate(level.pokes[i]["check"], ctx)["pass"]):
+			return
+		s.poke_done[i] = true
 
 
 static func _evaluate(s: LevelSession, level: LevelDef, ctx: Dictionary) -> void:

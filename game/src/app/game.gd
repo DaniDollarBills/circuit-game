@@ -116,6 +116,16 @@ func skip_learn() -> void:
 	_changed()
 
 
+func finish_try() -> void:
+	state.finish_try()
+	_changed()
+
+
+func reopen_lesson() -> void:
+	state.reopen_lesson()
+	_changed()
+
+
 func use_hint() -> void:
 	state.use_hint()
 	changed.emit()

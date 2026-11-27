@@ -115,3 +115,48 @@ func test_bad_setting_values_take_defaults() -> void:
 	assert_eq(p.settings["view_style"], "physical")
 	assert_eq(p.settings["night"], true)
 	assert_true(p.completed.has("ch1.pop"))
+
+
+func test_lessons_and_parts_round_trip() -> void:
+	var p := Progress.defaults()
+	p.mark_lesson("ch1.pop", "learn", 1700000000)
+	p.mark_lesson("ch1.pop", "try", 1700000050)
+	p.mark_lesson("ch1.pop", "learn", 1700000099)
+	assert_true(p.mark_part_seen("led", 1700000010))
+	assert_false(p.mark_part_seen("led", 1700000020), "met once")
+	var back := Progress.from_dict(JSON.parse_string(JSON.stringify(p.to_dict())))
+	assert_true(back != null)
+	if back == null:
+		return
+	assert_eq(back.lesson_marks("ch1.pop"), {"learn": 1700000000, "try": 1700000050}, "the first time is kept")
+	assert_eq(back.lesson_marks("ch1.both"), {})
+	assert_eq(back.parts_seen, {"led": 1700000010})
+	assert_eq(typeof(back.parts_seen["led"]), TYPE_INT)
+
+
+func test_bad_lessons_table_rejected() -> void:
+	var d := Progress.defaults().to_dict()
+	d["lessons"] = {"ch1.pop": "yes"}
+	assert_eq(Progress.from_dict(d), null, "a lesson entry must be a table")
+	d["lessons"] = {"ch1.pop": {"learn": "soon"}}
+	assert_eq(Progress.from_dict(d), null, "marks are times")
+	d["lessons"] = {"ch1.pop": {"dance": 5}}
+	assert_eq(Progress.from_dict(d), null, "only learn, try and recap")
+	d["lessons"] = {}
+	d["parts_seen"] = {"led": "now"}
+	assert_eq(Progress.from_dict(d), null)
+
+
+## Saved by v0.2.0: every Chapter 1 lesson done, no Lesson 0, no lesson marks.
+func test_old_save_keeps_lessons_open() -> void:
+	var old := {"version": 1, "completed": {}, "drafts": {}, "settings": {}, "stats": {}, "seen_terms": {}, "achievements": {}}
+	var ids := PackedStringArray(["ch1.workbench", "ch1.light-it-up", "ch1.pop", "ch1.push-and-flow"])
+	for id in ids.slice(1):
+		old["completed"][id] = {"star": false, "at": 1700000000}
+	var p := Progress.from_dict(old)
+	assert_true(p != null)
+	if p == null:
+		return
+	for id in ids:
+		assert_true(p.is_unlocked(id, ids), id)
+	assert_eq(p.lessons, {})

@@ -11,7 +11,7 @@ const ALL: Array[Dictionary] = [
 	{"id": "logic_begins", "name": "Logic Begins", "description": "Build the both-switches and either-switch circuits."},
 	{"id": "deep_diver", "name": "Deep Diver", "description": "Zoom all the way into a wire."},
 	{"id": "word_collector", "name": "Word Collector", "description": "Learn 20 new words."},
-	{"id": "spark_graduate", "name": "Spark Graduate", "description": "Finish every Chapter 1 level."},
+	{"id": "spark_graduate", "name": "Spark Graduate", "description": "Finish every Chapter 1 lesson."},
 ]
 
 

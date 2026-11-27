@@ -6,7 +6,7 @@ extends RefCounted
 ## or a label.
 
 const KINDS: PackedStringArray = ["led_lit", "led_dark", "no_damage", "no_short", "meter_reads", "uses",
-		"zoom_reached", "connected", "all", "ui_flag", "resistor_watts"]
+		"zoom_reached", "connected", "all", "ui_flag", "resistor_watts", "not", "burnt"]
 ## Less than this through an LED is only solver leakage (picoamps): no current.
 const NO_CURRENT_AMPS := 1e-9
 ## A reverse voltage above this means the LED is in backwards.
@@ -43,6 +43,13 @@ static func evaluate(goal: Dictionary, ctx: Dictionary) -> Dictionary:
 				if not r["pass"]:
 					return r
 			return _result(true, "")
+		"not":
+			var inner := evaluate(goal.get("goal", {}), ctx)
+			return _result(not bool(inner["pass"]), "Done." if not bool(inner["pass"]) else "Not yet.")
+		"burnt":
+			var p := (ctx["circuit"] as Circuit).find_part(str(goal.get("part", "")))
+			var gone := p != null and bool(p.props.get("burnt", false))
+			return _result(gone, "It burned out." if gone else "Not burnt.")
 		"ui_flag":
 			var flags: Dictionary = ctx.get("ui_flags", {})
 			var done := flags.has(str(goal.get("flag", "")))

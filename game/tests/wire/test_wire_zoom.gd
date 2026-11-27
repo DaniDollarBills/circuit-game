@@ -69,8 +69,11 @@ func test_l9_zoom_to_copper_passes() -> void:
 	s.game = game
 	host.add_child(s)
 	await wait_frames(4)
-	while game.state.session.phase == "learn":
-		game.skip_learn()
+	while game.state.session.phase in ["learn", "try"]:
+		if game.state.session.phase == "learn":
+			game.skip_learn()
+		else:
+			game.finish_try()
 	await wait_frames(2)
 	var at := s.editor.grid_to_screen(_on_w1(s.editor.circuit)["at"])
 	for i in 80:

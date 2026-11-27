@@ -42,8 +42,11 @@ func _screen(level_id: String, size := Vector2(1280, 720), settings := {}, game:
 
 
 func _skip_intro(s: LevelScreen) -> void:
-	while s.game.state.session.phase == "learn":
-		s.game.skip_learn()
+	while s.game.state.session.phase in ["learn", "try"]:
+		if s.game.state.session.phase == "learn":
+			s.game.skip_learn()
+		else:
+			s.game.finish_try()
 	await wait_frames(2)
 
 

@@ -25,7 +25,10 @@ const SETTING_CHOICES := {
 	"view_style": ["physical", "schematic"],
 	"quality": ["auto", "low", "medium", "high", "ultra"],
 }
-const TABLES: PackedStringArray = ["completed", "drafts", "settings", "stats", "seen_terms", "achievements"]
+const TABLES: PackedStringArray = ["completed", "drafts", "settings", "stats", "seen_terms", "achievements",
+		"lessons", "parts_seen"]
+## The steps of a lesson that are remembered once seen.
+const LESSON_STEPS: PackedStringArray = ["learn", "try", "recap"]
 
 ## Level id → {star: bool, at: unix time first completed}.
 var completed: Dictionary = {}
@@ -37,6 +40,11 @@ var stats: Dictionary = {}
 var seen_terms: Dictionary = {}
 ## Badge id → unix time earned.
 var achievements: Dictionary = {}
+## Level id → {learn?, try?, recap?: unix time first seen}: what plays by
+## itself, and the course marks on the map.
+var lessons: Dictionary = {}
+## Part intro key → unix time its Meet the part card was first seen.
+var parts_seen: Dictionary = {}
 
 
 static func defaults() -> Progress:
@@ -80,13 +88,24 @@ static func from_dict(d: Variant) -> Progress:
 	for key in settings_in:
 		if is_valid_setting(key, settings_in[key]):
 			p.settings[key] = settings_in[key]
-	for table in ["stats", "seen_terms", "achievements"]:
+	for table in ["stats", "seen_terms", "achievements", "parts_seen"]:
 		var from: Dictionary = src.get(table, {})
 		var into: Dictionary = p.get(table)
 		for key in from:
 			if not _is_number(from[key]):
 				return null
 			into[str(key)] = int(from[key])
+	var lessons_in: Dictionary = src.get("lessons", {})
+	for id in lessons_in:
+		var marks: Variant = lessons_in[id]
+		if typeof(marks) != TYPE_DICTIONARY:
+			return null
+		var kept := {}
+		for step in marks:
+			if not step in LESSON_STEPS or not _is_number(marks[step]):
+				return null
+			kept[str(step)] = int(marks[step])
+		p.lessons[str(id)] = kept
 	return p
 
 
@@ -112,12 +131,34 @@ func mark_terms_seen(terms: PackedStringArray, now: int) -> PackedStringArray:
 	return fresh
 
 
-## The chapter's first level is always open; each other needs the one before it.
+## The chapter's first lesson is always open; each other needs the one before
+## it. A lesson already passed stays open, even when a lesson is added before
+## it (Lesson 0 arrived after many players had passed Lesson 1).
 func is_unlocked(level_id: String, chapter_level_ids: PackedStringArray) -> bool:
 	var i := chapter_level_ids.find(level_id)
 	if i < 0:
 		return false
-	return i == 0 or completed.has(chapter_level_ids[i - 1])
+	return i == 0 or completed.has(level_id) or completed.has(chapter_level_ids[i - 1])
+
+
+## Records a lesson step (learn, try or recap) the first time it's seen.
+func mark_lesson(level_id: String, step: String, now: int) -> void:
+	var marks: Dictionary = lessons.get(level_id, {})
+	if not marks.has(step):
+		marks[step] = now
+	lessons[level_id] = marks
+
+
+func lesson_marks(level_id: String) -> Dictionary:
+	return (lessons.get(level_id, {}) as Dictionary).duplicate()
+
+
+## True when this is the first time the part's card is seen.
+func mark_part_seen(key: String, now: int) -> bool:
+	if parts_seen.has(key):
+		return false
+	parts_seen[key] = now
+	return true
 
 
 ## A star, once earned, stays; the first completion time is kept.

@@ -58,11 +58,31 @@ func set_state(c: Circuit, sim: SimResult, settings: Dictionary, ghosts: Diction
 	_sync_parts(c, sim, settings)
 	_build_wires(c, sim, settings)
 	_build_rigs(c, sim)
-	_fit_mat(_content_rect(c))
+	_fit_mat(MeterRig.content_rect(c))
 	_build_labels(c, sim, settings)
 	_build_overlays(c, ghosts, highlights)
 	_show_current = bool(settings.get("show_current", true))
 	_update_dots()
+
+
+## How much wider than the middle of the view the near (bottom) edge must be
+## framed: the tilted camera sees less of the board's width close up.
+static func near_edge_widening() -> float:
+	var p := deg_to_rad(PITCH)
+	var f := deg_to_rad(FOV / 2.0)
+	var middle := atan((tan(p + f) + tan(p - f)) / 2.0)
+	var depth := func(angle: float) -> float: return cos(angle - p) / cos(angle)
+	return float(depth.call(middle)) / float(depth.call(p - f))
+
+
+## Extra view height, in grid units, that keeps the tops of things
+## `height_cm` tall inside a view framed for the board's surface: raised
+## points sit closer to the camera, so near the edges they spread wider.
+static func raised_allowance(height_cm: float) -> float:
+	var p := deg_to_rad(PITCH)
+	var f := deg_to_rad(FOV / 2.0)
+	var near_depth_per_view := PartDims.GRID / (tan(p + f) - tan(p - f)) * cos(f) / cos(p - f)
+	return height_cm * cos(p) / near_depth_per_view
 
 
 ## Frames `view` grid units of board height around `center`.
@@ -233,17 +253,6 @@ static func _pad_mesh() -> ArrayMesh:
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 		mesh.surface_set_material(mesh.get_surface_count() - 1, part[1])
 	return mesh
-
-
-## The board plus every piece of equipment beside it, in world x/z.
-func _content_rect(c: Circuit) -> Rect2:
-	var r := MeterRig.board_rect(c)
-	var spots := MeterRig.place(c)
-	for id in spots:
-		var size: Vector2 = MeterRig.FOOTPRINT_HOLDER if c.find_part(id).kind == "battery" else MeterRig.FOOTPRINT_METER
-		var at: Vector3 = spots[id]
-		r = r.merge(Rect2(Vector2(at.x, at.z) - size / 2.0, size))
-	return r
 
 
 func _fit_mat(content: Rect2) -> void:

@@ -27,7 +27,6 @@ var ghosts: Dictionary = {}
 var highlights: Array = []
 var tray: Array = []
 var tray_used: Array[int] = []
-var _fit_center := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -109,8 +108,27 @@ func begin_placing(i: int) -> void:
 
 
 ## The view height that shows the whole circuit plus 3 units of margin (at
-## least 12); its center is fit_center().
+## least 12); its center is fit_center(). In the real view that includes the
+## battery holders and meters beside the board.
 func fit_view() -> float:
+	var bounds := _fit_bounds()
+	var aspect := size.y / maxf(size.x, 1.0)
+	var widen := 1.0
+	var raised := 0.0
+	if _physical():
+		widen = Workbench3D.near_edge_widening()
+		raised = Workbench3D.raised_allowance(MeterRig.tallest(circuit))
+	var view := maxf(12.0, maxf(bounds.size.y, bounds.size.x * aspect * widen) + raised)
+	home_view = view
+	return view
+
+
+func fit_center() -> Vector2:
+	return _fit_bounds().get_center()
+
+
+## The area fit_view() frames, in grid units.
+func _fit_bounds() -> Rect2:
 	var bounds := Rect2()
 	var first := true
 	for p in circuit.parts:
@@ -122,16 +140,10 @@ func fit_view() -> float:
 			bounds = bounds.expand(pt)
 	if first:
 		bounds = Rect2(-6, -6, 12, 12)
-	bounds = bounds.grow(3.0)
-	_fit_center = bounds.get_center()
-	var aspect := size.y / maxf(size.x, 1.0)
-	var view := maxf(12.0, maxf(bounds.size.y, bounds.size.x * aspect))
-	home_view = view
-	return view
-
-
-func fit_center() -> Vector2:
-	return _fit_center
+	if _physical():
+		var world := MeterRig.content_rect(circuit)
+		bounds = bounds.merge(Rect2(world.position / PartDims.GRID, world.size / PartDims.GRID))
+	return bounds.grow(3.0)
 
 
 func apply_view(center: Vector2, view: float) -> void:

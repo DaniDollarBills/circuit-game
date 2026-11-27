@@ -34,6 +34,28 @@ static func board_rect(c: Circuit) -> Rect2:
 	return Rect2(grid.position * PartDims.GRID, grid.size * PartDims.GRID)
 
 
+## The height of the tallest piece of equipment beside the board, in cm.
+static func tallest(c: Circuit) -> float:
+	var top := 0.0
+	for p in c.parts:
+		if p.kind == "battery":
+			top = maxf(top, HEIGHT_HOLDER)
+		elif p.kind == "ammeter" or p.kind == "voltmeter":
+			top = maxf(top, HEIGHT_METER)
+	return top
+
+
+## The board plus every piece of equipment beside it, in world x/z.
+static func content_rect(c: Circuit) -> Rect2:
+	var r := board_rect(c)
+	var spots := place(c)
+	for id in spots:
+		var size: Vector2 = FOOTPRINT_HOLDER if c.find_part(id).kind == "battery" else FOOTPRINT_METER
+		var at: Vector3 = spots[id]
+		r = r.merge(Rect2(Vector2(at.x, at.z) - size / 2.0, size))
+	return r
+
+
 static func place(c: Circuit) -> Dictionary:
 	var board := board_rect(c)
 	var y := -PartDims.mm(PartDims.BOARD_THICK)

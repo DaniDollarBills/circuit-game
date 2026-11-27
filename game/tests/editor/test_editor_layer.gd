@@ -67,6 +67,31 @@ func test_fit_view_holds_the_circuit() -> void:
 	assert_true(Rect2(Vector2.ZERO, layer.size).has_point(b1), str(b1))
 
 
+func test_fit_center_does_not_depend_on_fit_view_first() -> void:
+	var layer := _layer("physical")
+	var other := Simulator.simulate(Levels.by_id("ch1.push-and-flow").circuit)
+	layer.set_state(other.circuit, other.result, layer.settings, {}, [])
+	var first := layer.fit_center()
+	layer.fit_view()
+	assert_eq(first, layer.fit_center())
+
+
+## In the real view the battery holder sits beside the board; the starting
+## view shows all of it.
+func test_fit_view_shows_equipment_in_real_view() -> void:
+	var layer := _layer("physical")
+	layer.apply_view(Vector2.ZERO, layer.fit_view())
+	layer.apply_view(layer.fit_center(), layer.fit_view())
+	var at: Vector3 = MeterRig.place(layer.circuit)["B1"]
+	var half := MeterRig.FOOTPRINT_HOLDER / 2.0
+	var screen := Rect2(Vector2.ZERO, layer.size)
+	for corner in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+		for height in [0.0, MeterRig.HEIGHT_HOLDER]:
+			var world := at + Vector3(corner.x * half.x, height, corner.y * half.y)
+			var px := layer.workbench.camera.unproject_position(world)
+			assert_true(screen.has_point(px), "holder corner %s, %.1f cm up, at %s" % [corner, height, px])
+
+
 ## Value labels in the schematic never sit on a part, its own text, or each other.
 func test_schematic_labels_stay_clear() -> void:
 	for id in ["ch1.light-it-up", "ch1.push-and-flow", "ch1.too-hot"]:

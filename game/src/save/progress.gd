@@ -76,12 +76,8 @@ static func from_dict(d: Variant) -> Progress:
 		p.drafts[str(id)] = (drafts_in[id] as Dictionary).duplicate(true)
 	var settings_in: Dictionary = src.get("settings", {})
 	for key in settings_in:
-		if not DEFAULT_SETTINGS.has(key):
-			continue
-		var v: Variant = settings_in[key]
-		var usable: bool = typeof(v) == typeof(DEFAULT_SETTINGS[key]) and (not SETTING_CHOICES.has(key) or v in SETTING_CHOICES[key])
-		if usable:
-			p.settings[key] = v
+		if is_valid_setting(key, settings_in[key]):
+			p.settings[key] = settings_in[key]
 	for table in ["stats", "seen_terms", "achievements"]:
 		var from: Dictionary = src.get(table, {})
 		var into: Dictionary = p.get(table)
@@ -90,6 +86,14 @@ static func from_dict(d: Variant) -> Progress:
 				return null
 			into[str(key)] = int(from[key])
 	return p
+
+
+## A setting this build knows, with a value of the right type and, for a
+## choice, one of the listed values.
+static func is_valid_setting(key: Variant, v: Variant) -> bool:
+	if typeof(key) != TYPE_STRING or not DEFAULT_SETTINGS.has(key):
+		return false
+	return typeof(v) == typeof(DEFAULT_SETTINGS[key]) and (not SETTING_CHOICES.has(key) or v in SETTING_CHOICES[key])
 
 
 ## Records the terms not seen before and returns just those.

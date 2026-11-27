@@ -13,6 +13,7 @@ var _text: RichTextLabel
 var _source: RichTextLabel
 var _actions: HFlowContainer
 var _close: IconButton
+var _line := ""
 
 
 func _ready() -> void:
@@ -48,6 +49,7 @@ func show_line(text: String, line_mood: String, line_kind: String, actions: Arra
 	kind = line_kind
 	mood = line_mood
 	pip.mood = line_mood
+	_line = text
 	HudText.put(_text, text, game)
 	_source.visible = source != ""
 	if source != "":
@@ -63,6 +65,13 @@ func show_line(text: String, line_mood: String, line_kind: String, actions: Arra
 	_actions.visible = not actions.is_empty()
 	_close.visible = closable
 	visible = true
+
+
+## Adds `more` under the line showing (a mistake's why), once.
+func expand(more: String) -> void:
+	if more == "" or more in _text.get_parsed_text():
+		return
+	HudText.put(_text, _line + "\n" + more, game)
 
 
 func hide_bubble() -> void:

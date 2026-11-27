@@ -326,7 +326,15 @@ func _burn_help(p: Part) -> void:
 	if not _is_mistake(m):
 		m = Explain.part(p, game.state.outcome.result)[0]
 	_last_mistake = m
-	guide.show_line(m, "oops", "help")
+	guide.show_line(m, "oops", "help", _why_actions(m))
+
+
+## A mistake line's Why? button, which adds the physics under it.
+func _why_actions(m: String) -> Array:
+	var why := MistakeWhy.for_message(m)
+	if why == "":
+		return []
+	return [{"label": "Why?", "callback": func() -> void: guide.expand(why)}]
 
 
 func _check_mistakes() -> void:
@@ -342,7 +350,7 @@ func _check_mistakes() -> void:
 		return
 	if m != _last_mistake:
 		_last_mistake = m
-		guide.show_line(m, "oops", "help")
+		guide.show_line(m, "oops", "help", _why_actions(m))
 
 
 ## Soft sounds for what changed since the last refresh: a part placed, a

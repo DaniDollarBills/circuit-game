@@ -8,6 +8,10 @@ var compact := false
 
 var _rows: VBoxContainer
 var _signature := ""
+## The step whose why is showing (-1 for none), and its button and text.
+var _why_open := -1
+var _why_button: Button
+var _why_label: RichTextLabel
 
 
 func _ready() -> void:
@@ -31,10 +35,16 @@ func refresh(level: LevelDef, session: LevelSession) -> void:
 			current = i
 			break
 	var night := bool(game.state.progress.settings.get("night", false))
-	var sig := "%s|%s|%s|%s" % [session.step_results, compact, current, night]
+	if _why_open != current:
+		_why_open = -1
+	var sig := "%s|%s|%s|%s|%s" % [session.step_results, compact, current, night, _why_open]
 	if sig == _signature:
 		return
 	_signature = sig
+	_why_button = null
+	_why_label = null
+	_last_level = level
+	_last_session = session
 	for c in _rows.get_children():
 		_rows.remove_child(c)
 		c.queue_free()
@@ -57,14 +67,46 @@ func refresh(level: LevelDef, session: LevelSession) -> void:
 		else:
 			sb.bg_color = Color(0, 0, 0, 0)
 		row.add_theme_stylebox_override("panel", sb)
+		var stack := VBoxContainer.new()
+		row.add_child(stack)
 		var line := HBoxContainer.new()
-		row.add_child(line)
+		stack.add_child(line)
 		var mark := Label.new()
 		mark.text = "✓" if _ticked(session, i) else "%d" % (i + 1)
 		mark.custom_minimum_size = Vector2(22, 0)
 		line.add_child(mark)
 		line.add_child(HudText.make(game, str(level.steps[i]["text"]), 15))
+		var why := str(level.steps[i].get("why", ""))
+		if i == current and why != "":
+			_why_button = Button.new()
+			_why_button.text = "Why?"
+			_why_button.theme_type_variation = "FlatButton"
+			_why_button.flat = true
+			_why_button.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
+			_why_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			var at := i
+			_why_button.pressed.connect(func() -> void:
+				_why_open = -1 if _why_open == at else at
+				refresh(_last_level, _last_session))
+			line.add_child(_why_button)
+			if _why_open == i:
+				_why_label = HudText.make(game, why, 14)
+				stack.add_child(_why_label)
 		_rows.add_child(row)
+
+
+var _last_level: LevelDef
+var _last_session: LevelSession
+
+
+## The current step's Why? button (null when it has no why).
+func why_button() -> Button:
+	return _why_button
+
+
+## The why that's showing, or "".
+func why_text() -> String:
+	return _why_label.get_parsed_text() if _why_label != null else ""
 
 
 ## How many steps are ticked.

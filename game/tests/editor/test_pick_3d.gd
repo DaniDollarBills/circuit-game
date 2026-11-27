@@ -77,3 +77,19 @@ func test_dragging_from_the_top_of_a_battery_post_starts_a_wire() -> void:
 	layer._gui_input(move)
 	assert_eq(layer.controller.mode["kind"], "wiring")
 	assert_eq(layer.controller.mode.get("from_part", ""), "B1")
+
+
+## Zoomed out, a small LED's legs sit within a finger's width of its whole
+## dome; a tap on the dome still means the LED, not a leg.
+func test_tapping_a_small_led_dome_opens_its_datasheet() -> void:
+	var layer := _layer()
+	layer.apply_view(layer.fit_center(), 60.0)
+	var dome := layer.workbench.part_node("L1").find_child("epoxy", true, false) as Node3D
+	var box := AABB()
+	var first := true
+	for m in dome.find_children("*", "MeshInstance3D", true, false):
+		var b: AABB = (m as MeshInstance3D).global_transform * (m as MeshInstance3D).mesh.get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	_tap(layer, layer.workbench.camera.unproject_position(box.get_center() + Vector3(0, box.size.y * 0.35, 0)))
+	assert_eq(effects, [{"datasheet": "L1"}])

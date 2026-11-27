@@ -16,8 +16,10 @@ signal ghost_tapped(kind: String, data: Dictionary)
 ## A value label (a voltage or a current) was tapped; the HUD explains its part.
 signal explain_requested(part_id: String)
 
-## How close, in pixels, a tap must be to a pin's metal in the real view.
+## How close, in pixels, a tap must be to a pin's metal in the real view,
+## and how close when the tap is on a part's body.
 const PICK_PX := 22.0
+const PICK_PX_ON_BODY := 8.0
 ## How near a wire, in grid units, the view's center must be to zoom into it.
 const WIRE_ENTRY := 0.4
 
@@ -413,13 +415,31 @@ func _pan(delta_px: Vector2, screen: Vector2) -> void:
 
 
 ## What is drawn under a screen point in the real view: a pin (its metal,
-## from the hole to the top of its lead or post, within PICK_PX) or else the
-## part whose projected bounds hold the point, nearest the camera first.
-## Empty when neither: the board plane then decides (wires, empty board).
+## from the hole to the top of its lead or post) or else the part whose body
+## holds the point, nearest the camera first. Pins count within PICK_PX, but
+## over a part's body only within PICK_PX_ON_BODY, so a small part zoomed out
+## can still be tapped. Empty when neither: the board plane then decides.
 func pick_3d(screen: Vector2) -> Dictionary:
 	var cam := workbench.camera
+	var body_hit := {}
+	var near := INF
+	var on_body := false
+	for p in circuit.parts:
+		var node := workbench.part_node(p.id)
+		if node == null:
+			continue
+		if _projected(cam, _body_bounds(node)).has_point(screen):
+			on_body = true
+		var whole := _bounds(node)
+		if not _projected(cam, whole).has_point(screen):
+			continue
+		var depth := cam.global_position.distance_to(whole.get_center())
+		if depth < near:
+			near = depth
+			body_hit = {"kind": "part", "part": p.id}
+	var radius := PICK_PX_ON_BODY if on_body else PICK_PX
 	var best := {}
-	var best_d := PICK_PX
+	var best_d := radius
 	for p in circuit.parts:
 		var node := workbench.part_node(p.id)
 		if node == null:
@@ -433,34 +453,34 @@ func pick_3d(screen: Vector2) -> Dictionary:
 			if d < best_d:
 				best_d = d
 				best = {"kind": "pin", "part": p.id, "pin": pin}
-	if not best.is_empty():
-		return best
-	var near := INF
-	for p in circuit.parts:
-		var node := workbench.part_node(p.id)
-		if node == null:
-			continue
-		var box := _bounds(node)
-		if box.size == Vector3.ZERO:
-			continue
-		var rect := Rect2()
-		var first := true
-		var behind := false
-		for i in 8:
-			var corner := box.get_endpoint(i)
-			if cam.is_position_behind(corner):
-				behind = true
-				break
-			var px := cam.unproject_position(corner)
-			rect = Rect2(px, Vector2.ZERO) if first else rect.expand(px)
-			first = false
-		if behind or not rect.has_point(screen):
-			continue
-		var depth := cam.global_position.distance_to(box.get_center())
-		if depth < near:
-			near = depth
-			best = {"kind": "part", "part": p.id}
-	return best
+	return best if not best.is_empty() else body_hit
+
+
+## A part's body (an LED's epoxy, a resistor's or switch's body; the whole
+## part when it has neither, like a battery's posts).
+static func _body_bounds(node: Node3D) -> AABB:
+	for body_name in ["epoxy", "body"]:
+		var body := node.get_node_or_null(body_name)
+		if body is MeshInstance3D:
+			var mi := body as MeshInstance3D
+			return mi.global_transform * mi.mesh.get_aabb()
+		if body is Node3D:
+			return _bounds(body as Node3D)
+	return _bounds(node)
+
+
+## The screen rectangle an AABB covers; empty when any corner is behind the camera.
+static func _projected(cam: Camera3D, box: AABB) -> Rect2:
+	if box.size == Vector3.ZERO:
+		return Rect2()
+	var rect := Rect2()
+	for i in 8:
+		var corner := box.get_endpoint(i)
+		if cam.is_position_behind(corner):
+			return Rect2()
+		var px := cam.unproject_position(corner)
+		rect = Rect2(px, Vector2.ZERO) if i == 0 else rect.expand(px)
+	return rect
 
 
 ## The top of a pin's visible metal (lead, lug, post and the clip on it),

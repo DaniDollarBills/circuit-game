@@ -43,6 +43,7 @@ var _settings: SettingsSheet
 var _fade: ColorRect
 var _pointer: PointerInput
 var _layer := ""
+var _subtitled := PackedStringArray()
 var _slideshow := false
 var _slide := 0
 var _slide_t := 0.0
@@ -95,6 +96,11 @@ func _go_home(id: String) -> void:
 		_finish()
 
 
+## Every term the captions have defined with a subtitle, in order.
+func shown_subtitles() -> PackedStringArray:
+	return _subtitled
+
+
 func skip() -> void:
 	_slideshow = false
 	_fade.modulate.a = 0.0
@@ -122,6 +128,7 @@ func _on_layer(id: String) -> void:
 		var e: Dictionary = Glossary.ENTRIES.get(t, {})
 		if e.is_empty():
 			continue
+		_subtitled.append(t)
 		var line := Label.new()
 		line.text = "%s: %s" % [e["title"], e["simple"]]
 		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -211,6 +218,7 @@ func _build_ui() -> void:
 	add_child(top)
 	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
 	_skip = Button.new()
+	_skip.name = "Skip"
 	_skip.text = "Skip"
 	_skip.pressed.connect(skip)
 	top.add_child(_skip)
@@ -263,6 +271,7 @@ func _build_ui() -> void:
 	_simple.toggled.connect(func(on: bool) -> void: (layers["title.atom"] as AtomLayer).simple_picture = on)
 	row.add_child(_simple)
 	_start = Button.new()
+	_start.name = "Start"
 	_start.text = "Continue" if not game.state.progress.completed.is_empty() else "Start"
 	_start.custom_minimum_size = Vector2(180, 52)
 	_start.visible = false

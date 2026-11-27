@@ -259,7 +259,16 @@ func _render() -> void:
 		"closing":
 			_pip.mood = "happy"
 			if read_only:
-				HudText.put(_text, "That's the lesson.", game)
+				# Reading again: the recap's points, filled from the lesson's own
+				# solved circuit.
+				var out := Simulator.simulate(_level.solution)
+				var points := PackedStringArray()
+				for point in RecapCard._point_sources(_level):
+					points.append("• " + RecapText.fill(point, out.circuit, out.result))
+				var lead := "That's the lesson."
+				if not points.is_empty():
+					lead += " What you learned (example numbers from a solved circuit):\n" + "\n".join(points)
+				HudText.put(_text, lead, game)
 			else:
 				HudText.put(_text, "Now let's try it!" if _level.has_try() else "Now let's build it!", game)
 		"meet":

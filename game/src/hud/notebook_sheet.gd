@@ -1,15 +1,24 @@
 class_name NotebookSheet
 extends PanelContainer
-## The Notebook: every word learned, in the order it was met, with both
-## definitions; and all the badges, earned ones in color.
+## The Notebook, the course's textbook: every lesson read (to read again),
+## every part met (to meet again), every word learned with both definitions,
+## and all the badges, earned ones in color. A finished chapter gets a summary.
+
+signal open_lesson(level_id: String)
+signal open_part(key: String)
+
+const TABS := [["lessons", "Lessons"], ["parts", "Parts"], ["words", "Words"], ["badges", "Badges"]]
 
 var game: Game
 
 var _tabs: Dictionary = {}
 var _list: VBoxContainer
-var _showing := "words"
+var _showing := "lessons"
 var _words := PackedStringArray()
 var _badges := 0
+var _lesson_rows := PackedStringArray()
+var _part_rows := PackedStringArray()
+var _summaries := {}
 
 
 func _ready() -> void:
@@ -31,12 +40,17 @@ func _ready() -> void:
 	close_b.custom_minimum_size = Vector2(IconButton.MIN_TOUCH, IconButton.MIN_TOUCH)
 	close_b.pressed.connect(func() -> void: visible = false)
 	top.add_child(close_b)
-	var tabs := HBoxContainer.new()
+	# Four tabs wrap onto two rows on a narrow phone.
+	var tabs := HFlowContainer.new()
+	tabs.add_theme_constant_override("h_separation", 6)
+	tabs.add_theme_constant_override("v_separation", 6)
 	col.add_child(tabs)
-	for id in ["words", "badges"]:
+	for tab in TABS:
+		var id: String = tab[0]
 		var b := Button.new()
-		b.text = "Words" if id == "words" else "Badges"
+		b.text = tab[1]
 		b.toggle_mode = true
+		b.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
 		b.pressed.connect(func() -> void: show_tab(id))
 		tabs.add_child(b)
 		_tabs[id] = b
@@ -52,8 +66,33 @@ func _ready() -> void:
 
 
 func open() -> void:
-	show_tab("words")
+	show_tab("lessons")
 	visible = true
+
+
+func tab_ids() -> PackedStringArray:
+	var out := PackedStringArray()
+	for tab in TABS:
+		out.append(tab[0])
+	return out
+
+
+## The lessons listed to read again ("Lesson 1 · Light it up").
+func lesson_rows() -> PackedStringArray:
+	return _lesson_rows
+
+
+## The parts listed to meet again, by title, first met first.
+func part_rows() -> PackedStringArray:
+	return _part_rows
+
+
+func has_chapter_summary(chapter: String) -> bool:
+	return _summaries.has(chapter)
+
+
+func chapter_summary_text(chapter: String) -> String:
+	return str(_summaries.get(chapter, ""))
 
 
 ## The seen words, first learned first.
@@ -89,7 +128,14 @@ func show_tab(id: String) -> void:
 	var p := game.state.progress
 	_words = in_order(p.seen_terms)
 	_badges = 0
-	if id == "words":
+	_lesson_rows = PackedStringArray()
+	_part_rows = PackedStringArray()
+	_summaries = {}
+	if id == "lessons":
+		_fill_lessons(p)
+	elif id == "parts":
+		_fill_parts(p)
+	elif id == "words":
 		if _words.is_empty():
 			_list.add_child(_plain("Words you meet will collect here.", 15, "ink_soft"))
 		for t in _words:
@@ -121,6 +167,55 @@ func show_tab(id: String) -> void:
 			box.add_child(_plain(a["description"], 14, "ink" if earned else "ink_soft", earned))
 			_list.add_child(card)
 			_badges += 1
+
+
+## Each lesson read (or finished), to read again; a finished chapter's
+## summary first.
+func _fill_lessons(p: Progress) -> void:
+	var levels := Levels.all()
+	var first_tutorial := not levels.is_empty() and levels[0].kind == "tutorial"
+	var ids := Levels.chapter_ids("ch1")
+	if not ids.is_empty() and Array(ids).all(func(i: String) -> bool: return p.completed.has(i)):
+		var lines: Array = Chapters.SUMMARY.get("ch1", [])
+		_summaries["ch1"] = "\n".join(lines.map(func(t: String) -> String: return "• " + t))
+		var title := _plain("Chapter 1 summary", 18, "ink")
+		_list.add_child(title)
+		_list.add_child(HudText.make(game, _summaries["ch1"], 15))
+	var i := 0
+	for l in levels:
+		var number := i if first_tutorial else i + 1
+		i += 1
+		if not (p.lesson_marks(l.id).has("learn") or p.completed.has(l.id)) or l.deck_size() == 0:
+			continue
+		var row := "Lesson %d · %s" % [number, l.title]
+		_lesson_rows.append(row)
+		var b := Button.new()
+		b.text = row
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
+		var lid := l.id
+		b.pressed.connect(func() -> void: open_lesson.emit(lid))
+		_list.add_child(b)
+	if _lesson_rows.is_empty():
+		_list.add_child(_plain("Lessons you read will collect here, to read again.", 15, "ink_soft"))
+
+
+## Each part met, first met first, to meet again.
+func _fill_parts(p: Progress) -> void:
+	for key in in_order(p.parts_seen):
+		var intro := PartIntros.get_intro(key)
+		if intro.is_empty():
+			continue
+		_part_rows.append(str(intro["title"]))
+		var b := Button.new()
+		b.text = str(intro["title"])
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
+		var k: String = key
+		b.pressed.connect(func() -> void: open_part.emit(k))
+		_list.add_child(b)
+	if _part_rows.is_empty():
+		_list.add_child(_plain("Parts you meet will collect here.", 15, "ink_soft"))
 
 
 ## Text on a pastel (earned badge) card is always dark ink, even at night;

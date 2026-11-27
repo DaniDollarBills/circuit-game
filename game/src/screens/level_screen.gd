@@ -43,6 +43,8 @@ var spotlight: Spotlight
 var hand: GestureHand
 var skip_tutorial_button: Button
 var _hand_key := ""
+## Reading a lesson again, or meeting a part again, from the Notebook.
+var textbook: Textbook
 ## The Meet the part card on screen, and the parts waiting to be met.
 var meet_card: MeetPartCard
 var _meet_queue := PackedStringArray()
@@ -668,6 +670,8 @@ func close_top() -> bool:
 	if menu.visible:
 		menu.close()
 		return true
+	if textbook.close_top():
+		return true
 	if meet_card != null and meet_card.visible:
 		meet_card.close_button().pressed.emit()
 		return true
@@ -725,6 +729,12 @@ func _on_board_resized() -> void:
 func _connect() -> void:
 	try_panel.ready_pressed.connect(game.finish_try)
 	skip_tutorial_button.pressed.connect(game.skip_tutorial)
+	notebook.open_lesson.connect(func(id: String) -> void:
+		notebook.visible = false
+		textbook.open_lesson(id))
+	notebook.open_part.connect(func(key: String) -> void:
+		notebook.visible = false
+		textbook.open_part(key))
 	# What the player did, for Lesson 0's steps.
 	editor.view_moved.connect(func(how: String) -> void: game.set_ui_flag("did:" + how))
 	hint_button.pressed.connect(func() -> void: game.set_ui_flag("did:hint"))
@@ -838,6 +848,8 @@ func _build_hud() -> void:
 	menu = _add(ContextMenu.new())
 	value_popover = _add(ValuePopover.new())
 	explain = _add(ExplainPopover.new())
+	textbook = _add(Textbook.new())
+	textbook.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	glossary_popup = _add(GlossaryPopup.new())
 	toasts = _add(Toasts.new())
 

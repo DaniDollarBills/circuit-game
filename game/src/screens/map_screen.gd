@@ -10,6 +10,7 @@ const TOP := 64.0
 
 var game: Game
 var notebook: NotebookSheet
+var textbook: Textbook
 var glossary_popup: GlossaryPopup
 
 var _buttons: Array[Button] = []
@@ -96,6 +97,16 @@ func _ready() -> void:
 	notebook = NotebookSheet.new()
 	notebook.game = game
 	add_child(notebook)
+	textbook = Textbook.new()
+	textbook.game = game
+	add_child(textbook)
+	textbook.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	notebook.open_lesson.connect(func(id: String) -> void:
+		notebook.visible = false
+		textbook.open_lesson(id))
+	notebook.open_part.connect(func(key: String) -> void:
+		notebook.visible = false
+		textbook.open_part(key))
 	glossary_popup = GlossaryPopup.new()
 	glossary_popup.game = game
 	add_child(glossary_popup)
@@ -236,6 +247,8 @@ func _chapter_card(number: int, ch: Dictionary) -> Control:
 ## Closes the definition or the Notebook (Android's Back); false when neither
 ## was open.
 func close_top() -> bool:
+	if textbook != null and textbook.close_top():
+		return true
 	for card: Control in [glossary_popup, notebook]:
 		if card.visible:
 			card.visible = false

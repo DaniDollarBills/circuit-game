@@ -18,3 +18,18 @@ const ALL: Array[Dictionary] = [
 	{"id": "ch12", "title": "White Hat", "era": "today", "blurb": "Pretend hacking: test it, then defend it", "playable": false},
 	{"id": "ch13", "title": "Thinking Machines", "era": "1958–today", "blurb": "Neurons, AI chips and language models", "playable": false},
 ]
+
+
+## What each chapter teaches, in a few lines: the Notebook shows it once the
+## chapter's last lesson is done.
+const SUMMARY := {
+	"ch1": [
+		"Electricity only flows around a complete loop.",
+		"Voltage pushes, current flows, and resistance slows it: V = I × R.",
+		"An LED needs a resistor to keep its current safe.",
+		"A switch opens and closes the loop: on and off are a bit.",
+		"Series is one path, so everything on it must be on (AND); parallel is side-by-side paths (OR).",
+		"A short circuit skips your parts, and every part has a power rating it mustn't pass.",
+		"Inside a wire, electrons drift slowly while the push travels fast.",
+	],
+}

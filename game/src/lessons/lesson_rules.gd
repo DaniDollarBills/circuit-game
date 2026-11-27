@@ -38,6 +38,9 @@ static func _card_problems(c: Dictionary, where: String, out: PackedStringArray)
 		out.append("%s: unknown mood %s" % [where, c.get("mood")])
 	if type != "meet" and str(c.get("text", "")).strip_edges() == "":
 		out.append("%s: no text" % where)
+	var diagram := str(c.get("diagram", ""))
+	if diagram != "" and not Diagrams.has(diagram):
+		out.append("%s: no diagram called %s" % [where, diagram])
 	match type:
 		"analogy":
 			if str(c.get("breaks", "")).strip_edges() == "":

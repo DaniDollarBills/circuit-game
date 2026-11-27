@@ -394,3 +394,13 @@ func test_part_intro_copy_limits() -> void:
 			var plain := GlossaryText.plain(line)
 			assert_true(plain.split(" ", false).size() <= 30, "%s: %s" % [key, plain])
 			assert_true(maxi(1, sentence_end.search_all(plain).size()) <= 2, "%s: %s" % [key, plain])
+
+
+## Every recap template names a part the lesson's solution has, and fills
+## with a number from its simulation.
+func test_every_recap_template_resolves() -> void:
+	for l in Levels.all():
+		var out := Simulator.simulate(l.solution)
+		for point in l.recap:
+			var filled := RecapText.fill(point, out.circuit, out.result)
+			assert_false("—" in filled or "{" in filled, "%s: %s → %s" % [l.id, point, filled])

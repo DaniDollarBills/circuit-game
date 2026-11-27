@@ -77,13 +77,8 @@ func test_play_l1_by_mouse() -> void:
 	await _wire(s, ["L1", "cathode"], ["B1", "neg"])
 	await e2e.frames(3)
 	assert_eq(s.game.state.session.phase, "passed")
-	assert_true(s.guide.visible and s.guide.kind == "outro", "Pip reads the outro")
-	for i in 10:
-		var m := E2E.find_button(s.guide, "Map")
-		if m != null:
-			await e2e.click_control(m)
-			break
-		await e2e.click_control(s.guide.action_buttons()[0])
+	assert_true(s.recap.visible, "the recap sums up the lesson")
+	await e2e.click_control(s.recap.map_button())
 	await e2e.frames(3)
 	var back := e2e.screen() as MapScreen
 	assert_true(back != null, "back on the map")
@@ -168,9 +163,8 @@ func test_every_word_defined_on_first_sight() -> void:
 	await _wire(s, ["L1", "cathode"], ["B1", "neg"])
 	for i in 10:
 		await e2e.frames(2)
-		if E2E.find_button(s.guide, "Map") != null:
+		if s.recap.visible:
 			break
-		await e2e.click_control(s.guide.action_buttons()[0])
 	await e2e.frames(3)
 	announced.append_array(Array(s.shown_word_terms()))
 	var seen := e2e.game().state.progress.seen_terms.keys()
@@ -181,7 +175,7 @@ func test_every_word_defined_on_first_sight() -> void:
 	for t in announced:
 		assert_true(t in seen, "'%s' was defined but isn't in the Notebook" % t)
 	assert_true(seen.size() >= 8, "%d words met" % seen.size())
-	await e2e.click_control(E2E.find_button(s.guide, "Map"))
+	await e2e.click_control(s.recap.map_button())
 	await e2e.frames(3)
 	var back := e2e.screen() as MapScreen
 	back.notebook.open()

@@ -9,7 +9,6 @@ extends Control
 const IDLE_OFFER_S := 30.0
 const IDLE_OFFER := "Stuck? Tap the lightbulb and I'll help."
 const FORMULA_OFFER := "This step needs a calculation. The calculator can work it out with you, step by step."
-const FINISH := "You did it! Keep experimenting here, or go on."
 ## Goal messages that mean something went wrong (Pip steps in on Heavy).
 const MISTAKES: PackedStringArray = ["Pop!", "Short circuit!", "The LED is backwards", "Careful:", "Something burned out"]
 const MARGIN := 12.0
@@ -38,6 +37,7 @@ var guide: GuideBubble
 var deck: LessonDeck
 var lesson_button: IconButton
 var try_panel: TryPanel
+var recap: RecapCard
 ## The Meet the part card on screen, and the parts waiting to be met.
 var meet_card: MeetPartCard
 var _meet_queue := PackedStringArray()
@@ -67,8 +67,6 @@ var _ticked := -1
 var _last_mistake := ""
 var _formula_offered := false
 var _hint_tier_shown := 0
-var _pages: Array[Dictionary] = []
-var _page := -1
 var _ghosts := {}
 var _highlights: Array = []
 var _board_key := ""
@@ -137,6 +135,14 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func dev_show(what: String) -> void:
 	if what.begins_with("datasheet:"):
 		_open_datasheet(what.substr("datasheet:".length()))
+	elif what == "recap":
+		# For screenshots: the bench's parts count as met, so no card covers it.
+		for p in game.state.level.solution.parts:
+			game.state.progress.mark_part_seen(PartIntros.key_for(p), game.state.now())
+		if meet_card != null:
+			meet_card.visible = false
+		_meet_queue.clear()
+		game.commit(game.state.level.solution.copy())
 	elif what == "try":
 		game.reopen_lesson()
 		game.skip_learn()
@@ -180,7 +186,7 @@ func visible_word_cards() -> Array[NewWordCard]:
 ## Counts toward Pip's "Stuck?" offer; any newly ticked step starts it over.
 func idle_tick(seconds: float) -> void:
 	var s := game.state
-	if s.level == null or s.session.phase != "build" or _page >= 0:
+	if s.level == null or s.session.phase != "build" or recap.visible:
 		return
 	var ticked := StepsChecklist.ticked_count(s.session)
 	if ticked != _ticked:
@@ -217,10 +223,10 @@ func _refresh() -> void:
 		copper.quality = q
 	_handle_events(s.take_events())
 	_sounds_for(s)
-	if _page >= 0 and s.session.phase != "passed":
-		# Started over: the outro described a board that's gone.
-		_page = -1
-		guide.hide_bubble()
+	if recap.visible and s.session.phase != "passed":
+		# Started over (or reading the lesson again): the recap described a
+		# board that's gone.
+		recap.visible = false
 	if bool(st.get("night", false)) != _night:
 		_night = not _night
 		HudText.refresh_all(get_tree(), game)
@@ -296,7 +302,7 @@ func _handle_events(events: Array[Dictionary]) -> void:
 				var p := s.outcome.circuit.find_part(str(e["part"]))
 				var title := Catalog.title(p.kind) if p != null else str(e["part"])
 				toasts.show_text("Pop! %s burned out." % title)
-				if _help() == "heavy" and p != null and _page < 0:
+				if _help() == "heavy" and p != null and not recap.visible:
 					_burn_help(p)
 			"passed":
 				_sound("success")
@@ -325,7 +331,7 @@ func _burn_help(p: Part) -> void:
 
 func _check_mistakes() -> void:
 	var s := game.state
-	if _help() != "heavy" or s.session.phase != "build" or _page >= 0:
+	if _help() != "heavy" or s.session.phase != "build" or recap.visible:
 		return
 	var m := _first_failing()
 	if not _is_mistake(m):
@@ -399,7 +405,7 @@ func _is_mistake(m: String) -> bool:
 ## comes up (or at the start when no step names it).
 func _check_formula_offer() -> void:
 	var s := game.state
-	if _help() != "heavy" or _formula_offered or s.level.formula == "" or s.session.phase != "build" or _page >= 0:
+	if _help() != "heavy" or _formula_offered or s.level.formula == "" or s.session.phase != "build" or recap.visible:
 		return
 	var flag := "formula:" + s.level.formula
 	var named := false
@@ -424,38 +430,16 @@ func _update_guide() -> void:
 		if guide.visible and guide.kind != "help":
 			guide.hide_bubble()
 		return
-	if _page >= 0 and guide.kind != "outro":
-		_show_page()
 
 
+## After a pass: the Recap, filled from the player's own circuit.
 func _start_outro() -> void:
-	var l := game.state.level
-	_pages.clear()
-	for o in l.outro:
-		_pages.append({"text": o["text"], "mood": o.get("mood", "wow")})
-	for f in l.facts:
-		_pages.append({"text": "Fun fact: " + str(f["text"]), "mood": "wow", "source": f["source"]})
-	_pages.append({"text": FINISH, "mood": "happy", "finish": true})
-	_page = 0
-	_show_page()
-
-
-func _show_page() -> void:
-	var pg := _pages[_page]
-	if pg.get("finish", false):
-		var actions := []
-		var next_id := _next_level_id()
-		if next_id != "":
-			actions.append({"label": "Next level", "callback": func() -> void: game.open_level(next_id)})
-		actions.append({"label": "Map", "callback": game.open_map})
-		guide.show_line(pg["text"], pg["mood"], "outro", actions)
-	else:
-		guide.show_line(pg["text"], pg["mood"], "outro", [{"label": "Next", "callback": _next_page}], str(pg.get("source", "")), false)
-
-
-func _next_page() -> void:
-	_page = mini(_page + 1, _pages.size() - 1)
-	_show_page()
+	var s := game.state
+	guide.hide_bubble()
+	recap.show_recap(s.level, s.outcome, _next_level_id())
+	recap.visible = true
+	game.mark_lesson_step("recap")
+	_place_floating()
 
 
 func _next_level_id() -> String:
@@ -485,7 +469,7 @@ func _update_hints() -> void:
 		chips = _hint_chips(_ghosts)
 	if tier != _hint_tier_shown or (guide.kind == "hint" and bool(h.get("show_solution", false))):
 		_hint_tier_shown = tier
-		if s.session.phase == "build" and _page < 0:
+		if s.session.phase == "build" and not recap.visible:
 			guide.show_line(h["text"], "curious", "hint", chips)
 
 
@@ -724,6 +708,12 @@ func _on_board_resized() -> void:
 
 func _connect() -> void:
 	try_panel.ready_pressed.connect(game.finish_try)
+	recap.next_lesson.connect(func() -> void:
+		var next_id := _next_level_id()
+		if next_id != "":
+			game.open_level(next_id))
+	recap.to_map.connect(game.open_map)
+	recap.read_again.connect(game.reopen_lesson)
 	deck.next_pressed.connect(game.next_card)
 	deck.back_pressed.connect(game.back_card)
 	deck.skip_pressed.connect(game.skip_learn)
@@ -791,6 +781,7 @@ func _build_hud() -> void:
 	# Under the New word cards and every popup, so a word tapped in a card
 	# opens its definition on top.
 	deck = _add(LessonDeck.new())
+	recap = _add(RecapCard.new())
 	back_to_building = Button.new()
 	back_to_building.text = "Back to building"
 	back_to_building.visible = false
@@ -950,6 +941,8 @@ func _place_floating() -> void:
 		deck.fit_into(area, LessonDeck.MAX_W)
 	if meet_card != null and meet_card.visible:
 		meet_card.fit_into(area, MeetPartCard.MAX_W)
+	if recap.visible:
+		recap.fit_into(area, RecapCard.MAX_W)
 	for card in [datasheet, formula, settings_sheet, notebook, glossary_popup]:
 		if card.visible:
 			var cw := minf(380.0, area.size.x)

@@ -116,6 +116,13 @@ func skip_learn() -> void:
 	_changed()
 
 
+## Records a step of the open lesson ("learn", "try" or "recap") as seen.
+func mark_lesson_step(step: String) -> void:
+	if state.level != null:
+		state.progress.mark_lesson(state.level.id, step, state.now())
+		save_soon()
+
+
 ## Records that a part's Meet the part card has been seen.
 func mark_part_seen(key: String) -> void:
 	if state.progress.mark_part_seen(key, state.now()):

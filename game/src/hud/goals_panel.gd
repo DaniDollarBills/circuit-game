@@ -25,6 +25,10 @@ func _ready() -> void:
 	_title.flat = true
 	_title.theme_type_variation = "FlatButton"
 	_title.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	# A long lesson title in Large text ends in "…" rather than widening the
+	# column past a small phone.
+	_title.clip_text = true
+	_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_title.pressed.connect(func() -> void:
 		_open = not _open
 		_apply_compact())

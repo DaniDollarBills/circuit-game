@@ -209,6 +209,11 @@ func inside_button() -> Button:
 	return _inside_button
 
 
+## The turntable's own viewport (it stops drawing while the card is hidden).
+func turntable_viewport() -> SubViewport:
+	return _viewport
+
+
 ## The full card's scrolling body (null for a compact card).
 func body_scroll() -> ScrollContainer:
 	return _scroll

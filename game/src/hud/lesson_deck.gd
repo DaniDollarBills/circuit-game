@@ -131,28 +131,36 @@ func _ready() -> void:
 	body.add_child(_deeper)
 	_source = HudText.label(game, 13)
 	body.add_child(_source)
-	var buttons := HBoxContainer.new()
-	buttons.add_theme_constant_override("separation", 8)
+	var buttons := HFlowContainer.new()
+	buttons.add_theme_constant_override("h_separation", 8)
+	buttons.add_theme_constant_override("v_separation", 8)
 	col.add_child(buttons)
+	# Skip on the left, Back and Next on the right; on a narrow phone with
+	# Large text, Back and Next wrap onto their own row.
+	var skip_side := HBoxContainer.new()
+	skip_side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	buttons.add_child(skip_side)
 	_skip = Button.new()
 	_skip.text = "Skip lesson"
 	_skip.theme_type_variation = "FlatButton"
 	_skip.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
 	_skip.pressed.connect(func() -> void: skip_pressed.emit())
-	buttons.add_child(_skip)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	buttons.add_child(spacer)
+	skip_side.add_child(_skip)
+	var nav := HBoxContainer.new()
+	nav.add_theme_constant_override("separation", 8)
+	nav.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nav.alignment = BoxContainer.ALIGNMENT_END
+	buttons.add_child(nav)
 	_back = Button.new()
 	_back.text = "Back"
 	_back.custom_minimum_size = Vector2(88, IconButton.MIN_TOUCH)
 	_back.pressed.connect(func() -> void: back_pressed.emit())
-	buttons.add_child(_back)
+	nav.add_child(_back)
 	_next = Button.new()
 	_next.text = "Next"
 	_next.custom_minimum_size = Vector2(104, IconButton.MIN_TOUCH)
 	_next.pressed.connect(_on_next)
-	buttons.add_child(_next)
+	nav.add_child(_next)
 	resized.connect(_size_picture)
 	visible = false
 

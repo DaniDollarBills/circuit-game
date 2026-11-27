@@ -75,22 +75,36 @@ func _fit_window() -> void:
 		win.content_scale_size = logical
 
 
-## For development and screenshots: --open=map or --open=level:<id> starts
-## there instead of on the title screen.
 func _open_from_args() -> bool:
-	for arg in OS.get_cmdline_user_args():
+	return open_from(OS.get_cmdline_user_args())
+
+
+## For development and screenshots: --open=map or --open=level:<id> starts
+## there instead of on the title screen (a lesson's --skip-intro and --show=…
+## too), in daylight and normal text unless --night or --large-text asks
+## otherwise. True when it opened something.
+func open_from(args: PackedStringArray) -> bool:
+	var opens := false
+	for arg in args:
+		opens = opens or arg.begins_with("--open=")
+	if opens:
+		# Screenshots are made the same way every time: Night and Large text
+		# only when asked for.
+		game.set_setting("night", "--night" in args)
+		game.set_setting("large_text", "--large-text" in args)
+	for arg in args:
 		if arg == "--open=map":
 			game.open_map()
 			return true
 		if arg.begins_with("--open=level:"):
 			game.open_level(arg.substr("--open=level:".length()), true)
-			if "--skip-intro" in OS.get_cmdline_user_args():
+			if "--skip-intro" in args:
 				while game.state.session.phase in ["learn", "try"]:
 					if game.state.session.phase == "learn":
 						game.skip_learn()
 					else:
 						game.finish_try()
-			for a in OS.get_cmdline_user_args():
+			for a in args:
 				if a.begins_with("--show=") and screen is LevelScreen:
 					(screen as LevelScreen).dev_show.call_deferred(a.substr("--show=".length()))
 			return screen != null

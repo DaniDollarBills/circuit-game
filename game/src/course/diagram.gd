@@ -20,17 +20,29 @@ var painted := 0
 var text_log: Array = []
 
 var _k := 1.0
+var _game: Game
 
 
 ## Sets the picture and reads Reduced motion and Night from the game.
 func setup(diagram_id: String, game: Game) -> Diagram:
 	id = diagram_id
 	name = "Diagram_" + diagram_id
-	if game != null:
-		var st := game.state.progress.settings
-		still = bool(st.get("reduced_motion", false))
-		night = bool(st.get("night", false))
+	_game = game
+	_read_settings()
 	return self
+
+
+## Reduced motion and Night as they are now, so a change reaches a picture
+## that's already showing.
+func _read_settings() -> void:
+	if _game == null or _game.state == null or _game.state.progress == null:
+		return
+	var st := _game.state.progress.settings
+	var was := [still, night]
+	still = bool(st.get("reduced_motion", false))
+	night = bool(st.get("night", false))
+	if [still, night] != was:
+		queue_redraw()
 
 
 func _ready() -> void:
@@ -40,6 +52,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_read_settings()
 	if not still and is_visible_in_tree():
 		t += delta
 		queue_redraw()

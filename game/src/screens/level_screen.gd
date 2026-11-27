@@ -77,6 +77,8 @@ var _hint_tier_shown := 0
 var _ghosts := {}
 ## The phase at the last refresh, to notice coming back to a passed bench.
 var _last_phase := ""
+## The column's width from the last layout.
+var _column_w := COLUMN_W
 ## The step row last scrolled into view.
 var _row_in_view: Control
 var _highlights: Array = []
@@ -238,6 +240,10 @@ func _refresh() -> void:
 		# Started over (or reading the lesson again): the recap described a
 		# board that's gone.
 		recap.visible = false
+	if s.session.phase == "try" and _last_phase != "try":
+		# Try it opens on its prompt.
+		column_scroll.scroll_vertical = 0
+		_row_in_view = null
 	if s.session.phase == "passed" and _last_phase in ["learn", "try"] and not recap.visible:
 		# Back from reading the lesson again to a bench that still passes:
 		# the recap again, with the way on.
@@ -291,9 +297,10 @@ func _refresh() -> void:
 	checklist.visible = (_help() == "heavy" or tutorial) and not s.level.steps.is_empty() and not trying
 	if checklist.visible:
 		checklist.refresh(s.level, s.session)
-		# On a short screen the column scrolls: keep the current step in view.
+		# On a short screen the column scrolls: keep the current step in view
+		# (while building; the lesson's cards and Try it have their own top).
 		var row := checklist.current_row()
-		if row != null and row != _row_in_view:
+		if row != null and row != _row_in_view and s.session.phase in ["build", "passed"]:
 			_row_in_view = row
 			column_scroll.ensure_control_visible.call_deferred(row)
 	test_button.visible = not s.level.tests.is_empty() and s.session.phase in ["build", "passed"]
@@ -722,6 +729,24 @@ func close_top() -> bool:
 	return false
 
 
+## The course card showing (the deck, Meet the part or the recap), if any,
+## outside Lesson 0's tour (whose spotlight places the deck).
+func _course_card() -> Control:
+	if _tour_target() != "":
+		return null
+	for c in [deck, meet_card, recap]:
+		if c != null and (c as Control).visible:
+			return c
+	return null
+
+
+func _sized_word_card(card: Control, width: float) -> Vector2:
+	card.size = Vector2(width, 0)
+	card.reset_size()
+	card.size.x = width
+	return card.size
+
+
 ## Two cards when the board is tall enough for two, else one.
 func _max_cards() -> int:
 	return MAX_CARDS if editor.safe_rect.size.y >= 520.0 else 1
@@ -939,7 +964,8 @@ func _layout() -> void:
 		var column_h := _column_height(w - 2.0 * MARGIN, h * 0.38)
 		_column_room = column_h
 		column_scroll.position = Vector2(MARGIN, top)
-		column_scroll.size = Vector2(w - 2.0 * MARGIN, column_h)
+		_column_w = w - 2.0 * MARGIN
+		column_scroll.size = Vector2(_column_w, column_h)
 		safe = Rect2(MARGIN, top + column_h + 8.0, w - 2.0 * MARGIN, tray.position.y - 8.0 - (top + column_h + 8.0))
 	else:
 		tray.position = Vector2(MARGIN, top)
@@ -948,6 +974,7 @@ func _layout() -> void:
 		hint_button.position = Vector2(w - MARGIN - hint_size.x, row_y)
 		test_button.position = Vector2(hint_button.position.x - 8.0 - test_size.x, row_y)
 		column_scroll.position = Vector2(w - MARGIN - COLUMN_W, top)
+		_column_w = COLUMN_W
 		column_scroll.size = Vector2(COLUMN_W, _column_height(COLUMN_W, row_y - 8.0 - top))
 		scale_bar.position = Vector2(MARGIN + TRAY_W + 12.0, h - MARGIN - scale_bar.custom_minimum_size.y)
 		safe = Rect2(MARGIN + TRAY_W + 8.0, top, w - MARGIN - COLUMN_W - 8.0 - (MARGIN + TRAY_W + 8.0), h - top - MARGIN)
@@ -1138,7 +1165,9 @@ func _place_floating() -> void:
 	_place_button_row()
 	# The column grows and shrinks with its content, never past its room.
 	var column_cap := _column_room if _portrait else hint_button.position.y - 8.0 - top
-	column_scroll.size.y = _column_height(column_scroll.size.x, column_cap)
+	# The column keeps its width as its content changes (a wide moment in the
+	# lesson's cards mustn't leave it wider than the screen).
+	column_scroll.size = Vector2(_column_w, _column_height(_column_w, column_cap))
 	if _portrait:
 		guide.size = Vector2(w - 2.0 * MARGIN, 0)
 		guide.reset_size()
@@ -1188,11 +1217,23 @@ func _place_floating() -> void:
 	if explain.visible:
 		CardFit.fit(explain, 360.0, area, explain.position)
 	var y := board.position.y + 8.0
+	var x0 := board.position.x + 8.0
+	var room := board.size.x - 16.0
+	# While a course card is up, New word cards go above it: the course card
+	# moves to the bottom when that makes room, so a word never covers it.
+	var course := _course_card()
+	if course != null and not _cards.is_empty():
+		var need := 0.0
+		for card in _cards:
+			need += _sized_word_card(card, minf(card.custom_minimum_size.x, area.size.x)).y + 8.0
+		if need <= area.size.y - course.size.y - 8.0:
+			course.position.y = area.end.y - course.size.y
+			y = area.position.y
+			x0 = area.position.x
+			room = area.size.x
 	for card in _cards:
-		var cw := minf(card.custom_minimum_size.x, board.size.x - 16.0)
-		card.size = Vector2(cw, 0)
-		card.reset_size()
-		card.size.x = cw
-		var x := board.position.x + 8.0
+		var cw := minf(card.custom_minimum_size.x, room)
+		_sized_word_card(card, cw)
+		var x := x0
 		card.position = Vector2(x - (1.0 - card.slide_progress()) * (x + cw), y)
 		y += card.size.y + 8.0

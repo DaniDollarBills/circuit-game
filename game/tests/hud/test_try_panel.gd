@@ -128,3 +128,32 @@ func test_try_panel_fills_the_truth_table() -> void:
 	game.commit(CircuitEdits.set_props(game.state.history.present, "SW2", {"closed": true}))
 	await wait_frames(3)
 	assert_eq(table.call("results"), [0, -1, 0, 1], "A alone: dark; both: lit")
+
+
+## Lesson 9: Try it has a button that switches the picture to the electrons'
+## way and back (the Electron flow setting), ticking its pokes.
+func test_electron_flow_toggle() -> void:
+	var game := Game.new()
+	add_to_tree(game)
+	game.boot(_dir.path_join("progress_l9.json"))
+	game.state.progress.parts_seen = {"battery": 1, "resistor": 1, "led": 1, "wire": 1}
+	var host := Control.new()
+	host.size = Vector2(1280, 720)
+	add_to_tree(host)
+	game.open_level("ch1.inside-the-wire", true)
+	var s: LevelScreen = load("res://src/screens/level_screen.tscn").instantiate()
+	s.game = game
+	host.add_child(s)
+	await wait_frames(3)
+	game.skip_learn()
+	await wait_frames(3)
+	var b := s.try_panel.flow_button()
+	assert_true(b != null and b.is_visible_in_tree(), "the toggle shows in Lesson 9's Try it")
+	b.pressed.emit()
+	await wait_frames(2)
+	assert_true(bool(game.state.progress.settings["electron_flow"]))
+	assert_true(game.state.session.poke_done[0])
+	b.pressed.emit()
+	await wait_frames(2)
+	assert_false(bool(game.state.progress.settings["electron_flow"]))
+	assert_true(game.state.session.poke_done[1])

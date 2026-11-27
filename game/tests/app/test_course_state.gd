@@ -235,3 +235,21 @@ func test_truth_rows_noted_while_trying() -> void:
 	s.finish_try()
 	s.commit(s.history.present)
 	assert_false(s.ui_flags.has("row:2"), "only Try it notes cases")
+
+
+## Lesson 8's readouts name each resistor a player might place; only the ones
+## on the bench show.
+func test_readouts_skip_parts_not_on_the_bench() -> void:
+	var s := _state()
+	var l := Levels.by_id("ch1.too-hot")
+	s.start_level(l)
+	s.skip_learn()
+	assert_true(s.trying())
+	assert_eq(s.readouts(), [] as Array[Dictionary], "no resistor placed yet")
+	var c := s.history.present.copy()
+	c.parts.append(Part.make("R1", "resistor", -2, 0, 90, {"ohms": 220.0, "watts": 0.25}, false))
+	c = CircuitEdits.add_wire(c, "B1", "pos", "R1", "a")
+	c = CircuitEdits.add_wire(c, "R1", "b", "B1", "neg")
+	s.commit(c)
+	assert_eq(s.readouts().size(), 1)
+	assert_eq(s.readouts()[0]["text"], "220 Ω resistor: 0.11 W", "220 Ω across 5 V")

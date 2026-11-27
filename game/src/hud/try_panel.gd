@@ -13,6 +13,8 @@ var _rows: VBoxContainer
 var _readouts: VBoxContainer
 var _ready_button: Button
 var _col: VBoxContainer
+## Lesson 9: switches the picture between the current's way and the electrons'.
+var _flow: Button
 ## Lessons 5 and 6: the truth table, filled in as the switch cases are seen.
 var _table: Diagram
 var _signature := ""
@@ -37,6 +39,13 @@ func _ready() -> void:
 	_readouts = VBoxContainer.new()
 	_readouts.add_theme_constant_override("separation", 2)
 	col.add_child(_readouts)
+	_flow = Button.new()
+	_flow.theme_type_variation = "FlatButton"
+	_flow.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
+	_flow.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_flow.visible = false
+	_flow.pressed.connect(_toggle_flow)
+	col.add_child(_flow)
 	_ready_button = Button.new()
 	_ready_button.text = "I'm ready to build"
 	_ready_button.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
@@ -49,6 +58,9 @@ func refresh(s: GameState) -> void:
 		return
 	HudText.put(_prompt, s.level.try_prompt, game)
 	_refresh_table(s)
+	_flow.visible = _wants_flow(s.level)
+	var electrons := bool(game.state.progress.settings.get("electron_flow", false))
+	_flow.text = "Show the current's way" if electrons else "Show the electrons' way"
 	var reads := s.readouts()
 	var sig := "%s|%s|%s" % [s.session.poke_done, reads, game.state.progress.settings.get("night", false)]
 	if sig == _signature:
@@ -103,6 +115,26 @@ func _refresh_table(s: GameState) -> void:
 	if _table != null:
 		for row in rows:
 			_table.call("mark", int(row), bool(rows[row]))
+
+
+## A Try it whose pokes ask to switch the picture between the current's way
+## and the electrons' way gets the button that does it.
+static func _wants_flow(level: LevelDef) -> bool:
+	for poke in level.pokes:
+		var flag := str((poke["check"] as Dictionary).get("flag", ""))
+		if flag in ["did:electron_flow", "did:current_flow"]:
+			return true
+	return false
+
+
+func _toggle_flow() -> void:
+	var electrons := not bool(game.state.progress.settings.get("electron_flow", false))
+	game.set_setting("electron_flow", electrons)
+	game.set_ui_flag("did:electron_flow" if electrons else "did:current_flow")
+
+
+func flow_button() -> Button:
+	return _flow if _flow.visible else null
 
 
 ## The truth table (null when this Try it has none).

@@ -178,3 +178,27 @@ func test_reading_again_comes_back_to_the_recap() -> void:
 	assert_true(s.recap.visible or (s.lesson_button.visible and s.lesson_button.text == "Recap"),
 			"the recap, or the button that brings it back: %s" % s.lesson_button.text)
 	assert_true(s.recap.next_button().visible)
+
+
+## A long answer ("A huge current flows through its own resistance.") made
+## Lesson 7's recap wider than a phone, cutting it off. Answers wrap, and the
+## recap stays on screen.
+func test_long_answers_wrap_on_a_phone() -> void:
+	var game := _game()
+	var host := Control.new()
+	host.size = Vector2(390, 844)
+	host.theme = PastelTheme.build()
+	add_to_tree(host)
+	game.open_level("ch1.short-circuit", true)
+	var s: LevelScreen = load("res://src/screens/level_screen.tscn").instantiate()
+	s.game = game
+	host.add_child(s)
+	await wait_frames(3)
+	game.skip_learn()
+	game.finish_try()
+	game.state.progress.parts_seen = {"battery": 1, "wire": 1, "resistor": 1, "led": 1}
+	game.commit(game.state.level.solution.copy())
+	await wait_frames(4)
+	assert_true(s.recap.visible)
+	var r := s.recap.get_global_rect()
+	assert_true(r.position.x >= -0.5 and r.end.x <= 390.5, "the recap fits the phone: %s" % r)

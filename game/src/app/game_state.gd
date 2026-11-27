@@ -199,6 +199,9 @@ func readouts() -> Array[Dictionary]:
 	if level == null:
 		return out
 	for r in level.readouts:
+		# A part that isn't on the bench (yet) has nothing to show.
+		if outcome.circuit.find_part(str(r["part"])) == null:
+			continue
 		out.append({"part": r["part"], "text": Readouts.text(r, outcome.circuit, outcome.result)})
 	return out
 

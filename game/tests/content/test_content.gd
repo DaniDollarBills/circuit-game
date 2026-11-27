@@ -8,7 +8,8 @@ const LAYERS := ["editor", "wire.closeup", "wire.copper"]
 const FORMULAS := ["led_resistor", "ohms_law", "power"]
 const MOODS := ["happy", "curious", "wow", "oops"]
 ## Lessons rewritten as full course lessons so far.
-const COURSE_READY := ["ch1.workbench", "ch1.light-it-up", "ch1.pop", "ch1.push-and-flow", "ch1.on-and-off", "ch1.both"]
+const COURSE_READY := ["ch1.workbench", "ch1.light-it-up", "ch1.pop", "ch1.push-and-flow", "ch1.on-and-off", "ch1.both",
+		"ch1.either", "ch1.short-circuit", "ch1.too-hot", "ch1.inside-the-wire"]
 
 
 func _ctx(c: Circuit, layer := "editor", seen := {}, flags := {}) -> Dictionary:
@@ -321,7 +322,7 @@ func test_every_fact_has_source() -> void:
 
 
 func test_glossary_definition_lengths() -> void:
-	assert_eq(Glossary.ENTRIES.size(), 66)
+	assert_eq(Glossary.ENTRIES.size(), 67)
 	for term in Glossary.ENTRIES:
 		var e: Dictionary = Glossary.ENTRIES[term]
 		assert_false(str(e["title"]).is_empty(), term)
@@ -386,7 +387,9 @@ func test_datasheet_terms_exist() -> void:
 func test_core_definitions_are_physically_right() -> void:
 	assert_eq(Glossary.ENTRIES["electricity"]["simple"], "What electric charges do: they push and pull on each other, and flow through wires as a current.")
 	assert_eq(Glossary.ENTRIES["current"]["simple"], "How much electric charge flows past a point each second. Measured in amps.")
-	assert_eq(Levels.by_id("ch1.too-hot").learn[0]["text"], "Resistors turn electrical energy into heat. That's how toasters work!")
+	var heat_cards: Array = Levels.by_id("ch1.too-hot").learn.filter(func(c: Dictionary) -> bool:
+		return str(c.get("text", "")) == "Resistors turn electrical energy into heat. That's how toasters work!")
+	assert_eq(heat_cards.size(), 1, "Lesson 8 says it as written")
 
 
 ## Checkpoint B (C3, M1): history stated exactly.
@@ -464,11 +467,18 @@ func test_course_lessons_complete() -> void:
 			assert_eq(s.phase, "try", id)
 			# Try it marks each switch case it sees (Lessons 5 and 6), as the game does.
 			var flags := {}
+			var last: Circuit = l.try_circuit
 			for c in [l.try_circuit] + l.try_path:
 				var row := TruthRows.row(Simulator.simulate(c).circuit)
 				if row >= 0:
 					flags["row:%d" % row] = true
 				LevelSession.update(s, l, _ctx(c, "editor", {}, flags.duplicate()))
+				last = c
+			# Lesson 9's button: the electrons' way, then the current's way again.
+			if TryPanel._wants_flow(l):
+				for flag in ["did:electron_flow", "did:current_flow"]:
+					flags[flag] = true
+					LevelSession.update(s, l, _ctx(last, "editor", {}, flags.duplicate()))
 			assert_true(s.poke_done.all(func(d: bool) -> bool: return d), "%s: the try path ticks every poke: %s" % [id, s.poke_done])
 
 
@@ -484,3 +494,21 @@ func test_l5_truth_table_try() -> void:
 			rows[row] = TruthRows.lit(out.circuit, out.result)
 	assert_eq(rows.size(), 4, "every case: %s" % [rows])
 	assert_eq(rows, {0: false, 1: false, 2: false, 3: true})
+
+
+## Every Chapter 1 lesson is a course lesson.
+func test_all_lessons_course_ready() -> void:
+	assert_eq(PackedStringArray(COURSE_READY), Levels.chapter_ids("ch1"))
+
+
+## Lesson 8's numbers, checked against the simulator: 220 Ω across the
+## battery makes about 0.11 W, and 47 Ω about 0.51 W.
+func test_l8_power_figures_match_the_simulator() -> void:
+	for case in [[220.0, 0.1126], [47.0, 0.5100]]:
+		var c := Circuit.new()
+		c.parts.append(Part.make("B1", "battery", -6, 0))
+		c.parts.append(Part.make("R1", "resistor", -2, 0, 90, {"ohms": case[0], "watts": 1.0}, false))
+		c = CircuitEdits.add_wire(c, "B1", "pos", "R1", "a")
+		c = CircuitEdits.add_wire(c, "R1", "b", "B1", "neg")
+		var out := Simulator.simulate(c)
+		assert_near(float(out.result.part_watts["R1"]), float(case[1]), 0.002, "%d Ω" % case[0])

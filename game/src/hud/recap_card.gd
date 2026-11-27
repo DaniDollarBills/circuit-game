@@ -148,15 +148,26 @@ func _add_question(qi: int, q: Dictionary) -> void:
 	var prompt := HudText.label(game, 16)
 	HudText.put(prompt, str(q["prompt"]), game, true)
 	box.add_child(prompt)
-	var choices := HFlowContainer.new()
-	choices.add_theme_constant_override("h_separation", 8)
-	choices.add_theme_constant_override("v_separation", 8)
-	box.add_child(choices)
 	var answers: Array = q["choices"]
+	# Short answers share rows; when one is long, each gets a full row and its
+	# words wrap, so the card never grows past a phone's width.
+	var long := answers.any(func(ch: Dictionary) -> bool: return str(ch["text"]).length() > 24)
+	var choices: Container
+	if long:
+		choices = VBoxContainer.new()
+		choices.add_theme_constant_override("separation", 8)
+	else:
+		choices = HFlowContainer.new()
+		choices.add_theme_constant_override("h_separation", 8)
+		choices.add_theme_constant_override("v_separation", 8)
+	box.add_child(choices)
 	for ci in answers.size():
 		var b := Button.new()
 		b.text = str(answers[ci]["text"])
 		b.custom_minimum_size = Vector2(0, IconButton.MIN_TOUCH)
+		if long:
+			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.pressed.connect(choose.bind(qi, ci))
 		choices.add_child(b)
 	var why := HudText.label(game, 15)

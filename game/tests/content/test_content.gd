@@ -7,6 +7,8 @@ const CH1_TITLES := ["Your workbench", "Light it up", "Pop!", "Push and flow", "
 const LAYERS := ["editor", "wire.closeup", "wire.copper"]
 const FORMULAS := ["led_resistor", "ohms_law", "power"]
 const MOODS := ["happy", "curious", "wow", "oops"]
+## Lessons rewritten as full course lessons so far.
+const COURSE_READY := ["ch1.workbench", "ch1.light-it-up"]
 
 
 func _ctx(c: Circuit, layer := "editor", seen := {}, flags := {}) -> Dictionary:
@@ -411,3 +413,25 @@ func test_every_recap_template_resolves() -> void:
 		for point in l.recap:
 			var filled := RecapText.fill(point, out.circuit, out.result)
 			assert_false("—" in filled or "{" in filled, "%s: %s → %s" % [l.id, point, filled])
+
+
+## A course lesson has it all: two or three learn goals, a real deck, a Try
+## it whose path ticks every poke in order, a why on every step, three recap
+## points and one or two questions.
+func test_course_lessons_complete() -> void:
+	for id in COURSE_READY:
+		var l := Levels.by_id(id)
+		assert_between(l.learn_goals.size(), 2, 3, id + ": learn goals")
+		assert_true(l.learn.size() >= 5, id + ": a deck of at least 5 cards")
+		assert_true(l.has_try() or l.kind == "tutorial", id + ": a Try it")
+		for st in l.steps:
+			assert_true(str(st.get("why", "")) != "", "%s: no why for '%s'" % [id, st["text"]])
+		assert_eq(l.recap.size(), 3, id + ": recap points")
+		assert_between(l.questions.size(), 1, 2, id + ": questions")
+		if l.has_try():
+			var s := LevelSession.start(l, true)
+			LevelSession.skip_learn(s, l)
+			assert_eq(s.phase, "try", id)
+			for c in [l.try_circuit] + l.try_path:
+				LevelSession.update(s, l, _ctx(c))
+			assert_true(s.poke_done.all(func(d: bool) -> bool: return d), "%s: the try path ticks every poke: %s" % [id, s.poke_done])

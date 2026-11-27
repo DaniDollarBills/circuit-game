@@ -158,13 +158,21 @@ func test_next_and_back_walk_the_lesson() -> void:
 	assert_eq(game.state.session.card_index, 0)
 
 
-func test_skip_goes_to_build() -> void:
+func test_skip_goes_to_try_or_build() -> void:
 	var game := _game()
 	var s := await _screen("ch1.light-it-up", game)
 	s.deck.skip_button().pressed.emit()
 	await wait_frames(2)
-	assert_eq(game.state.session.phase, "build")
+	assert_eq(game.state.session.phase, "try", "Lesson 1 has a Try it")
 	assert_false(s.deck.visible)
+	var game2 := _game()
+	game2.state.progress.completed["ch1.workbench"] = {"star": false, "at": 1}
+	var s2 := await _screen("ch1.workbench", game2)
+	game2.reopen_lesson()
+	await wait_frames(1)
+	s2.deck.skip_button().pressed.emit()
+	await wait_frames(2)
+	assert_eq(game2.state.session.phase, "build", "Lesson 0 has none")
 
 
 func test_lesson_button_reopens_deck() -> void:
@@ -172,6 +180,9 @@ func test_lesson_button_reopens_deck() -> void:
 	var s := await _screen("ch1.light-it-up", game)
 	assert_false(s.lesson_button.visible, "not while the lesson is showing")
 	s.deck.skip_button().pressed.emit()
+	await wait_frames(2)
+	assert_false(s.lesson_button.visible, "nor while trying")
+	s.try_panel.ready_button().pressed.emit()
 	await wait_frames(2)
 	assert_true(s.lesson_button.visible)
 	s.lesson_button.pressed.emit()

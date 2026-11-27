@@ -113,6 +113,7 @@ func test_recap_shown_after_a_pass() -> void:
 	host.add_child(s)
 	await wait_frames(3)
 	game.skip_learn()
+	game.finish_try()
 	game.state.progress.parts_seen = {"battery": 1, "resistor": 1, "led": 1}
 	game.commit(game.state.level.solution.copy())
 	await wait_frames(3)

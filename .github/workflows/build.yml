@@ -8,6 +8,9 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+  # A release published on GitHub's website: build it and attach the downloads.
+  release:
+    types: [published]
 
 permissions:
   contents: read

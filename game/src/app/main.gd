@@ -120,6 +120,8 @@ func _show_toast(text: String) -> void:
 
 func _place_toast() -> void:
 	var w := minf(size.x - 32.0, 560.0)
+	_toast_label.custom_minimum_size = Vector2(w - 32.0, 0)
 	_toast.custom_minimum_size = Vector2(w, 0)
+	_toast.size = Vector2(w, 0)
 	_toast.reset_size()
 	_toast.position = Vector2((size.x - w) / 2.0, 24.0)

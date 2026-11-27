@@ -57,6 +57,19 @@ async function main() {
   const manifest = JSON.parse(await readFile(MANIFEST, "utf8"));
   let failed = false;
   for (const entry of manifest) {
+    if (entry.generator) {
+      // Built locally by a tool; only check what is on disk.
+      for (const file of entry.files) {
+        const existing = await readOrNull(path.join(GAME, file.path));
+        if (existing && digest("sha256", existing) === file.sha256) {
+          console.log(`verified ${file.path} (generated)`);
+        } else {
+          console.error(`MISSING ${file.path}: run node ${entry.generator}`);
+          failed = true;
+        }
+      }
+      continue;
+    }
     const listing = entry.source === "polyhaven"
       ? await (await get(`https://api.polyhaven.com/files/${entry.id}`)).json()
       : null;

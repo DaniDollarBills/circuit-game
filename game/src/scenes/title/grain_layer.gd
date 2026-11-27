@@ -51,7 +51,7 @@ func build() -> void:
 	quartz.clearcoat_enabled = true
 	quartz.clearcoat = 0.5
 	quartz.clearcoat_roughness = 0.35
-	quartz.specular = 0.6
+	quartz.metallic_specular = 0.6
 	quartz.rim_enabled = true
 	quartz.rim = 0.35
 	quartz.refraction_enabled = true

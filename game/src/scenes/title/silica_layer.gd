@@ -105,7 +105,7 @@ static func _glossy(c: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
 	m.roughness = 0.28
-	m.specular = 0.7
+	m.metallic_specular = 0.7
 	return m
 
 

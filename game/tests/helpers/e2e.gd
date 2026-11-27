@@ -171,6 +171,8 @@ func skip_intro(s: LevelScreen) -> void:
 ## Taps away any New word card covering `at` (each tap opens the glossary,
 ## which is then closed).
 func clear_cards_at(s: LevelScreen, points: Array) -> void:
+	# Let any card finish sliding in first, so its final place is known.
+	await seconds(NewWordCard.SLIDE_S + 0.1)
 	for i in 20:
 		var covering: NewWordCard = null
 		for c in s.visible_word_cards():

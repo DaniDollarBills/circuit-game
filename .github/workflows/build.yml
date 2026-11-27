@@ -1,0 +1,105 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: .tools
+          key: godot-4.7.2-stable
+      - name: Run the tests (Godot is downloaded and SHA-512 checked by tools/godot.sh)
+        run: tools/test.sh
+
+  export:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: .tools
+          key: godot-4.7.2-stable
+      - name: Cache export templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates/4.7.2.stable
+          key: godot-templates-4.7.2
+      - name: Export every platform (templates are SHA-512 checked by tools/export.sh)
+        run: tools/export.sh all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Circuit-linux
+          path: build/dist/Circuit-linux.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Circuit-windows
+          path: build/dist/Circuit-windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Circuit-macos
+          path: build/dist/Circuit-macos.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Circuit-web
+          path: build/web
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: export
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Circuit-*
+          path: build/artifacts
+      - name: Collect the zips
+        run: |
+          mkdir -p build/dist
+          for p in linux windows macos; do cp "build/artifacts/Circuit-$p/Circuit-$p.zip" build/dist/; done
+          (cd build/artifacts/Circuit-web && zip -q -r ../../dist/Circuit-web.zip .)
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" build/dist/*.zip --title "Circuit $GITHUB_REF_NAME" --notes-file docs/release-notes.md
+
+  pages:
+    if: github.ref == 'refs/heads/main' && vars.PAGES_ENABLED == 'true'
+    needs: export
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Circuit-web
+          path: build/web
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+      - id: deploy
+        uses: actions/deploy-pages@v4

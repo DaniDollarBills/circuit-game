@@ -47,6 +47,12 @@ jobs:
           path: ~/.local/share/godot/export_templates/4.7.2.stable
           key: godot-templates-4.7.2
       - name: Export every platform (templates are SHA-512 checked by tools/export.sh)
+        # Android uses the runner's Android SDK (ANDROID_HOME). Without these
+        # secrets the app is signed with a debug key made for this build.
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: tools/export.sh all
       - name: Check every download carries its licenses and credits
         run: tools/check_dist.sh
@@ -66,6 +72,10 @@ jobs:
         with:
           name: Circuit-web
           path: build/web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Circuit-android
+          path: build/dist/Circuit-android.apk
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -84,11 +94,12 @@ jobs:
         run: |
           mkdir -p build/dist
           for p in linux windows macos; do cp "build/artifacts/Circuit-$p/Circuit-$p.zip" build/dist/; done
+          cp build/artifacts/Circuit-android/Circuit-android.apk build/dist/
           (cd build/artifacts/Circuit-web && zip -q -r ../../dist/Circuit-web.zip .)
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" build/dist/*.zip --title "Circuit $GITHUB_REF_NAME" --notes-file docs/release-notes.md
+        run: gh release create "$GITHUB_REF_NAME" build/dist/*.zip build/dist/*.apk --title "Circuit $GITHUB_REF_NAME" --notes-file docs/release-notes.md
 
   pages:
     if: github.ref == 'refs/heads/main' && vars.PAGES_ENABLED == 'true'
